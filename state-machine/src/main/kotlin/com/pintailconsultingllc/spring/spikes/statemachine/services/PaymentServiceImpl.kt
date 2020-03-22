@@ -16,7 +16,8 @@ const val PAYMENT_ID_HEADER_KEY = "payment_id"
 @Service
 class PaymentServiceImpl(
         val paymentRepository: PaymentRepository,
-        val stateMachineFactory: StateMachineFactory<PaymentState, PaymentEvent>
+        val stateMachineFactory: StateMachineFactory<PaymentState, PaymentEvent>,
+        val paymentStateChangeInterceptor: PaymentStateChangeInterceptor
 ) : PaymentService {
 
     override fun newPayment(payment: Payment): Payment {
@@ -60,6 +61,7 @@ class PaymentServiceImpl(
         val stateMachine = stateMachineFactory.getStateMachine(paymentId.toString())
         stateMachine.stop()
         stateMachine.stateMachineAccessor.doWithAllRegions { stateMachineAccess ->
+            stateMachineAccess.addStateMachineInterceptor(paymentStateChangeInterceptor)
             val context = DefaultStateMachineContext<PaymentState, PaymentEvent>(payment.state, null, null, null)
             stateMachineAccess.resetStateMachine(context)
         }
