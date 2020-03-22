@@ -7,7 +7,8 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.statemachine.config.EnableStateMachineFactory
 import org.springframework.statemachine.config.StateMachineConfigurerAdapter
 import org.springframework.statemachine.config.builders.StateMachineStateConfigurer
-import java.util.EnumSet
+import org.springframework.statemachine.config.builders.StateMachineTransitionConfigurer
+import java.util.*
 
 private val logger = KotlinLogging.logger {}
 
@@ -25,5 +26,13 @@ class StateMachineConfiguration : StateMachineConfigurerAdapter<PaymentState, Pa
                 .end(PaymentState.AUTH)
                 .end(PaymentState.AUTH_ERROR)
                 .end(PaymentState.PRE_AUTH_ERROR)
+    }
+
+    override fun configure(transitions: StateMachineTransitionConfigurer<PaymentState, PaymentEvent>) {
+        transitions.withExternal().source(PaymentState.NEW).target(PaymentState.NEW).event(PaymentEvent.PRE_AUTHORIZE)
+                .and()
+                .withExternal().source(PaymentState.NEW).target(PaymentState.PRE_AUTH).event(PaymentEvent.PRE_AUTH_APPROVED)
+                .and()
+                .withExternal().source(PaymentState.NEW).target(PaymentState.PRE_AUTH_ERROR).event(PaymentEvent.PRE_AUTH_DECLINED)
     }
 }
