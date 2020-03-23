@@ -10,6 +10,7 @@ import org.springframework.statemachine.StateMachine
 import org.springframework.statemachine.config.StateMachineFactory
 import org.springframework.statemachine.support.DefaultStateMachineContext
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
 const val PAYMENT_ID_HEADER_KEY = "payment_id"
 
@@ -20,33 +21,38 @@ class PaymentServiceImpl(
         val paymentStateChangeInterceptor: PaymentStateChangeInterceptor
 ) : PaymentService {
 
+    @Transactional
     override fun newPayment(payment: Payment): Payment {
         payment.state = PaymentState.NEW
         return paymentRepository.save(payment)
     }
 
+    @Transactional
     override fun preAuthorizePayment(paymentId: Long): StateMachine<PaymentState, PaymentEvent> {
         val stateMachine = build(paymentId)
-        sendEvent(paymentId, stateMachine, PaymentEvent.PRE_AUTHORIZE)
-        TODO("Not yet implemented")
+        sendEvent(paymentId, stateMachine, PaymentEvent.PRE_AUTH_APPROVED)
+        return stateMachine
     }
 
+    @Transactional
     override fun authorizePayment(paymentId: Long): StateMachine<PaymentState, PaymentEvent> {
         val stateMachine = build(paymentId)
         sendEvent(paymentId, stateMachine, PaymentEvent.AUTHORIZE)
-        TODO("Not yet implemented")
+        return stateMachine
     }
 
+    @Transactional
     override fun declineAuth(paymentId: Long): StateMachine<PaymentState, PaymentEvent> {
         val stateMachine = build(paymentId)
         sendEvent(paymentId, stateMachine, PaymentEvent.AUTH_DECLINED)
-        TODO("Not yet implemented")
+        return stateMachine
     }
 
+    @Transactional
     override fun approveAuth(paymentId: Long): StateMachine<PaymentState, PaymentEvent> {
         val stateMachine = build(paymentId)
         sendEvent(paymentId, stateMachine, PaymentEvent.AUTH_APPROVED)
-        TODO("Not yet implemented")
+        return stateMachine
     }
 
     private fun sendEvent(paymentId: Long, stateMachine: StateMachine<PaymentState, PaymentEvent>, event: PaymentEvent) {
