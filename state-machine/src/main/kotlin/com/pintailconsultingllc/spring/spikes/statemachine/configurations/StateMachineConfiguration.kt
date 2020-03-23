@@ -12,6 +12,7 @@ import org.springframework.statemachine.config.StateMachineConfigurerAdapter
 import org.springframework.statemachine.config.builders.StateMachineConfigurationConfigurer
 import org.springframework.statemachine.config.builders.StateMachineStateConfigurer
 import org.springframework.statemachine.config.builders.StateMachineTransitionConfigurer
+import org.springframework.statemachine.guard.Guard
 import org.springframework.statemachine.listener.StateMachineListenerAdapter
 import org.springframework.statemachine.state.State
 import java.util.*
@@ -36,13 +37,13 @@ class StateMachineConfiguration : StateMachineConfigurerAdapter<PaymentState, Pa
 
     override fun configure(transitions: StateMachineTransitionConfigurer<PaymentState, PaymentEvent>) {
         transitions
-                .withExternal().source(PaymentState.NEW).target(PaymentState.NEW).event(PaymentEvent.PRE_AUTHORIZE).action(preAuthAction())
+                .withExternal().source(PaymentState.NEW).target(PaymentState.NEW).event(PaymentEvent.PRE_AUTHORIZE).action(preAuthAction()).guard(paymentIdGuard())
                 .and()
                 .withExternal().source(PaymentState.NEW).target(PaymentState.PRE_AUTH).event(PaymentEvent.PRE_AUTH_APPROVED)
                 .and()
                 .withExternal().source(PaymentState.NEW).target(PaymentState.PRE_AUTH_ERROR).event(PaymentEvent.PRE_AUTH_DECLINED)
                 .and()
-                .withExternal().source(PaymentState.PRE_AUTH).target(PaymentState.PRE_AUTH).event(PaymentEvent.AUTHORIZE).action(authAction())
+                .withExternal().source(PaymentState.PRE_AUTH).target(PaymentState.PRE_AUTH).event(PaymentEvent.AUTHORIZE).action(authAction()).guard(paymentIdGuard())
                 .and()
                 .withExternal().source(PaymentState.PRE_AUTH).target(PaymentState.AUTH).event(PaymentEvent.AUTH_APPROVED)
                 .and()
@@ -57,6 +58,13 @@ class StateMachineConfiguration : StateMachineConfigurerAdapter<PaymentState, Pa
         }
         config.withConfiguration()
                 .listener(stateMachineListener)
+    }
+
+    /**
+     * Example of a guard.
+     */
+    fun paymentIdGuard(): Guard<PaymentState, PaymentEvent> {
+        return Guard<PaymentState, PaymentEvent> { context -> context.getMessageHeader(PAYMENT_ID_HEADER_KEY) != null }
     }
 
     fun preAuthAction(): Action<PaymentState, PaymentEvent> {
