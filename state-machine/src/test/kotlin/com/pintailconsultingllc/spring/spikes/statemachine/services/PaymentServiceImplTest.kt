@@ -33,7 +33,8 @@ class PaymentServiceImplTest @Autowired constructor(
 
     @Test
     fun preAuthorizePayment() {
-        val savedPayment = paymentService.newPayment(payment)
+        payment.state = PaymentState.NEW
+        val savedPayment = paymentRepository.save(payment)
 
         paymentService.preAuthorizePayment(savedPayment.id!!)
 
@@ -41,15 +42,14 @@ class PaymentServiceImplTest @Autowired constructor(
         assertEquals(PaymentState.PRE_AUTH, verifyPayment.state)
     }
 
-//    @Test
-//    fun authorizePayment() {
-//    }
-//
-//    @Test
-//    fun declineAuth() {
-//    }
-//
-//    @Test
-//    fun approveAuth() {
-//    }
+    @Test
+    fun authorizePayment() {
+        payment.state = PaymentState.PRE_AUTH
+        val savedPayment = paymentRepository.save(payment)
+
+        paymentService.authorizePayment(savedPayment.id!!)
+
+        val verifyPayment = paymentRepository.getOne(savedPayment.id!!)
+        assertEquals(PaymentState.AUTH, verifyPayment.state)
+    }
 }

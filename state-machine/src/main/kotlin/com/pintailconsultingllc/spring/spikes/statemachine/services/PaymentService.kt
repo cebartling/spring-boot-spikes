@@ -9,6 +9,6 @@ interface PaymentService {
     fun newPayment(payment: Payment): Payment
     fun preAuthorizePayment(paymentId: Long): StateMachine<PaymentState, PaymentEvent>
     fun authorizePayment(paymentId: Long): StateMachine<PaymentState, PaymentEvent>
-    fun declineAuth(paymentId: Long): StateMachine<PaymentState, PaymentEvent>
-    fun approveAuth(paymentId: Long): StateMachine<PaymentState, PaymentEvent>
+//    fun declineAuth(paymentId: Long): StateMachine<PaymentState, PaymentEvent>
+//    fun approveAuth(paymentId: Long): StateMachine<PaymentState, PaymentEvent>
 }

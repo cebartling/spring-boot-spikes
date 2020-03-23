@@ -30,7 +30,7 @@ class PaymentServiceImpl(
     @Transactional
     override fun preAuthorizePayment(paymentId: Long): StateMachine<PaymentState, PaymentEvent> {
         val stateMachine = build(paymentId)
-        sendEvent(paymentId, stateMachine, PaymentEvent.PRE_AUTH_APPROVED)
+        sendEvent(paymentId, stateMachine, PaymentEvent.PRE_AUTHORIZE)
         return stateMachine
     }
 
@@ -41,19 +41,19 @@ class PaymentServiceImpl(
         return stateMachine
     }
 
-    @Transactional
-    override fun declineAuth(paymentId: Long): StateMachine<PaymentState, PaymentEvent> {
-        val stateMachine = build(paymentId)
-        sendEvent(paymentId, stateMachine, PaymentEvent.AUTH_DECLINED)
-        return stateMachine
-    }
-
-    @Transactional
-    override fun approveAuth(paymentId: Long): StateMachine<PaymentState, PaymentEvent> {
-        val stateMachine = build(paymentId)
-        sendEvent(paymentId, stateMachine, PaymentEvent.AUTH_APPROVED)
-        return stateMachine
-    }
+//    @Transactional
+//    override fun declineAuth(paymentId: Long): StateMachine<PaymentState, PaymentEvent> {
+//        val stateMachine = build(paymentId)
+//        sendEvent(paymentId, stateMachine, PaymentEvent.AUTH_DECLINED)
+//        return stateMachine
+//    }
+//
+//    @Transactional
+//    override fun approveAuth(paymentId: Long): StateMachine<PaymentState, PaymentEvent> {
+//        val stateMachine = build(paymentId)
+//        sendEvent(paymentId, stateMachine, PaymentEvent.AUTH_APPROVED)
+//        return stateMachine
+//    }
 
     private fun sendEvent(paymentId: Long, stateMachine: StateMachine<PaymentState, PaymentEvent>, event: PaymentEvent) {
         val message: Message<PaymentEvent> = MessageBuilder.withPayload(event)
