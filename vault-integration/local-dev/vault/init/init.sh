@@ -155,7 +155,7 @@ main() {
   elif [ -n "$KNOWN_ROOT_TOKEN" ]; then
     echo "Root token (from KNOWN_ROOT_TOKEN env)"
   fi
-  echo "Visit UI at ${VAULT_ADDR/\/vault/http://localhost}:8200"
+  echo "Visit UI at http://localhost:8200"
 }
 
 main
