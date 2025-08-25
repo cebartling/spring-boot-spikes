@@ -38,3 +38,7 @@ out/
 
 ### Kotlin ###
 .kotlin
+
+
+/local-dev/vault/file/spring-app-role-id.txt
+/local-dev/vault/file/spring-app-secret-id.txt
