@@ -130,10 +130,17 @@ Product Catalog:
 - `categories` - Product categories with hierarchical parent-child relationships (25 categories)
 - `products` - Product catalog with SKU, pricing, inventory, and JSONB metadata (51 products seeded)
 
+Inventory Management:
+- `inventory_locations` - Warehouses, stores, distribution centers (4 locations seeded)
+- `inventory_stock` - Current stock levels per product per location with automatic availability calculation
+- `inventory_transactions` - All inventory movements (receipts, shipments, adjustments, transfers)
+- `inventory_reservations` - Reserved stock for orders with expiration tracking
+
 SQL scripts in `docker/init-scripts/` are executed alphabetically during first startup:
 - `01-init-schema.sql` - Creates resiliency tracking tables
 - `02-product-catalog-schema.sql` - Creates product catalog tables and indexes
 - `03-product-catalog-seed-data.sql` - Seeds comprehensive product data across multiple categories
+- `04-inventory-schema.sql` - Creates inventory tables with triggers and sample data
 
 The init container waits for PostgreSQL to be healthy before running scripts and exits after completion (restart: "no").
 
@@ -202,6 +209,12 @@ Product Catalog:
 - `Category` - Product categories with hierarchical parent-child relationships
 - `Product` - Products with SKU, pricing, stock quantity, and JSONB metadata
 
+Inventory Management:
+- `InventoryLocation` - Physical/logical locations (warehouses, stores, distribution centers)
+- `InventoryStock` - Stock levels per product per location with automatic availability calculation
+- `InventoryTransaction` - Audit trail of all inventory movements
+- `InventoryReservation` - Reserved stock with expiration and status tracking
+
 **Repository Interfaces:**
 All repositories extend `ReactiveCrudRepository` and return reactive types:
 
@@ -214,6 +227,12 @@ Product Catalog:
 - `CategoryRepository` - Find by name, parent, active status; support hierarchical queries; search by name
 - `ProductRepository` - Find by SKU, category, price range; search by name; low stock queries; complex filtering
 
+Inventory Management:
+- `InventoryLocationRepository` - Find by code, type, location; search locations
+- `InventoryStockRepository` - Find by product/location; low stock alerts; availability checks; aggregate quantities
+- `InventoryTransactionRepository` - Find by product/location/type/date; transaction history
+- `InventoryReservationRepository` - Find by product/location/status; expired reservations; aggregate reserved quantities
+
 **Service Classes:**
 All services use reactive repositories and return `Mono<T>` or `Flux<T>`:
 
@@ -223,6 +242,10 @@ Resiliency Tracking:
 Product Catalog:
 - `CategoryService` - CRUD operations, hierarchical category management, soft delete
 - `ProductService` - CRUD operations, stock management, product filtering/searching, soft delete
+
+Inventory Management:
+- `InventoryLocationService` - CRUD operations, location filtering by type, activate/deactivate
+- `InventoryStockService` - Stock level management, adjustments, reservations, availability checks, low stock alerts
 
 ### Secrets Management with Vault
 
