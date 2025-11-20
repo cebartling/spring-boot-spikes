@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  pulsar:
+    image: apachepulsar/pulsar:3.3.2
+    container_name: resiliency-spike-pulsar
+    command: bin/pulsar standalone
+    ports:
+      - "6650:6650"   # Pulsar broker port
+      - "8080:8080"   # Pulsar admin/HTTP port
+    environment:
+      - PULSAR_MEM=-Xms512m -Xmx512m -XX:MaxDirectMemorySize=256m
+    healthcheck:
+      test: ["CMD", "bin/pulsar-admin", "brokers", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    volumes:
+      - pulsar-data:/pulsar/data
+    networks:
+      - resiliency-spike-network
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: resiliency-spike-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=resiliency_spike
+      - POSTGRES_USER=resiliency_user
+      - POSTGRES_PASSWORD=resiliency_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U resiliency_user -d resiliency_spike"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - resiliency-spike-network
+
+volumes:
+  pulsar-data:
+    driver: local
+  postgres-data:
+    driver: local
+
+networks:
+  resiliency-spike-network:
+    driver: bridge
