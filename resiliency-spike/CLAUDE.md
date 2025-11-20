@@ -186,6 +186,27 @@ Database connection configured in `application.properties`:
 - Connection pooling enabled (10 initial, 20 max connections)
 - All operations are non-blocking and return `Mono<T>` or `Flux<T>`
 
+## Testing
+
+The project includes comprehensive unit tests using JUnit 5, Mockito, and Reactor Test.
+
+**Test Structure:**
+- `src/test/kotlin/fixtures/` - Test data fixtures and helper utilities
+- `src/test/kotlin/service/` - Service layer unit tests with MockitoExtension
+- `src/test/kotlin/repository/` - Repository unit tests with mocked dependencies
+
+**Testing Dependencies:**
+- `mockito-kotlin` - Kotlin-friendly Mockito DSL
+- `mockito-junit-jupiter` - Mockito JUnit 5 integration
+- `reactor-test` - StepVerifier for testing reactive streams
+- `kotlin-test-junit5` - Kotlin test assertions
+
+**Test Patterns:**
+- All tests use `@ExtendWith(MockitoExtension::class)` for dependency mocking
+- Use `@DisplayName` annotations for clear test descriptions
+- Reactive assertions with `StepVerifier` from reactor-test
+- Test fixtures in `TestFixtures` object for consistent test data
+
 ## Development Notes
 
 When adding new features or making changes:
@@ -194,5 +215,5 @@ When adding new features or making changes:
 2. **Database Access:** All database operations are reactive - repositories return `Mono<T>` for single results or `Flux<T>` for streams
 3. **Kotlin Coroutines:** The project supports coroutines with reactor integration
 4. **Circuit Breaker:** Use Spring Cloud Circuit Breaker annotations/configurations for resilience patterns
-5. **Testing:** Write reactive tests using `reactor-test` StepVerifier for Mono/Flux testing
+5. **Testing:** Write unit tests with MockitoExtension and use `StepVerifier` for reactive assertions
 6. **Entity Mapping:** R2DBC uses `@Table` and `@Column` annotations (not JPA's `@Entity`)

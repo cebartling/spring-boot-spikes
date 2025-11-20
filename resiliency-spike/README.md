@@ -91,8 +91,14 @@ To modify the schema:
 # Run all tests
 ./gradlew test
 
-# Run a specific test
-./gradlew test --tests "com.pintailconsultingllc.resiliencyspike.ResiliencySpikeApplicationTests"
+# Run a specific test class
+./gradlew test --tests "com.pintailconsultingllc.resiliencyspike.service.ResilienceEventServiceTest"
+
+# Run a specific test method
+./gradlew test --tests "com.pintailconsultingllc.resiliencyspike.service.ResilienceEventServiceTest.shouldSaveResilienceEventSuccessfully"
+
+# Run tests with detailed output
+./gradlew test --info
 
 # Clean build
 ./gradlew clean build
@@ -150,11 +156,33 @@ All repositories return `Mono<T>` or `Flux<T>` for non-blocking database operati
 - `CircuitBreakerStateRepository` - Manage circuit breaker state
 - `RateLimiterMetricsRepository` - Track rate limiter metrics over time
 
+## Testing
+
+The project includes comprehensive unit tests with 44+ test cases covering:
+- Service layer logic (ResilienceEventService)
+- Repository operations (all three repositories)
+- Edge cases and error handling
+
+**Testing Stack:**
+- JUnit 5 with MockitoExtension
+- Mockito Kotlin for mocking
+- Reactor Test (StepVerifier) for reactive assertions
+- Custom test fixtures for consistent test data
+
+**Test Coverage:**
+- `ResilienceEventServiceTest` - 11 test cases
+- `ResilienceEventRepositoryTest` - 11 test cases
+- `CircuitBreakerStateRepositoryTest` - 11 test cases
+- `RateLimiterMetricsRepositoryTest` - 11 test cases
+
+All tests use `@DisplayName` annotations for clear test descriptions.
+
 ## Development Notes
 
 - All HTTP operations should use `Mono<T>` or `Flux<T>` return types
 - All database operations are reactive - repositories return `Mono<T>` or `Flux<T>`
 - Use `reactor-test` and `StepVerifier` for testing reactive streams
+- Write unit tests with MockitoExtension and descriptive @DisplayName annotations
 - Leverage Kotlin coroutines with `kotlinx-coroutines-reactor` for cleaner async code
 - Circuit breaker metrics available through Actuator endpoints
 - R2DBC entities use `@Table` and `@Column` annotations (not JPA's `@Entity`)
