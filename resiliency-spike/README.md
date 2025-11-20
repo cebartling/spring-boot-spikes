@@ -36,6 +36,7 @@ This project demonstrates reactive programming patterns with circuit breakers, r
    This starts:
    - **Apache Pulsar** on ports 6650 (broker) and 8080 (admin)
    - **PostgreSQL** on port 5432
+   - **Database Init Container** (one-shot) to initialize the schema
 
 2. **Verify services are healthy:**
    ```bash
@@ -66,6 +67,19 @@ This project demonstrates reactive programming patterns with circuit breakers, r
 - **Username:** `resiliency_user`
 - **Password:** `resiliency_password`
 - **Data:** Persisted in `postgres-data` volume
+- **Schema Initialization:** Automatic via one-shot init container
+
+#### Database Schema
+The database schema is automatically initialized on first startup by the `db-init` container. SQL scripts in `docker/init-scripts/` are executed in alphabetical order.
+
+**Initialized Tables:**
+- `resilience_events` - Tracks resilience events (circuit breaker, rate limiter, etc.)
+- `circuit_breaker_state` - Stores circuit breaker state and metrics
+- `rate_limiter_metrics` - Rate limiter statistics
+
+To modify the schema:
+1. Add or edit SQL files in `docker/init-scripts/`
+2. Restart with clean volumes: `docker-compose down -v && docker-compose up -d`
 
 ### Useful Commands
 
@@ -98,6 +112,7 @@ docker-compose logs -f
 # View logs for specific service
 docker-compose logs -f pulsar
 docker-compose logs -f postgres
+docker-compose logs db-init  # View schema initialization logs
 
 # Stop services
 docker-compose down

@@ -109,8 +109,16 @@ The project includes a Docker Compose configuration (`docker-compose.yml`) for l
 - Password: `resiliency_password`
 - Healthcheck: Runs every 10s using `pg_isready`
 - Data persisted in named volume `postgres-data`
+- Schema initialization: One-shot init container (`db-init`) runs SQL scripts from `docker/init-scripts/`
 
-Both services are connected via a custom bridge network (`resiliency-spike-network`) and include healthchecks to ensure they're ready before the application connects.
+**Database Schema (auto-initialized):**
+- `resilience_events` - Tracks resilience events (circuit breaker triggers, rate limiter actions, etc.)
+- `circuit_breaker_state` - Stores circuit breaker state and metrics (failure/success counts, state transitions)
+- `rate_limiter_metrics` - Rate limiter statistics per time window
+
+SQL scripts in `docker/init-scripts/` are executed alphabetically during first startup. The init container waits for PostgreSQL to be healthy before running scripts and exits after completion (restart: "no").
+
+All services are connected via a custom bridge network (`resiliency-spike-network`) and include healthchecks to ensure they're ready before the application connects.
 
 ## Code Architecture
 

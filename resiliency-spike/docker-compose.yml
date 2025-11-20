@@ -39,6 +39,38 @@ services:
     networks:
       - resiliency-spike-network
 
+  db-init:
+    image: postgres:18-alpine
+    container_name: resiliency-spike-db-init
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - PGHOST=postgres
+      - PGPORT=5432
+      - PGDATABASE=resiliency_spike
+      - PGUSER=resiliency_user
+      - PGPASSWORD=resiliency_password
+    volumes:
+      - ./docker/init-scripts:/docker-entrypoint-initdb.d:ro
+    networks:
+      - resiliency-spike-network
+    command: >
+      sh -c "
+        echo 'Waiting for PostgreSQL to be ready...';
+        until pg_isready -h postgres -U resiliency_user -d resiliency_spike; do
+          echo 'PostgreSQL is unavailable - sleeping';
+          sleep 2;
+        done;
+        echo 'PostgreSQL is up - initializing schema';
+        for file in /docker-entrypoint-initdb.d/*.sql; do
+          echo \"Executing $$file\";
+          psql -h postgres -U resiliency_user -d resiliency_spike -f \"$$file\";
+        done;
+        echo 'Schema initialization complete';
+      "
+    restart: "no"
+
 volumes:
   pulsar-data:
     driver: local
