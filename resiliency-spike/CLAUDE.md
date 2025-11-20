@@ -97,7 +97,7 @@ The project includes a Docker Compose configuration (`docker-compose.yml`) for l
 
 **Apache Pulsar (Standalone Mode):**
 - Broker port: `6650` - Used by application to connect to Pulsar
-- Admin/HTTP port: `8080` - Pulsar admin API and web console
+- Admin/HTTP port: `8081` - Pulsar admin API and web console (mapped from container port 8080 to avoid conflict with Spring Boot)
 - Healthcheck: Runs every 10s using `pulsar-admin brokers healthcheck`
 - Data persisted in named volume `pulsar-data`
 - Memory configured: 512MB heap, 256MB direct memory
@@ -112,11 +112,22 @@ The project includes a Docker Compose configuration (`docker-compose.yml`) for l
 - Schema initialization: One-shot init container (`db-init`) runs SQL scripts from `docker/init-scripts/`
 
 **Database Schema (auto-initialized):**
+
+Resiliency Tracking:
 - `resilience_events` - Tracks resilience events (circuit breaker triggers, rate limiter actions, etc.)
 - `circuit_breaker_state` - Stores circuit breaker state and metrics (failure/success counts, state transitions)
 - `rate_limiter_metrics` - Rate limiter statistics per time window
 
-SQL scripts in `docker/init-scripts/` are executed alphabetically during first startup. The init container waits for PostgreSQL to be healthy before running scripts and exits after completion (restart: "no").
+Product Catalog:
+- `categories` - Product categories with hierarchical parent-child relationships (25 categories)
+- `products` - Product catalog with SKU, pricing, inventory, and JSONB metadata (51 products seeded)
+
+SQL scripts in `docker/init-scripts/` are executed alphabetically during first startup:
+- `01-init-schema.sql` - Creates resiliency tracking tables
+- `02-product-catalog-schema.sql` - Creates product catalog tables and indexes
+- `03-product-catalog-seed-data.sql` - Seeds comprehensive product data across multiple categories
+
+The init container waits for PostgreSQL to be healthy before running scripts and exits after completion (restart: "no").
 
 All services are connected via a custom bridge network (`resiliency-spike-network`) and include healthchecks to ensure they're ready before the application connects.
 
@@ -128,8 +139,11 @@ The codebase follows a standard Spring Boot Kotlin structure under the base pack
 - `src/main/kotlin/` - Main application code
   - `domain/` - Entity classes (R2DBC entities)
   - `repository/` - Reactive repository interfaces
+  - `service/` - Service layer with business logic
 - `src/main/resources/` - Application properties and configuration
 - `src/test/kotlin/` - Test code
+  - `fixtures/` - Test data fixtures and helper utilities
+  - `service/` - Service layer unit tests
 - `docker/init-scripts/` - Database initialization SQL scripts
 
 ### Key Technologies and Patterns
@@ -169,15 +183,37 @@ Uses reactive database access with Spring Data R2DBC and PostgreSQL. All databas
 ### Domain Model
 
 **Entity Classes (R2DBC):**
+
+Resiliency Tracking:
 - `ResilienceEvent` - Tracks resilience events with metadata (JSONB)
 - `CircuitBreakerState` - Circuit breaker state and metrics
 - `RateLimiterMetrics` - Rate limiter statistics per time window
 
+Product Catalog:
+- `Category` - Product categories with hierarchical parent-child relationships
+- `Product` - Products with SKU, pricing, stock quantity, and JSONB metadata
+
 **Repository Interfaces:**
 All repositories extend `ReactiveCrudRepository` and return reactive types:
+
+Resiliency Tracking:
 - `ResilienceEventRepository` - Query events by type, name, status; find recent events
 - `CircuitBreakerStateRepository` - Find by name or state; query by failure threshold
 - `RateLimiterMetricsRepository` - Query by time range; find high rejection rates
+
+Product Catalog:
+- `CategoryRepository` - Find by name, parent, active status; support hierarchical queries; search by name
+- `ProductRepository` - Find by SKU, category, price range; search by name; low stock queries; complex filtering
+
+**Service Classes:**
+All services use reactive repositories and return `Mono<T>` or `Flux<T>`:
+
+Resiliency Tracking:
+- `ResilienceEventService` - Manage resilience events
+
+Product Catalog:
+- `CategoryService` - CRUD operations, hierarchical category management, soft delete
+- `ProductService` - CRUD operations, stock management, product filtering/searching, soft delete
 
 ### R2DBC Configuration
 
@@ -206,6 +242,13 @@ The project includes comprehensive unit tests using JUnit 5, Mockito, and Reacto
 - Use `@DisplayName` annotations for clear test descriptions
 - Reactive assertions with `StepVerifier` from reactor-test
 - Test fixtures in `TestFixtures` object for consistent test data
+
+**Test Coverage:**
+- `ResilienceEventServiceTest` - Comprehensive tests for resilience event operations
+- `CircuitBreakerStateServiceTest` - Tests for circuit breaker state management
+- `RateLimiterMetricsServiceTest` - Tests for rate limiter metrics
+- `ProductServiceTest` - 27 test cases covering all product operations
+- `CategoryServiceTest` - 24 test cases covering all category operations
 
 ## Development Notes
 

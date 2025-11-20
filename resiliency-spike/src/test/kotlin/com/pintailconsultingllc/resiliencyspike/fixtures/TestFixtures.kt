@@ -1,8 +1,11 @@
 package com.pintailconsultingllc.resiliencyspike.fixtures
 
+import com.pintailconsultingllc.resiliencyspike.domain.Category
 import com.pintailconsultingllc.resiliencyspike.domain.CircuitBreakerState
+import com.pintailconsultingllc.resiliencyspike.domain.Product
 import com.pintailconsultingllc.resiliencyspike.domain.RateLimiterMetrics
 import com.pintailconsultingllc.resiliencyspike.domain.ResilienceEvent
+import java.math.BigDecimal
 import java.time.OffsetDateTime
 import java.util.*
 
@@ -74,6 +77,54 @@ object TestFixtures {
             windowStart = windowStart,
             windowEnd = windowEnd,
             createdAt = createdAt
+        )
+    }
+
+    fun createCategory(
+        id: UUID? = UUID.randomUUID(),
+        name: String = "Test Category",
+        description: String? = "Test category description",
+        parentCategoryId: UUID? = null,
+        isActive: Boolean = true,
+        createdAt: OffsetDateTime = OffsetDateTime.now(),
+        updatedAt: OffsetDateTime = OffsetDateTime.now()
+    ): Category {
+        return Category(
+            id = id,
+            name = name,
+            description = description,
+            parentCategoryId = parentCategoryId,
+            isActive = isActive,
+            createdAt = createdAt,
+            updatedAt = updatedAt
+        )
+    }
+
+    fun createProduct(
+        id: UUID? = UUID.randomUUID(),
+        sku: String = "TEST-SKU-001",
+        name: String = "Test Product",
+        description: String? = "Test product description",
+        categoryId: UUID = UUID.randomUUID(),
+        price: BigDecimal = BigDecimal("99.99"),
+        stockQuantity: Int = 50,
+        isActive: Boolean = true,
+        metadata: String? = """{"brand": "TestBrand"}""",
+        createdAt: OffsetDateTime = OffsetDateTime.now(),
+        updatedAt: OffsetDateTime = OffsetDateTime.now()
+    ): Product {
+        return Product(
+            id = id,
+            sku = sku,
+            name = name,
+            description = description,
+            categoryId = categoryId,
+            price = price,
+            stockQuantity = stockQuantity,
+            isActive = isActive,
+            metadata = metadata,
+            createdAt = createdAt,
+            updatedAt = updatedAt
         )
     }
 }

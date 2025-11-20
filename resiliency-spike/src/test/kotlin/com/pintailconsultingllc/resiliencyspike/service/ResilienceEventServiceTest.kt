@@ -1,6 +1,5 @@
 package com.pintailconsultingllc.resiliencyspike.service
 
-import com.pintailconsultingllc.resiliencyspike.domain.ResilienceEvent
 import com.pintailconsultingllc.resiliencyspike.fixtures.TestFixtures
 import com.pintailconsultingllc.resiliencyspike.repository.ResilienceEventRepository
 import org.junit.jupiter.api.BeforeEach
