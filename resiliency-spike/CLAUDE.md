@@ -66,6 +66,52 @@ This is a Spring Boot spike project exploring resiliency patterns, built with Ko
 ./gradlew dependencies
 ```
 
+### Docker Compose (Local Development)
+```bash
+# Start all services (Pulsar + PostgreSQL)
+docker-compose up -d
+
+# View logs from all services
+docker-compose logs -f
+
+# View logs from specific service
+docker-compose logs -f pulsar
+docker-compose logs -f postgres
+
+# Check service health status
+docker-compose ps
+
+# Stop all services
+docker-compose down
+
+# Stop and remove volumes (clean slate)
+docker-compose down -v
+
+# Restart a specific service
+docker-compose restart pulsar
+```
+
+## Local Development Infrastructure
+
+The project includes a Docker Compose configuration (`docker-compose.yml`) for local development with the following services:
+
+**Apache Pulsar (Standalone Mode):**
+- Broker port: `6650` - Used by application to connect to Pulsar
+- Admin/HTTP port: `8080` - Pulsar admin API and web console
+- Healthcheck: Runs every 10s using `pulsar-admin brokers healthcheck`
+- Data persisted in named volume `pulsar-data`
+- Memory configured: 512MB heap, 256MB direct memory
+
+**PostgreSQL 18:**
+- Port: `5432`
+- Database: `resiliency_spike`
+- Username: `resiliency_user`
+- Password: `resiliency_password`
+- Healthcheck: Runs every 10s using `pg_isready`
+- Data persisted in named volume `postgres-data`
+
+Both services are connected via a custom bridge network (`resiliency-spike-network`) and include healthchecks to ensure they're ready before the application connects.
+
 ## Code Architecture
 
 ### Package Structure
