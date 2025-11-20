@@ -135,13 +135,36 @@ This is a fully **reactive application** using Spring WebFlux:
 - **Apache Pulsar** - Reactive messaging and event streaming
 - **Spring Boot Actuator** - Health checks, metrics, and monitoring endpoints
 - **WebFlux** - Reactive REST APIs
+- **Spring Data R2DBC** - Reactive database access with PostgreSQL
+
+### Data Layer
+
+**Entity Classes:**
+- `ResilienceEvent` - Tracks all resilience events (circuit breaker, rate limiter, etc.)
+- `CircuitBreakerState` - Stores circuit breaker state and metrics
+- `RateLimiterMetrics` - Rate limiter statistics per time window
+
+**Repositories (Reactive):**
+All repositories return `Mono<T>` or `Flux<T>` for non-blocking database operations:
+- `ResilienceEventRepository` - Query events by type, name, or status
+- `CircuitBreakerStateRepository` - Manage circuit breaker state
+- `RateLimiterMetricsRepository` - Track rate limiter metrics over time
 
 ## Development Notes
 
 - All HTTP operations should use `Mono<T>` or `Flux<T>` return types
+- All database operations are reactive - repositories return `Mono<T>` or `Flux<T>`
 - Use `reactor-test` and `StepVerifier` for testing reactive streams
 - Leverage Kotlin coroutines with `kotlinx-coroutines-reactor` for cleaner async code
 - Circuit breaker metrics available through Actuator endpoints
+- R2DBC entities use `@Table` and `@Column` annotations (not JPA's `@Entity`)
+
+### Database Configuration
+
+The application connects to PostgreSQL via R2DBC (reactive driver):
+- Connection URL: `r2dbc:postgresql://localhost:5432/resiliency_spike`
+- Connection pooling enabled (10-20 connections)
+- All database operations are non-blocking
 
 ## Resources
 

@@ -126,8 +126,11 @@ All services are connected via a custom bridge network (`resiliency-spike-networ
 The codebase follows a standard Spring Boot Kotlin structure under the base package `com.pintailconsultingllc.resiliencyspike`:
 
 - `src/main/kotlin/` - Main application code
+  - `domain/` - Entity classes (R2DBC entities)
+  - `repository/` - Reactive repository interfaces
 - `src/main/resources/` - Application properties and configuration
 - `src/test/kotlin/` - Test code
+- `docker/init-scripts/` - Database initialization SQL scripts
 
 ### Key Technologies and Patterns
 
@@ -143,6 +146,9 @@ Reactive Pulsar integration is configured for message streaming. This is reactiv
 **Actuator:**
 Spring Boot Actuator is enabled for monitoring, health checks, and metrics. Actuator endpoints will expose information about circuit breakers, health, and application metrics.
 
+**Spring Data R2DBC:**
+Uses reactive database access with Spring Data R2DBC and PostgreSQL. All database operations return `Mono<T>` or `Flux<T>` for non-blocking I/O. R2DBC repositories extend `ReactiveCrudRepository` and support custom queries with `@Query` annotation.
+
 ### Important Configuration Notes
 
 - **Java Version:** Project targets Java 21 (configured in build.gradle.kts)
@@ -152,17 +158,41 @@ Spring Boot Actuator is enabled for monitoring, health checks, and metrics. Actu
 
 ### Dependencies of Note
 
+- `spring-boot-starter-data-r2dbc` - Reactive database access with R2DBC
+- `r2dbc-postgresql` - PostgreSQL R2DBC driver
 - `reactor-kotlin-extensions` - Kotlin-friendly extensions for Project Reactor
 - `kotlinx-coroutines-reactor` - Coroutine support for reactive code
 - `jackson-module-kotlin` - JSON serialization for Kotlin data classes
 - `reactor-test` - Testing support for reactive streams
 - `kotlinx-coroutines-test` - Testing support for coroutines
 
+### Domain Model
+
+**Entity Classes (R2DBC):**
+- `ResilienceEvent` - Tracks resilience events with metadata (JSONB)
+- `CircuitBreakerState` - Circuit breaker state and metrics
+- `RateLimiterMetrics` - Rate limiter statistics per time window
+
+**Repository Interfaces:**
+All repositories extend `ReactiveCrudRepository` and return reactive types:
+- `ResilienceEventRepository` - Query events by type, name, status; find recent events
+- `CircuitBreakerStateRepository` - Find by name or state; query by failure threshold
+- `RateLimiterMetricsRepository` - Query by time range; find high rejection rates
+
+### R2DBC Configuration
+
+Database connection configured in `application.properties`:
+- URL: `r2dbc:postgresql://localhost:5432/resiliency_spike`
+- Connection pooling enabled (10 initial, 20 max connections)
+- All operations are non-blocking and return `Mono<T>` or `Flux<T>`
+
 ## Development Notes
 
 When adding new features or making changes:
 
 1. **Reactive Programming:** Use Mono/Flux for asynchronous operations, not blocking code
-2. **Kotlin Coroutines:** The project supports coroutines with reactor integration
-3. **Circuit Breaker:** Use Spring Cloud Circuit Breaker annotations/configurations for resilience patterns
-4. **Testing:** Write reactive tests using `reactor-test` StepVerifier for Mono/Flux testing
+2. **Database Access:** All database operations are reactive - repositories return `Mono<T>` for single results or `Flux<T>` for streams
+3. **Kotlin Coroutines:** The project supports coroutines with reactor integration
+4. **Circuit Breaker:** Use Spring Cloud Circuit Breaker annotations/configurations for resilience patterns
+5. **Testing:** Write reactive tests using `reactor-test` StepVerifier for Mono/Flux testing
+6. **Entity Mapping:** R2DBC uses `@Table` and `@Column` annotations (not JPA's `@Entity`)
