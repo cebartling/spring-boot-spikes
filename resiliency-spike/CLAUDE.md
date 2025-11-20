@@ -106,10 +106,18 @@ The project includes a Docker Compose configuration (`docker-compose.yml`) for l
 - Port: `5432`
 - Database: `resiliency_spike`
 - Username: `resiliency_user`
-- Password: `resiliency_password`
+- Password: Managed by Vault (see below)
 - Healthcheck: Runs every 10s using `pg_isready`
 - Data persisted in named volume `postgres-data`
 - Schema initialization: One-shot init container (`db-init`) runs SQL scripts from `docker/init-scripts/`
+
+**HashiCorp Vault (Development Mode):**
+- Port: `8200` - Vault API
+- Dev Root Token: `dev-root-token` (for local development only!)
+- KV v2 secrets engine enabled at `secret/` path
+- Secrets initialization: One-shot init container (`vault-init`) runs `docker/vault-init/init-vault.sh`
+- Stores sensitive configuration: database credentials, R2DBC connection settings, Pulsar configuration
+- **Note:** Running in dev mode for local development - NOT suitable for production
 
 **Database Schema (auto-initialized):**
 
@@ -174,6 +182,7 @@ Uses reactive database access with Spring Data R2DBC and PostgreSQL. All databas
 
 - `spring-boot-starter-data-r2dbc` - Reactive database access with R2DBC
 - `r2dbc-postgresql` - PostgreSQL R2DBC driver
+- `spring-cloud-starter-vault-config` - HashiCorp Vault integration for secrets management
 - `reactor-kotlin-extensions` - Kotlin-friendly extensions for Project Reactor
 - `kotlinx-coroutines-reactor` - Coroutine support for reactive code
 - `jackson-module-kotlin` - JSON serialization for Kotlin data classes
@@ -215,10 +224,43 @@ Product Catalog:
 - `CategoryService` - CRUD operations, hierarchical category management, soft delete
 - `ProductService` - CRUD operations, stock management, product filtering/searching, soft delete
 
+### Secrets Management with Vault
+
+The application uses HashiCorp Vault for secrets management:
+
+**Configuration Files:**
+- `bootstrap.properties` - Vault connection settings (processed before application.properties)
+- `application.properties` - Uses property placeholders that are resolved from Vault
+
+**Vault Integration:**
+- Spring Cloud Vault fetches secrets on application startup
+- Secrets are stored in KV v2 secrets engine at path: `secret/resiliency-spike/`
+- All database credentials and sensitive configuration retrieved from Vault
+- Local development uses root token `dev-root-token` (configured in bootstrap.properties)
+
+**Secret Paths:**
+- `secret/resiliency-spike/database` - Database connection details
+- `secret/resiliency-spike/r2dbc` - R2DBC configuration with credentials
+- `secret/resiliency-spike/pulsar` - Pulsar service URLs
+- `secret/resiliency-spike/application` - Application-level configuration
+
+**Vault CLI Commands:**
+```bash
+# View database secrets
+docker exec -e VAULT_TOKEN=dev-root-token resiliency-spike-vault vault kv get secret/resiliency-spike/database
+
+# Update a secret
+docker exec -e VAULT_TOKEN=dev-root-token resiliency-spike-vault vault kv put secret/resiliency-spike/database password=new_password
+
+# List all secrets
+docker exec -e VAULT_TOKEN=dev-root-token resiliency-spike-vault vault kv list secret/resiliency-spike
+```
+
 ### R2DBC Configuration
 
-Database connection configured in `application.properties`:
-- URL: `r2dbc:postgresql://localhost:5432/resiliency_spike`
+Database connection configured in `application.properties` with values from Vault:
+- URL: Retrieved from Vault (`secret/resiliency-spike/r2dbc`)
+- Credentials: Retrieved from Vault (username/password)
 - Connection pooling enabled (10 initial, 20 max connections)
 - All operations are non-blocking and return `Mono<T>` or `Flux<T>`
 

@@ -36,6 +36,8 @@ This project demonstrates reactive programming patterns with circuit breakers, r
    This starts:
    - **Apache Pulsar** on ports 6650 (broker) and 8081 (admin/HTTP)
    - **PostgreSQL** on port 5432
+   - **HashiCorp Vault** on port 8200 (API)
+   - **Vault Init Container** (one-shot) to initialize secrets
    - **Database Init Container** (one-shot) to initialize the schema
 
 2. **Verify services are healthy:**
@@ -62,11 +64,20 @@ This project demonstrates reactive programming patterns with circuit breakers, r
 - **Data:** Persisted in `pulsar-data` volume
 - **Note:** Admin port is mapped to 8081 on the host to avoid conflict with Spring Boot application running on 8080
 
+#### HashiCorp Vault
+- **Port:** 8200 (API)
+- **Mode:** Development mode (NOT for production!)
+- **Root Token:** `dev-root-token`
+- **UI:** http://localhost:8200/ui
+- **Secrets Engine:** KV v2 at path `secret/`
+- **Initialization:** Automatic via one-shot init container (`vault-init`)
+- **Purpose:** Manages all application secrets (database credentials, API keys, etc.)
+
 #### PostgreSQL
 - **Port:** 5432
 - **Database:** `resiliency_spike`
 - **Username:** `resiliency_user`
-- **Password:** `resiliency_password`
+- **Password:** Managed by Vault (stored in `secret/resiliency-spike/database`)
 - **Data:** Persisted in `postgres-data` volume
 - **Schema Initialization:** Automatic via one-shot init container
 
@@ -235,11 +246,50 @@ All tests use `@DisplayName` annotations for clear test descriptions and follow 
 ### Database Configuration
 
 The application connects to PostgreSQL via R2DBC (reactive driver):
-- Connection URL: `r2dbc:postgresql://localhost:5432/resiliency_spike`
+- Connection URL: Retrieved from Vault (`secret/resiliency-spike/r2dbc`)
+- Credentials: Retrieved from Vault (username/password)
 - Connection pooling enabled (10-20 connections)
 - All database operations are non-blocking
 
+### Secrets Management with Vault
+
+The application integrates with HashiCorp Vault for secure secrets management:
+
+**Configuration:**
+- `bootstrap.properties` - Vault connection settings
+- `application.properties` - Uses property placeholders resolved from Vault
+- Spring Cloud Vault automatically fetches secrets on startup
+
+**Managed Secrets:**
+- Database credentials (username/password)
+- R2DBC connection configuration
+- Pulsar service URLs
+- Application-level configuration
+
+**Accessing Vault:**
+```bash
+# View secrets via CLI
+docker exec -e VAULT_TOKEN=dev-root-token resiliency-spike-vault vault kv get secret/resiliency-spike/database
+
+# Access Vault UI
+open http://localhost:8200/ui
+# Login with token: dev-root-token
+```
+
+**Vault Secret Paths:**
+- `secret/resiliency-spike/database` - Database connection details
+- `secret/resiliency-spike/r2dbc` - R2DBC configuration
+- `secret/resiliency-spike/pulsar` - Pulsar URLs
+- `secret/resiliency-spike/application` - App configuration
+
 ## Features Implemented
+
+### Secrets Management
+- HashiCorp Vault integration with Spring Cloud Vault
+- KV v2 secrets engine for secure storage
+- Automatic secret injection via Spring configuration
+- Development mode setup with auto-initialization
+- Policy-based access control
 
 ### Resiliency Patterns
 - Circuit breaker state tracking and metrics

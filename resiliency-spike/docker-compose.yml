@@ -39,6 +39,50 @@ services:
     networks:
       - resiliency-spike-network
 
+  vault:
+    image: hashicorp/vault:latest
+    container_name: resiliency-spike-vault
+    ports:
+      - "8200:8200"   # Vault API port
+    environment:
+      - VAULT_DEV_ROOT_TOKEN_ID=dev-root-token
+      - VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200
+      - VAULT_ADDR=http://0.0.0.0:8200
+    cap_add:
+      - IPC_LOCK
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - resiliency-spike-network
+    command: server -dev
+
+  vault-init:
+    image: hashicorp/vault:latest
+    container_name: resiliency-spike-vault-init
+    depends_on:
+      vault:
+        condition: service_healthy
+    environment:
+      - VAULT_ADDR=http://vault:8200
+      - VAULT_TOKEN=dev-root-token
+    volumes:
+      - ./docker/vault-init:/vault-init:ro
+    networks:
+      - resiliency-spike-network
+    command: >
+      sh -c "
+        echo 'Waiting for Vault to be ready...';
+        sleep 2;
+        echo 'Initializing Vault with secrets...';
+        sh /vault-init/init-vault.sh;
+        echo 'Vault initialization complete';
+      "
+    restart: "no"
+
   db-init:
     image: postgres:18-alpine
     container_name: resiliency-spike-db-init
