@@ -310,6 +310,7 @@ Shopping Cart (Rate Limiter + Retry + Circuit Breaker Protected):
 **REST API Layer:**
 All controllers expose reactive REST APIs with comprehensive endpoints:
 
+- `ProductController` - `/api/v1/products` - 18 endpoints for product catalog management
 - `ShoppingCartController` - `/api/v1/carts` - 24 endpoints for cart management
 - `CartItemController` - `/api/v1/carts/{cartId}/items` - 15 endpoints for item operations
 - `CartStateHistoryController` - `/api/v1/carts/{cartId}/history` - 7 endpoints for cart history
@@ -317,7 +318,7 @@ All controllers expose reactive REST APIs with comprehensive endpoints:
 
 ## Testing
 
-The project includes comprehensive test coverage with **192 test cases** covering:
+The project includes comprehensive test coverage with **214 test cases** covering:
 - REST API contract testing with WebFluxTest
 - Service layer logic with business operations
 - Repository operations with reactive database access
@@ -331,7 +332,7 @@ The project includes comprehensive test coverage with **192 test cases** coverin
 - Spring WebFluxTest with WebTestClient for API testing
 - Custom test fixtures (`TestFixtures`) for consistent test data
 
-**Test Coverage (192 total tests):**
+**Test Coverage (214 total tests):**
 
 Resiliency Tracking (44 tests):
 - `ResilienceEventServiceTest` - 11 tests for resilience event operations
@@ -348,7 +349,15 @@ Shopping Cart Services (42 tests):
 - `CartItemServiceTest` - 19 tests for item operations (add, remove, update, discounts, validation)
 - `CartStateHistoryServiceTest` - 7 tests for event tracking and conversion/abandonment analytics
 
-REST API Contract Tests (61 tests):
+REST API Contract Tests (83 tests):
+- `ProductControllerTest` - 22 tests for product catalog endpoints
+  - Create, update, and delete products
+  - Get products by ID, SKU, or category
+  - Search and filter products (name, price range, category + price range)
+  - Low stock queries with configurable threshold
+  - Activate/deactivate products
+  - Update stock quantities
+  - Count operations (by category, active products)
 - `ShoppingCartControllerTest` - 25 tests for cart management endpoints
   - Create, retrieve, and find carts by various criteria
   - Associate carts with users and update expiration
@@ -616,8 +625,29 @@ A fully reactive shopping cart implementation with event sourcing:
 
 All operations are fully reactive using `Mono<T>` and `Flux<T>` return types, ensuring non-blocking I/O throughout the stack.
 
-### REST APIs for Shopping Cart System
-A complete set of reactive REST APIs providing full cart management capabilities:
+### REST APIs
+
+A complete set of reactive REST APIs providing comprehensive product catalog and cart management capabilities:
+
+**Product Catalog APIs** (`/api/v1/products`):
+- `POST /api/v1/products` - Create new product
+- `GET /api/v1/products/{productId}` - Get product by ID
+- `GET /api/v1/products/sku/{sku}` - Get product by SKU
+- `GET /api/v1/products` - Get all products
+- `GET /api/v1/products?activeOnly=true` - Get only active products
+- `GET /api/v1/products/category/{categoryId}` - Get products by category
+- `GET /api/v1/products/category/{categoryId}?activeOnly=true` - Get active products by category
+- `GET /api/v1/products/search?searchTerm={term}` - Search products by name
+- `GET /api/v1/products/price-range?minPrice={min}&maxPrice={max}` - Filter by price range
+- `GET /api/v1/products/category/{categoryId}/price-range?minPrice={min}&maxPrice={max}` - Filter by category and price
+- `GET /api/v1/products/low-stock?threshold=10` - Get low stock products
+- `PUT /api/v1/products/{productId}` - Update product
+- `PUT /api/v1/products/{productId}/stock` - Update product stock
+- `POST /api/v1/products/{productId}/activate` - Activate product
+- `POST /api/v1/products/{productId}/deactivate` - Deactivate product (soft delete)
+- `DELETE /api/v1/products/{productId}` - Delete product permanently
+- `GET /api/v1/products/category/{categoryId}/count` - Count products by category
+- `GET /api/v1/products/count/active` - Count active products
 
 **Cart Management APIs** (`/api/v1/carts`):
 - `POST /api/v1/carts` - Create new cart

@@ -330,6 +330,19 @@ Shopping Cart (Rate Limiter + Circuit Breaker + Retry Protected):
 **REST API Controllers:**
 All controllers expose reactive REST APIs and return reactive types:
 
+Product Catalog APIs:
+- `ProductController` - `/api/v1/products` - 18 endpoints for product management
+  - Create, update, delete products
+  - Get products by ID or SKU
+  - Get all products or active products only
+  - Get products by category (with active filter)
+  - Search products by name
+  - Filter by price range or category with price range
+  - Find low stock products (configurable threshold)
+  - Activate/deactivate products (soft delete)
+  - Update stock quantities
+  - Count products by category or count active products
+
 Shopping Cart APIs:
 - `ShoppingCartController` - `/api/v1/carts` - 24 endpoints for complete cart management
   - Create carts, get by ID/UUID/session/user/status
@@ -353,6 +366,13 @@ Shopping Cart APIs:
 
 **DTOs (Data Transfer Objects):**
 All DTOs support JSON serialization with Jackson Kotlin module:
+
+Product Catalog DTOs:
+- `ProductResponse` - Product representation with all details (ID, SKU, name, description, category, price, stock, metadata)
+- `CreateProductRequest` - Create new product (SKU, name, description, categoryId, price, stockQuantity, metadata)
+- `UpdateProductRequest` - Update product (partial updates supported for name, description, categoryId, price, stockQuantity, metadata)
+- `UpdateProductStockRequest` - Update stock quantity
+- `ProductSearchResponse` - Search results wrapper with products list and total count
 
 Shopping Cart DTOs:
 - `ShoppingCartResponse` - Cart representation with all details
@@ -594,7 +614,7 @@ Controller Tests:
 - Verify HTTP status codes, response bodies, and JSON structure
 - Test query parameters and request body validation
 
-**Test Coverage (192 total tests):**
+**Test Coverage (214 total tests):**
 
 Resiliency Tracking (44 tests):
 - `ResilienceEventServiceTest` - 11 tests for resilience event operations
@@ -611,7 +631,15 @@ Shopping Cart Services (42 tests):
 - `CartItemServiceTest` - 19 tests for item operations and validation
 - `CartStateHistoryServiceTest` - 7 tests for event tracking and analytics
 
-REST API Contract Tests (61 tests):
+REST API Contract Tests (83 tests):
+- `ProductControllerTest` - 22 tests for product catalog endpoints
+  - Create, update, delete products
+  - Get products by ID, SKU, category
+  - Search and filter products (name, price range, category + price range)
+  - Low stock queries with configurable threshold
+  - Activate/deactivate products
+  - Update stock quantities
+  - Count operations (by category, active products)
 - `ShoppingCartControllerTest` - 25 tests for cart management endpoints
   - Create, get, find carts by various criteria
   - Associate with user, update expiration
