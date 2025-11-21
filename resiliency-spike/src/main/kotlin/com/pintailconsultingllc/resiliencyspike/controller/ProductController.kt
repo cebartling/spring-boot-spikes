@@ -3,6 +3,13 @@ package com.pintailconsultingllc.resiliencyspike.controller
 import com.pintailconsultingllc.resiliencyspike.domain.Product
 import com.pintailconsultingllc.resiliencyspike.dto.*
 import com.pintailconsultingllc.resiliencyspike.service.ProductService
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.Parameter
+import io.swagger.v3.oas.annotations.media.Content
+import io.swagger.v3.oas.annotations.media.Schema
+import io.swagger.v3.oas.annotations.responses.ApiResponse
+import io.swagger.v3.oas.annotations.responses.ApiResponses
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Flux
@@ -16,6 +23,7 @@ import java.util.*
  */
 @RestController
 @RequestMapping("/api/v1/products")
+@Tag(name = "Product Catalog", description = "Product catalog management APIs")
 class ProductController(
     private val productService: ProductService
 ) {
@@ -23,6 +31,11 @@ class ProductController(
     /**
      * Create a new product
      */
+    @Operation(summary = "Create a new product", description = "Creates a new product in the catalog")
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "201", description = "Product created successfully", content = [Content(schema = Schema(implementation = ProductResponse::class))]),
+        ApiResponse(responseCode = "400", description = "Invalid input")
+    ])
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     fun createProduct(@RequestBody request: CreateProductRequest): Mono<ProductResponse> {
@@ -42,8 +55,15 @@ class ProductController(
     /**
      * Get product by ID
      */
+    @Operation(summary = "Get product by ID", description = "Retrieves a product by its unique identifier")
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "200", description = "Product found", content = [Content(schema = Schema(implementation = ProductResponse::class))]),
+        ApiResponse(responseCode = "404", description = "Product not found")
+    ])
     @GetMapping("/{productId}")
-    fun getProductById(@PathVariable productId: UUID): Mono<ProductResponse> {
+    fun getProductById(
+        @Parameter(description = "Product unique identifier") @PathVariable productId: UUID
+    ): Mono<ProductResponse> {
         return productService.findProductById(productId)
             .map { it.toResponse() }
     }
@@ -51,8 +71,15 @@ class ProductController(
     /**
      * Get product by SKU
      */
+    @Operation(summary = "Get product by SKU", description = "Retrieves a product by its SKU (Stock Keeping Unit)")
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "200", description = "Product found", content = [Content(schema = Schema(implementation = ProductResponse::class))]),
+        ApiResponse(responseCode = "404", description = "Product not found")
+    ])
     @GetMapping("/sku/{sku}")
-    fun getProductBySku(@PathVariable sku: String): Mono<ProductResponse> {
+    fun getProductBySku(
+        @Parameter(description = "Product SKU") @PathVariable sku: String
+    ): Mono<ProductResponse> {
         return productService.findProductBySku(sku)
             .map { it.toResponse() }
     }
@@ -60,8 +87,14 @@ class ProductController(
     /**
      * Get all products
      */
+    @Operation(summary = "Get all products", description = "Retrieves all products, optionally filtered by active status")
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "200", description = "Products retrieved successfully")
+    ])
     @GetMapping
-    fun getAllProducts(@RequestParam(required = false, defaultValue = "false") activeOnly: Boolean): Flux<ProductResponse> {
+    fun getAllProducts(
+        @Parameter(description = "Filter to show only active products") @RequestParam(required = false, defaultValue = "false") activeOnly: Boolean
+    ): Flux<ProductResponse> {
         return if (activeOnly) {
             productService.findActiveProducts()
         } else {
@@ -72,10 +105,14 @@ class ProductController(
     /**
      * Get products by category
      */
+    @Operation(summary = "Get products by category", description = "Retrieves products by category, optionally filtered by active status")
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "200", description = "Products retrieved successfully")
+    ])
     @GetMapping("/category/{categoryId}")
     fun getProductsByCategory(
-        @PathVariable categoryId: UUID,
-        @RequestParam(required = false, defaultValue = "false") activeOnly: Boolean
+        @Parameter(description = "Category unique identifier") @PathVariable categoryId: UUID,
+        @Parameter(description = "Filter to show only active products") @RequestParam(required = false, defaultValue = "false") activeOnly: Boolean
     ): Flux<ProductResponse> {
         return if (activeOnly) {
             productService.findActiveProductsByCategory(categoryId)
@@ -87,8 +124,14 @@ class ProductController(
     /**
      * Search products by name
      */
+    @Operation(summary = "Search products by name", description = "Searches products by name using a search term")
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "200", description = "Search completed successfully")
+    ])
     @GetMapping("/search")
-    fun searchProducts(@RequestParam searchTerm: String): Flux<ProductResponse> {
+    fun searchProducts(
+        @Parameter(description = "Search term to match product names") @RequestParam searchTerm: String
+    ): Flux<ProductResponse> {
         return productService.searchProductsByName(searchTerm)
             .map { it.toResponse() }
     }
@@ -96,10 +139,14 @@ class ProductController(
     /**
      * Get products by price range
      */
+    @Operation(summary = "Get products by price range", description = "Retrieves products within a specified price range")
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "200", description = "Products retrieved successfully")
+    ])
     @GetMapping("/price-range")
     fun getProductsByPriceRange(
-        @RequestParam minPrice: BigDecimal,
-        @RequestParam maxPrice: BigDecimal
+        @Parameter(description = "Minimum price") @RequestParam minPrice: BigDecimal,
+        @Parameter(description = "Maximum price") @RequestParam maxPrice: BigDecimal
     ): Flux<ProductResponse> {
         return productService.findProductsByPriceRange(minPrice, maxPrice)
             .map { it.toResponse() }
@@ -108,11 +155,15 @@ class ProductController(
     /**
      * Get products by category and price range
      */
+    @Operation(summary = "Get products by category and price range", description = "Retrieves products by category within a specified price range")
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "200", description = "Products retrieved successfully")
+    ])
     @GetMapping("/category/{categoryId}/price-range")
     fun getProductsByCategoryAndPriceRange(
-        @PathVariable categoryId: UUID,
-        @RequestParam minPrice: BigDecimal,
-        @RequestParam maxPrice: BigDecimal
+        @Parameter(description = "Category unique identifier") @PathVariable categoryId: UUID,
+        @Parameter(description = "Minimum price") @RequestParam minPrice: BigDecimal,
+        @Parameter(description = "Maximum price") @RequestParam maxPrice: BigDecimal
     ): Flux<ProductResponse> {
         return productService.findProductsByCategoryAndPriceRange(categoryId, minPrice, maxPrice)
             .map { it.toResponse() }
@@ -121,8 +172,14 @@ class ProductController(
     /**
      * Get low stock products
      */
+    @Operation(summary = "Get low stock products", description = "Retrieves products with stock quantity below the specified threshold")
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "200", description = "Low stock products retrieved successfully")
+    ])
     @GetMapping("/low-stock")
-    fun getLowStockProducts(@RequestParam(required = false, defaultValue = "10") threshold: Int): Flux<ProductResponse> {
+    fun getLowStockProducts(
+        @Parameter(description = "Stock quantity threshold (default: 10)") @RequestParam(required = false, defaultValue = "10") threshold: Int
+    ): Flux<ProductResponse> {
         return productService.findLowStockProducts(threshold)
             .map { it.toResponse() }
     }
@@ -130,9 +187,14 @@ class ProductController(
     /**
      * Update a product
      */
+    @Operation(summary = "Update a product", description = "Updates an existing product with partial or complete data")
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "200", description = "Product updated successfully", content = [Content(schema = Schema(implementation = ProductResponse::class))]),
+        ApiResponse(responseCode = "404", description = "Product not found")
+    ])
     @PutMapping("/{productId}")
     fun updateProduct(
-        @PathVariable productId: UUID,
+        @Parameter(description = "Product unique identifier") @PathVariable productId: UUID,
         @RequestBody request: UpdateProductRequest
     ): Mono<ProductResponse> {
         return productService.findProductById(productId)
@@ -154,9 +216,14 @@ class ProductController(
     /**
      * Update product stock
      */
+    @Operation(summary = "Update product stock", description = "Updates the stock quantity for a product")
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "200", description = "Stock updated successfully", content = [Content(schema = Schema(implementation = ProductResponse::class))]),
+        ApiResponse(responseCode = "404", description = "Product not found")
+    ])
     @PutMapping("/{productId}/stock")
     fun updateProductStock(
-        @PathVariable productId: UUID,
+        @Parameter(description = "Product unique identifier") @PathVariable productId: UUID,
         @RequestBody request: UpdateProductStockRequest
     ): Mono<ProductResponse> {
         return productService.updateProductStock(productId, request.stockQuantity)
@@ -166,8 +233,15 @@ class ProductController(
     /**
      * Activate a product
      */
+    @Operation(summary = "Activate a product", description = "Activates a product, making it available for sale")
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "200", description = "Product activated successfully", content = [Content(schema = Schema(implementation = ProductResponse::class))]),
+        ApiResponse(responseCode = "404", description = "Product not found")
+    ])
     @PostMapping("/{productId}/activate")
-    fun activateProduct(@PathVariable productId: UUID): Mono<ProductResponse> {
+    fun activateProduct(
+        @Parameter(description = "Product unique identifier") @PathVariable productId: UUID
+    ): Mono<ProductResponse> {
         return productService.activateProduct(productId)
             .map { it.toResponse() }
     }
@@ -175,8 +249,15 @@ class ProductController(
     /**
      * Deactivate a product (soft delete)
      */
+    @Operation(summary = "Deactivate a product", description = "Deactivates a product, removing it from active sale (soft delete)")
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "200", description = "Product deactivated successfully", content = [Content(schema = Schema(implementation = ProductResponse::class))]),
+        ApiResponse(responseCode = "404", description = "Product not found")
+    ])
     @PostMapping("/{productId}/deactivate")
-    fun deactivateProduct(@PathVariable productId: UUID): Mono<ProductResponse> {
+    fun deactivateProduct(
+        @Parameter(description = "Product unique identifier") @PathVariable productId: UUID
+    ): Mono<ProductResponse> {
         return productService.deactivateProduct(productId)
             .map { it.toResponse() }
     }
@@ -184,23 +265,40 @@ class ProductController(
     /**
      * Delete a product permanently
      */
+    @Operation(summary = "Delete a product", description = "Permanently deletes a product from the catalog")
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "204", description = "Product deleted successfully"),
+        ApiResponse(responseCode = "404", description = "Product not found")
+    ])
     @DeleteMapping("/{productId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    fun deleteProduct(@PathVariable productId: UUID): Mono<Void> {
+    fun deleteProduct(
+        @Parameter(description = "Product unique identifier") @PathVariable productId: UUID
+    ): Mono<Void> {
         return productService.deleteProduct(productId)
     }
 
     /**
      * Count products by category
      */
+    @Operation(summary = "Count products by category", description = "Returns the total count of products in a specific category")
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "200", description = "Product count retrieved successfully")
+    ])
     @GetMapping("/category/{categoryId}/count")
-    fun countProductsByCategory(@PathVariable categoryId: UUID): Mono<Long> {
+    fun countProductsByCategory(
+        @Parameter(description = "Category unique identifier") @PathVariable categoryId: UUID
+    ): Mono<Long> {
         return productService.countProductsByCategory(categoryId)
     }
 
     /**
      * Count active products
      */
+    @Operation(summary = "Count active products", description = "Returns the total count of all active products")
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "200", description = "Active product count retrieved successfully")
+    ])
     @GetMapping("/count/active")
     fun countActiveProducts(): Mono<Long> {
         return productService.countActiveProducts()

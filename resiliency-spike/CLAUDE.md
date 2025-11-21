@@ -235,6 +235,7 @@ Uses reactive database access with Spring Data R2DBC and PostgreSQL. All databas
 - `r2dbc-postgresql` - PostgreSQL R2DBC driver
 - `spring-cloud-starter-vault-config` - HashiCorp Vault integration for secrets management
 - `spring-cloud-starter-circuitbreaker-reactor-resilience4j` - Circuit breaker implementation
+- `springdoc-openapi-starter-webflux-ui` - OpenAPI 3.0 documentation with Swagger UI for WebFlux
 - `reactor-kotlin-extensions` - Kotlin-friendly extensions for Project Reactor
 - `kotlinx-coroutines-reactor` - Coroutine support for reactive code
 - `jackson-module-kotlin` - JSON serialization for Kotlin data classes
@@ -327,11 +328,48 @@ Shopping Cart (Rate Limiter + Circuit Breaker + Retry Protected):
   - Fallback: User-friendly error messages with logging
 - `CartStateHistoryService` - Record events, track status changes, calculate conversion/abandonment rates
 
+### OpenAPI Documentation
+
+The application includes comprehensive OpenAPI 3.0 documentation for all REST endpoints using Springdoc OpenAPI.
+
+**Access Points:**
+- **Swagger UI**: `http://localhost:8080/swagger-ui.html` - Interactive API documentation and testing
+- **OpenAPI JSON**: `http://localhost:8080/api-docs` - OpenAPI 3.0 specification in JSON format
+
+**Configuration:**
+All OpenAPI settings are configured in `application.properties`:
+- API title: "Resiliency Spike API"
+- Description: "Spring Boot WebFlux API demonstrating resilience patterns with Circuit Breakers, Retries, and Rate Limiters"
+- Version: 0.0.1-SNAPSHOT
+- Contact: Pintail Consulting LLC
+- Operations sorted by HTTP method
+- Tags sorted alphabetically
+- "Try it out" functionality enabled
+
+**Documentation Features:**
+- Complete endpoint descriptions for all 69 REST endpoints
+- Parameter documentation with types, formats, and descriptions
+- Request/response body schemas with examples
+- HTTP status codes (200, 201, 204, 400, 404) with descriptions
+- Query parameter specifications (defaults, required/optional)
+- Path parameter descriptions
+- Organized by tags: Product Catalog, Shopping Cart, Cart Items, Cart History, Cart Analytics
+- ISO 8601 date format specifications for date parameters
+- Interactive testing via Swagger UI
+
+**Annotations Used:**
+- `@Tag` - Controller-level tag and description
+- `@Operation` - Endpoint summary and description
+- `@ApiResponses` / `@ApiResponse` - HTTP response codes and content types
+- `@Parameter` - Path and query parameter descriptions
+- `@Schema` - Response body schema references
+
 **REST API Controllers:**
-All controllers expose reactive REST APIs and return reactive types:
+All controllers expose reactive REST APIs with OpenAPI 3.0 documentation and return reactive types:
 
 Product Catalog APIs:
 - `ProductController` - `/api/v1/products` - 18 endpoints for product management
+  - OpenAPI Tag: "Product Catalog"
   - Create, update, delete products
   - Get products by ID or SKU
   - Get all products or active products only
@@ -345,22 +383,26 @@ Product Catalog APIs:
 
 Shopping Cart APIs:
 - `ShoppingCartController` - `/api/v1/carts` - 24 endpoints for complete cart management
+  - OpenAPI Tag: "Shopping Cart"
   - Create carts, get by ID/UUID/session/user/status
   - Associate carts with users, update expiration
   - Cart lifecycle operations (abandon, convert, expire, restore)
   - Find expired/abandoned carts, process batch operations
   - Cart statistics and analytics
 - `CartItemController` - `/api/v1/carts/{cartId}/items` - 15 endpoints for cart item operations
+  - OpenAPI Tag: "Cart Items"
   - Get all items or specific items
   - Add/remove/update items with quantity, discount, metadata
   - Calculate cart totals and counts
   - Find discounted, high-value, and bulk items
   - Validate item and cart availability
 - `CartStateHistoryController` - `/api/v1/carts/{cartId}/history` - 7 endpoints for cart history
+  - OpenAPI Tag: "Cart History"
   - Get full history or recent events
   - Filter events by type
   - Count events and get activity summaries
 - `CartAnalyticsController` - `/api/v1/analytics/carts` - 5 endpoints for analytics
+  - OpenAPI Tag: "Cart Analytics"
   - Get events, conversions, and abandonments in date ranges
   - Calculate conversion and abandonment rates
 

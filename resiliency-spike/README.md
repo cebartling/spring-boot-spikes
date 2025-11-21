@@ -194,6 +194,26 @@ curl http://localhost:8080/actuator/metrics/resilience4j.circuitbreaker.calls?ta
 curl http://localhost:8080/actuator/metrics/resilience4j.retry.calls?tag=name:shoppingCart
 ```
 
+#### OpenAPI Documentation
+```bash
+# Access interactive API documentation (Swagger UI)
+open http://localhost:8080/swagger-ui.html
+
+# Get OpenAPI specification in JSON format
+curl http://localhost:8080/api-docs
+
+# Get OpenAPI specification and save to file
+curl http://localhost:8080/api-docs > openapi.json
+```
+
+The Swagger UI provides:
+- Complete documentation for all 69 REST endpoints
+- Interactive API testing with "Try it out" functionality
+- Request/response schemas with examples
+- Parameter descriptions and types
+- HTTP status codes and descriptions
+- Organized by tags: Product Catalog, Shopping Cart, Cart Items, Cart History, Cart Analytics
+
 ## Architecture
 
 This is a fully **reactive application** using Spring WebFlux:
@@ -222,6 +242,11 @@ This is a fully **reactive application** using Spring WebFlux:
   - `/actuator/retryevents` - Recent retry attempts
   - `/actuator/health` - Overall health including rate limiters and circuit breakers
   - `/actuator/metrics` - Rate limiter, circuit breaker, and retry statistics
+- **OpenAPI 3.0 Documentation** - Comprehensive API documentation with Swagger UI
+  - `/swagger-ui.html` - Interactive API documentation and testing interface
+  - `/api-docs` - OpenAPI 3.0 specification in JSON format
+  - All 69 REST endpoints fully documented with parameters, responses, and examples
+  - Organized by tags: Product Catalog, Shopping Cart, Cart Items, Cart History, Cart Analytics
 - **WebFlux** - Reactive REST APIs
 - **Spring Data R2DBC** - Reactive database access with PostgreSQL
 
@@ -308,13 +333,36 @@ Shopping Cart (Rate Limiter + Retry + Circuit Breaker Protected):
 - `CartStateHistoryService` - Record events, track status changes, calculate conversion/abandonment rates
 
 **REST API Layer:**
-All controllers expose reactive REST APIs with comprehensive endpoints:
+All controllers expose reactive REST APIs with comprehensive OpenAPI 3.0 documentation:
 
 - `ProductController` - `/api/v1/products` - 18 endpoints for product catalog management
+  - OpenAPI Tag: "Product Catalog"
+  - All endpoints documented with descriptions, parameters, and response codes
 - `ShoppingCartController` - `/api/v1/carts` - 24 endpoints for cart management
+  - OpenAPI Tag: "Shopping Cart"
+  - Comprehensive lifecycle and analytics operations
 - `CartItemController` - `/api/v1/carts/{cartId}/items` - 15 endpoints for item operations
+  - OpenAPI Tag: "Cart Items"
+  - Item management, discounts, and validation endpoints
 - `CartStateHistoryController` - `/api/v1/carts/{cartId}/history` - 7 endpoints for cart history
+  - OpenAPI Tag: "Cart History"
+  - Event tracking and activity summaries
 - `CartAnalyticsController` - `/api/v1/analytics/carts` - 5 endpoints for analytics and reporting
+  - OpenAPI Tag: "Cart Analytics"
+  - Conversion and abandonment rate calculations
+
+**OpenAPI Documentation:**
+Access complete interactive API documentation at:
+- **Swagger UI**: http://localhost:8080/swagger-ui.html
+- **OpenAPI JSON**: http://localhost:8080/api-docs
+
+Features:
+- All 69 REST endpoints documented with detailed descriptions
+- Request/response schemas with parameter types
+- HTTP status codes and error scenarios
+- Interactive "Try it out" functionality
+- Organized by tags for easy navigation
+- ISO 8601 date format specifications
 
 ## Testing
 
@@ -523,6 +571,42 @@ This triple-layered approach provides:
 - Automatic recovery - Tests service health automatically
 - Resource protection - Prevents thread exhaustion from slow calls
 - Observability - Real-time visibility into all resilience patterns
+
+### OpenAPI 3.0 Documentation
+Complete API documentation for all REST endpoints using Springdoc OpenAPI:
+
+**Documentation Access:**
+- Swagger UI: http://localhost:8080/swagger-ui.html
+- OpenAPI JSON: http://localhost:8080/api-docs
+
+**Features:**
+- **69 REST endpoints** fully documented with detailed descriptions
+- **Interactive testing** via Swagger UI "Try it out" functionality
+- **Request/response schemas** with parameter types and examples
+- **HTTP status codes** (200, 201, 204, 400, 404) with descriptions
+- **Parameter documentation** for all path, query, and request body parameters
+- **Organized by tags** for easy navigation:
+  - Product Catalog - 18 endpoints
+  - Shopping Cart - 24 endpoints
+  - Cart Items - 15 endpoints
+  - Cart History - 7 endpoints
+  - Cart Analytics - 5 endpoints
+- **ISO 8601 date formats** specified for date parameters
+- **Operation sorting** by HTTP method (GET, POST, PUT, DELETE)
+- **Tag sorting** alphabetically for consistency
+
+**Configuration:**
+- Title: "Resiliency Spike API"
+- Description: "Spring Boot WebFlux API demonstrating resilience patterns with Circuit Breakers, Retries, and Rate Limiters"
+- Version: 0.0.1-SNAPSHOT
+- Contact: Pintail Consulting LLC
+
+**Annotations Used:**
+- `@Tag` - Controller-level tags and descriptions
+- `@Operation` - Endpoint summaries and descriptions
+- `@ApiResponses` / `@ApiResponse` - HTTP response codes and content types
+- `@Parameter` - Path and query parameter descriptions
+- `@Schema` - Response body schema references
 
 ### Resiliency Patterns
 - Circuit breaker state tracking and metrics
