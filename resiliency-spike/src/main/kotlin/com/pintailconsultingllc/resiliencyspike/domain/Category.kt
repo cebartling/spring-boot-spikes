@@ -1,6 +1,7 @@
 package com.pintailconsultingllc.resiliencyspike.domain
 
 import org.springframework.data.annotation.Id
+import org.springframework.data.annotation.Transient
 import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.mapping.Table
 import java.time.OffsetDateTime
@@ -10,6 +11,9 @@ import java.util.*
  * Entity representing a product category.
  *
  * Categories can have a hierarchical structure with parent-child relationships.
+ *
+ * Note: The `parentCategory` and `childCategories` fields are transient and not persisted.
+ * They can be loaded separately via custom repository methods when needed.
  */
 @Table("categories")
 data class Category(
@@ -32,5 +36,12 @@ data class Category(
     val createdAt: OffsetDateTime = OffsetDateTime.now(),
 
     @Column("updated_at")
-    val updatedAt: OffsetDateTime = OffsetDateTime.now()
+    val updatedAt: OffsetDateTime = OffsetDateTime.now(),
+
+    // Transient relationships - not stored in database, loaded separately
+    @Transient
+    val parentCategory: Category? = null,
+
+    @Transient
+    val childCategories: List<Category> = emptyList()
 )

@@ -1,6 +1,7 @@
 package com.pintailconsultingllc.resiliencyspike.domain
 
 import org.springframework.data.annotation.Id
+import org.springframework.data.annotation.Transient
 import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.mapping.Table
 import java.time.OffsetDateTime
@@ -12,6 +13,9 @@ import java.util.*
  * Cart items store snapshots of product information (SKU, name, price) at the time
  * they were added to the cart, ensuring price consistency even if product prices change.
  * Prices are stored in cents as Long integers.
+ *
+ * Note: The `product` field is transient and not persisted. It can be loaded separately
+ * via custom repository methods when needed.
  */
 @Table("cart_items")
 data class CartItem(
@@ -49,5 +53,9 @@ data class CartItem(
     val addedAt: OffsetDateTime = OffsetDateTime.now(),
 
     @Column("updated_at")
-    val updatedAt: OffsetDateTime = OffsetDateTime.now()
+    val updatedAt: OffsetDateTime = OffsetDateTime.now(),
+
+    // Transient relationship - not stored in database, loaded separately
+    @Transient
+    val product: Product? = null
 )

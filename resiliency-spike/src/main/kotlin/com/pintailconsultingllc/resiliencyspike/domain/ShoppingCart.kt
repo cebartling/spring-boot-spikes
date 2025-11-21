@@ -1,6 +1,7 @@
 package com.pintailconsultingllc.resiliencyspike.domain
 
 import org.springframework.data.annotation.Id
+import org.springframework.data.annotation.Transient
 import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.mapping.Table
 import java.time.OffsetDateTime
@@ -12,6 +13,9 @@ import java.util.*
  * A shopping cart tracks items a customer intends to purchase, along with pricing,
  * totals, and state (active, abandoned, converted, expired).
  * All monetary amounts are stored in cents as Long integers.
+ *
+ * Note: The `items` field is transient and not persisted. It can be loaded separately
+ * via custom repository methods when needed.
  */
 @Table("shopping_carts")
 data class ShoppingCart(
@@ -61,7 +65,11 @@ data class ShoppingCart(
     val expiresAt: OffsetDateTime? = null,
 
     @Column("converted_at")
-    val convertedAt: OffsetDateTime? = null
+    val convertedAt: OffsetDateTime? = null,
+
+    // Transient relationship - not stored in database, loaded separately
+    @Transient
+    val items: List<CartItem> = emptyList()
 )
 
 /**

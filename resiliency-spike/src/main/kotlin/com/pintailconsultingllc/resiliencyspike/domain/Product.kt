@@ -1,6 +1,7 @@
 package com.pintailconsultingllc.resiliencyspike.domain
 
 import org.springframework.data.annotation.Id
+import org.springframework.data.annotation.Transient
 import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.mapping.Table
 import java.math.BigDecimal
@@ -11,6 +12,9 @@ import java.util.*
  * Entity representing a product in the catalog.
  *
  * Products belong to a category and have pricing, inventory tracking, and metadata.
+ *
+ * Note: The `category` field is transient and not persisted. It can be loaded separately
+ * via custom repository methods when needed.
  */
 @Table("products")
 data class Product(
@@ -45,5 +49,9 @@ data class Product(
     val createdAt: OffsetDateTime = OffsetDateTime.now(),
 
     @Column("updated_at")
-    val updatedAt: OffsetDateTime = OffsetDateTime.now()
+    val updatedAt: OffsetDateTime = OffsetDateTime.now(),
+
+    // Transient relationship - not stored in database, loaded separately
+    @Transient
+    val category: Category? = null
 )
