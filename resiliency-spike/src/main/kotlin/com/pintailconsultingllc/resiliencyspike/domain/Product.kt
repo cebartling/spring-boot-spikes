@@ -49,9 +49,9 @@ data class Product(
     val createdAt: OffsetDateTime = OffsetDateTime.now(),
 
     @Column("updated_at")
-    val updatedAt: OffsetDateTime = OffsetDateTime.now(),
-
+    val updatedAt: OffsetDateTime = OffsetDateTime.now()
+) {
     // Transient relationship - not stored in database, loaded separately
     @Transient
-    val category: Category? = null
-)
+    var category: Category? = null
+}

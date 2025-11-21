@@ -38,7 +38,9 @@ class ProductRepositoryExtensionsImpl(
 
     private fun loadCategory(product: Product): Mono<Product> {
         return categoryRepository.findById(product.categoryId)
-            .map { category -> product.copy(category = category) }
+            .map { category ->
+                product.copy().also { it.category = category }
+            }
             .defaultIfEmpty(product) // Return product without category if category not found
     }
 }
