@@ -176,7 +176,7 @@ The codebase follows a standard Spring Boot Kotlin structure under the base pack
 This is a fully reactive application using Spring WebFlux, not traditional Spring MVC. All HTTP handling uses reactive types (Mono/Flux) and the application runs on Netty by default, not Tomcat.
 
 **Resilience4j Integration:**
-The project uses Spring Cloud Circuit Breaker with Resilience4j for implementing resilience patterns. Circuit breakers are applied to all major service methods using `@CircuitBreaker` annotations with fallback methods. Four circuit breaker instances are configured:
+The project uses Spring Cloud Circuit Breaker with Resilience4j for implementing resilience patterns. Circuit breakers and retry mechanisms are applied to all major service methods using `@CircuitBreaker` and `@Retry` annotations with fallback methods. Four resilience instances are configured:
 - `shoppingCart` - Protects shopping cart operations
 - `cartItem` - Protects cart item operations
 - `product` - Protects product catalog operations
@@ -190,6 +190,13 @@ Each circuit breaker is configured with:
 - Automatic transition from OPEN to HALF_OPEN state
 - Health indicators for monitoring via Actuator
 
+Each retry instance is configured with:
+- 3 maximum attempts (initial call + 2 retries)
+- 500ms initial wait duration between attempts
+- Exponential backoff with 2x multiplier (500ms → 1000ms → 2000ms)
+- Automatic retry for transient exceptions (IOException, TimeoutException, TransientDataAccessException)
+- Event monitoring via Actuator endpoints
+
 **Apache Pulsar:**
 Reactive Pulsar integration is configured for message streaming. This is reactive messaging, so use reactive Pulsar templates and reactive consumers/producers.
 
@@ -198,7 +205,9 @@ Spring Boot Actuator is enabled for monitoring, health checks, and metrics. Expo
 - `/actuator/health` - Overall application health including circuit breaker states
 - `/actuator/circuitbreakers` - List all circuit breakers with current states
 - `/actuator/circuitbreakerevents` - Recent circuit breaker state transitions and events
-- `/actuator/metrics` - Application metrics including circuit breaker statistics
+- `/actuator/retries` - List all retry instances with current metrics
+- `/actuator/retryevents` - Recent retry events and attempts
+- `/actuator/metrics` - Application metrics including circuit breaker and retry statistics
 - `/actuator/info` - Application information
 
 **Spring Data R2DBC:**
@@ -271,33 +280,37 @@ Shopping Cart:
 - `CartStateHistoryRepository` - Find events by cart/type/date range; support conversion and abandonment analytics
 
 **Service Classes:**
-All services use reactive repositories and return `Mono<T>` or `Flux<T>`. Critical operations are protected with circuit breakers.
+All services use reactive repositories and return `Mono<T>` or `Flux<T>`. Critical operations are protected with circuit breakers and retry mechanisms.
 
 Resiliency Tracking:
 - `ResilienceEventService` - Manage resilience events
 
-Product Catalog (Circuit Breaker Protected):
+Product Catalog (Circuit Breaker + Retry Protected):
 - `CategoryService` - CRUD operations, hierarchical category management, soft delete
-  - Circuit breaker: `category`
+  - Resilience: `@Retry` + `@CircuitBreaker` (category instance)
   - Protected methods: `createCategory()`, `updateCategory()`, `findCategoryById()`
+  - Retry strategy: 3 attempts with exponential backoff (500ms → 1000ms → 2000ms)
   - Fallback: User-friendly error messages with logging
 - `ProductService` - CRUD operations, stock management, product filtering/searching, soft delete
-  - Circuit breaker: `product`
+  - Resilience: `@Retry` + `@CircuitBreaker` (product instance)
   - Protected methods: `createProduct()`, `updateProduct()`, `findProductById()`
+  - Retry strategy: 3 attempts with exponential backoff (500ms → 1000ms → 2000ms)
   - Fallback: User-friendly error messages with logging
 
 Inventory Management:
 - `InventoryLocationService` - CRUD operations, location filtering by type, activate/deactivate
 - `InventoryStockService` - Stock level management, adjustments, reservations, availability checks, low stock alerts
 
-Shopping Cart (Circuit Breaker Protected):
+Shopping Cart (Circuit Breaker + Retry Protected):
 - `ShoppingCartService` - Cart lifecycle (create, find, abandon, convert, expire), status management, expired cart processing
-  - Circuit breaker: `shoppingCart`
+  - Resilience: `@Retry` + `@CircuitBreaker` (shoppingCart instance)
   - Protected methods: `createCart()`, `findOrCreateCart()`, `findCartById()`, `findCartByUuid()`, `updateCartStatus()`
+  - Retry strategy: 3 attempts with exponential backoff (500ms → 1000ms → 2000ms)
   - Fallback: User-friendly error messages with logging
 - `CartItemService` - Add/remove/update items, apply discounts, validate availability, calculate totals
-  - Circuit breaker: `cartItem`
+  - Resilience: `@Retry` + `@CircuitBreaker` (cartItem instance)
   - Protected methods: `addItemToCart()`
+  - Retry strategy: 3 attempts with exponential backoff (500ms → 1000ms → 2000ms)
   - Fallback: User-friendly error messages with logging
 - `CartStateHistoryService` - Record events, track status changes, calculate conversion/abandonment rates
 
@@ -391,31 +404,48 @@ Database connection configured in `application.properties` with values from Vaul
 - Connection pooling enabled (10 initial, 20 max connections)
 - All operations are non-blocking and return `Mono<T>` or `Flux<T>`
 
-### Circuit Breaker Configuration
+### Resilience Configuration (Circuit Breakers + Retries)
 
-The application implements circuit breakers using Resilience4j with the `@CircuitBreaker` annotation pattern. All critical service methods are protected with fallback mechanisms.
+The application implements comprehensive resilience patterns using Resilience4j with annotation-based configuration. All critical service methods are protected with both retry logic and circuit breakers, working together to handle transient failures and prevent cascading failures.
 
-**Circuit Breaker Instances:**
+**Resilience Instances:**
 
-Four circuit breaker instances are configured in `application.properties`:
+Four resilience instances are configured in `application.properties`, each with both retry and circuit breaker configurations:
 
 1. **shoppingCart** - Shopping cart operations
    - Protected methods: `createCart()`, `findOrCreateCart()`, `findCartById()`, `findCartByUuid()`, `updateCartStatus()`
    - Service: `ShoppingCartService`
+   - Pattern: `@Retry` → `@CircuitBreaker` → method execution
 
 2. **cartItem** - Cart item operations
    - Protected methods: `addItemToCart()`
    - Service: `CartItemService`
+   - Pattern: `@Retry` → `@CircuitBreaker` → method execution
 
 3. **product** - Product catalog operations
    - Protected methods: `createProduct()`, `updateProduct()`, `findProductById()`
    - Service: `ProductService`
+   - Pattern: `@Retry` → `@CircuitBreaker` → method execution
 
 4. **category** - Category operations
    - Protected methods: `createCategory()`, `updateCategory()`, `findCategoryById()`
    - Service: `CategoryService`
+   - Pattern: `@Retry` → `@CircuitBreaker` → method execution
 
-**Configuration Parameters (all instances):**
+**Retry Configuration (all instances):**
+- **Max Attempts**: 3 - Initial call plus 2 retries
+- **Wait Duration**: 500ms - Initial wait before first retry
+- **Exponential Backoff**: Enabled with 2x multiplier
+  - 1st retry: waits 500ms
+  - 2nd retry: waits 1000ms (500ms × 2)
+  - Total max wait: ~1.5 seconds across all retries
+- **Retry Exceptions**: Automatic retry only for transient failures
+  - `java.io.IOException` - Network/I/O errors
+  - `java.util.concurrent.TimeoutException` - Timeout errors
+  - `org.springframework.dao.TransientDataAccessException` - Temporary database errors
+- **Event Monitoring**: Enabled via Actuator endpoints
+
+**Circuit Breaker Configuration (all instances):**
 - **Sliding Window Size**: 10 calls - Tracks last 10 calls to calculate failure rate
 - **Minimum Number of Calls**: 5 - Need at least 5 calls before calculating metrics
 - **Failure Rate Threshold**: 50% - Opens circuit if 50% or more calls fail
@@ -425,6 +455,28 @@ Four circuit breaker instances are configured in `application.properties`:
 - **Permitted Calls in Half-Open**: 3 - Test calls when transitioning to half-open state
 - **Automatic Transition**: Enabled - Automatically moves from OPEN → HALF_OPEN
 - **Health Indicator**: Enabled - Exposed via Spring Boot Actuator
+- **Record Exceptions**: All exceptions trigger circuit breaker (shoppingCart only)
+
+**How Retry and Circuit Breaker Work Together:**
+
+When a method is annotated with both `@Retry` and `@CircuitBreaker`:
+1. **First**: Retry attempts to recover from transient failures automatically
+   - Retries up to 3 times with exponential backoff
+   - Only retries specific transient exceptions
+   - If all retries fail, passes failure to circuit breaker
+2. **Then**: Circuit breaker prevents cascading failures
+   - Tracks success/failure rates across all retry attempts
+   - Opens circuit if too many failures occur (even after retries)
+   - When open, fails fast without attempting retries
+3. **Finally**: Fallback method provides graceful degradation
+   - Called when both retry and circuit breaker cannot recover
+   - Returns user-friendly error message
+   - Logs full exception context for debugging
+
+This layered approach provides:
+- **Immediate recovery** from transient failures (retry)
+- **Fast failure** when service is degraded (circuit breaker)
+- **Graceful degradation** with meaningful error messages (fallback)
 
 **Fallback Behavior:**
 
@@ -433,21 +485,27 @@ All fallback methods follow a consistent pattern:
 - Return `Mono.error()` with user-friendly message
 - Preserve original exception in the error chain
 - Use SLF4J logger for structured logging
+- Fallback message indicates "Retry/Circuit breaker fallback" for clarity
 
-**Monitoring Circuit Breakers:**
+**Monitoring Resilience Patterns:**
 
 ```bash
-# Check circuit breaker health
+# Check overall health (includes circuit breaker states)
 curl http://localhost:8080/actuator/health
 
-# List all circuit breakers and their states
+# Circuit Breaker Monitoring
 curl http://localhost:8080/actuator/circuitbreakers
-
-# View recent circuit breaker events
 curl http://localhost:8080/actuator/circuitbreakerevents
-
-# Get circuit breaker metrics
 curl http://localhost:8080/actuator/metrics/resilience4j.circuitbreaker.calls
+
+# Retry Monitoring
+curl http://localhost:8080/actuator/retries
+curl http://localhost:8080/actuator/retryevents
+curl http://localhost:8080/actuator/metrics/resilience4j.retry.calls
+
+# Specific instance metrics
+curl http://localhost:8080/actuator/metrics/resilience4j.circuitbreaker.calls?tag=name:shoppingCart
+curl http://localhost:8080/actuator/metrics/resilience4j.retry.calls?tag=name:shoppingCart
 ```
 
 **Circuit Breaker States:**
@@ -457,11 +515,15 @@ curl http://localhost:8080/actuator/metrics/resilience4j.circuitbreaker.calls
 - **DISABLED**: Circuit breaker bypassed (for testing)
 
 **Best Practices:**
-- Circuit breakers protect database operations and external service calls
+- Retry and circuit breaker annotations are stacked on the same methods for layered resilience
+- `@Retry` is placed before `@CircuitBreaker` in the annotation order
+- Both annotations share the same fallback method for consistency
+- Retry only on transient exceptions (IOException, TimeoutException, TransientDataAccessException)
+- Circuit breakers track all failures, including those after exhausted retries
 - Fallback methods have identical signatures to protected methods plus `Exception` parameter
 - All fallback methods log errors at ERROR level with contextual information
-- Health indicators allow monitoring via Actuator endpoints
-- Resilience4j debug logging enabled for troubleshooting
+- Health indicators and event endpoints allow real-time monitoring via Actuator
+- Resilience4j debug logging enabled for troubleshooting retry and circuit breaker behavior
 
 ## Testing
 

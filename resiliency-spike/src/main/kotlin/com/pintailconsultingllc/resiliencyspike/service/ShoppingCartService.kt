@@ -5,6 +5,7 @@ import com.pintailconsultingllc.resiliencyspike.domain.CartStatus
 import com.pintailconsultingllc.resiliencyspike.domain.ShoppingCart
 import com.pintailconsultingllc.resiliencyspike.repository.ShoppingCartRepository
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker
+import io.github.resilience4j.retry.annotation.Retry
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
@@ -15,7 +16,7 @@ import java.util.*
 /**
  * Service for managing shopping carts
  * Demonstrates reactive database operations with R2DBC for shopping cart functionality
- * Circuit breaker protection applied to database operations
+ * Circuit breaker protection and retry logic applied to database operations
  */
 @Service
 class ShoppingCartService(
@@ -28,6 +29,7 @@ class ShoppingCartService(
     /**
      * Create a new shopping cart
      */
+    @Retry(name = "shoppingCart", fallbackMethod = "createCartFallback")
     @CircuitBreaker(name = "shoppingCart", fallbackMethod = "createCartFallback")
     fun createCart(sessionId: String, userId: String? = null, expiresAt: OffsetDateTime? = null): Mono<ShoppingCart> {
         val cart = ShoppingCart(
@@ -50,6 +52,7 @@ class ShoppingCartService(
     /**
      * Find or create a cart for a session
      */
+    @Retry(name = "shoppingCart", fallbackMethod = "findOrCreateCartFallback")
     @CircuitBreaker(name = "shoppingCart", fallbackMethod = "findOrCreateCartFallback")
     fun findOrCreateCart(sessionId: String, userId: String? = null): Mono<ShoppingCart> {
         return cartRepository.findBySessionIdAndStatus(sessionId, CartStatus.ACTIVE)
@@ -57,33 +60,35 @@ class ShoppingCartService(
     }
 
     private fun findOrCreateCartFallback(sessionId: String, userId: String?, ex: Exception): Mono<ShoppingCart> {
-        logger.error("Circuit breaker fallback for findOrCreateCart - sessionId: $sessionId, error: ${ex.message}", ex)
+        logger.error("Retry/Circuit breaker fallback for findOrCreateCart - sessionId: $sessionId, error: ${ex.message}", ex)
         return Mono.error(RuntimeException("Unable to retrieve or create cart. Please try again later.", ex))
     }
 
     /**
      * Find a cart by ID
      */
+    @Retry(name = "shoppingCart", fallbackMethod = "findCartByIdFallback")
     @CircuitBreaker(name = "shoppingCart", fallbackMethod = "findCartByIdFallback")
     fun findCartById(cartId: Long): Mono<ShoppingCart> {
         return cartRepository.findById(cartId)
     }
 
     private fun findCartByIdFallback(cartId: Long, ex: Exception): Mono<ShoppingCart> {
-        logger.error("Circuit breaker fallback for findCartById - cartId: $cartId, error: ${ex.message}", ex)
+        logger.error("Retry/Circuit breaker fallback for findCartById - cartId: $cartId, error: ${ex.message}", ex)
         return Mono.error(RuntimeException("Unable to retrieve cart. Please try again later.", ex))
     }
 
     /**
      * Find a cart by UUID
      */
+    @Retry(name = "shoppingCart", fallbackMethod = "findCartByUuidFallback")
     @CircuitBreaker(name = "shoppingCart", fallbackMethod = "findCartByUuidFallback")
     fun findCartByUuid(cartUuid: UUID): Mono<ShoppingCart> {
         return cartRepository.findByCartUuid(cartUuid)
     }
 
     private fun findCartByUuidFallback(cartUuid: UUID, ex: Exception): Mono<ShoppingCart> {
-        logger.error("Circuit breaker fallback for findCartByUuid - cartUuid: $cartUuid, error: ${ex.message}", ex)
+        logger.error("Retry/Circuit breaker fallback for findCartByUuid - cartUuid: $cartUuid, error: ${ex.message}", ex)
         return Mono.error(RuntimeException("Unable to retrieve cart. Please try again later.", ex))
     }
 
@@ -118,6 +123,7 @@ class ShoppingCartService(
     /**
      * Update cart status
      */
+    @Retry(name = "shoppingCart", fallbackMethod = "updateCartStatusFallback")
     @CircuitBreaker(name = "shoppingCart", fallbackMethod = "updateCartStatusFallback")
     fun updateCartStatus(cartId: Long, newStatus: CartStatus): Mono<ShoppingCart> {
         return cartRepository.findById(cartId)
