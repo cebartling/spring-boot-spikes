@@ -136,11 +136,17 @@ Inventory Management:
 - `inventory_transactions` - All inventory movements (receipts, shipments, adjustments, transfers)
 - `inventory_reservations` - Reserved stock for orders with expiration tracking
 
+Shopping Cart:
+- `shopping_carts` - Active shopping carts with session tracking, user association, and status management
+- `cart_items` - Items in carts with pricing stored in cents (integer), quantities, and discounts
+- `cart_state_history` - Complete audit trail of all cart events and status changes
+
 SQL scripts in `docker/init-scripts/` are executed alphabetically during first startup:
 - `01-init-schema.sql` - Creates resiliency tracking tables
 - `02-product-catalog-schema.sql` - Creates product catalog tables and indexes
 - `03-product-catalog-seed-data.sql` - Seeds comprehensive product data across multiple categories
 - `04-inventory-schema.sql` - Creates inventory tables with triggers and sample data
+- `05-shopping-cart-schema.sql` - Creates shopping cart tables with automatic total calculation triggers
 
 The init container waits for PostgreSQL to be healthy before running scripts and exits after completion (restart: "no").
 
@@ -215,6 +221,11 @@ Inventory Management:
 - `InventoryTransaction` - Audit trail of all inventory movements
 - `InventoryReservation` - Reserved stock with expiration and status tracking
 
+Shopping Cart:
+- `ShoppingCart` - Shopping carts with session/user tracking, status (ACTIVE, ABANDONED, CONVERTED, EXPIRED), and monetary amounts in cents
+- `CartItem` - Cart line items with product references, quantities, pricing in cents, and optional discounts
+- `CartStateHistory` - Event sourcing for cart lifecycle (CREATED, ITEM_ADDED, ITEM_REMOVED, ABANDONED, CONVERTED, etc.)
+
 **Repository Interfaces:**
 All repositories extend `ReactiveCrudRepository` and return reactive types:
 
@@ -233,6 +244,11 @@ Inventory Management:
 - `InventoryTransactionRepository` - Find by product/location/type/date; transaction history
 - `InventoryReservationRepository` - Find by product/location/status; expired reservations; aggregate reserved quantities
 
+Shopping Cart:
+- `ShoppingCartRepository` - Find by session/user/UUID/status; expired and abandoned cart queries; cart-with-items queries
+- `CartItemRepository` - Find by cart/product; calculate totals; find discounted/high-value/bulk items
+- `CartStateHistoryRepository` - Find events by cart/type/date range; support conversion and abandonment analytics
+
 **Service Classes:**
 All services use reactive repositories and return `Mono<T>` or `Flux<T>`:
 
@@ -246,6 +262,11 @@ Product Catalog:
 Inventory Management:
 - `InventoryLocationService` - CRUD operations, location filtering by type, activate/deactivate
 - `InventoryStockService` - Stock level management, adjustments, reservations, availability checks, low stock alerts
+
+Shopping Cart:
+- `ShoppingCartService` - Cart lifecycle (create, find, abandon, convert, expire), status management, expired cart processing
+- `CartItemService` - Add/remove/update items, apply discounts, validate availability, calculate totals
+- `CartStateHistoryService` - Record events, track status changes, calculate conversion/abandonment rates
 
 ### Secrets Management with Vault
 
@@ -308,12 +329,28 @@ The project includes comprehensive unit tests using JUnit 5, Mockito, and Reacto
 - Reactive assertions with `StepVerifier` from reactor-test
 - Test fixtures in `TestFixtures` object for consistent test data
 
-**Test Coverage:**
-- `ResilienceEventServiceTest` - Comprehensive tests for resilience event operations
-- `CircuitBreakerStateServiceTest` - Tests for circuit breaker state management
-- `RateLimiterMetricsServiceTest` - Tests for rate limiter metrics
-- `ProductServiceTest` - 27 test cases covering all product operations
-- `CategoryServiceTest` - 24 test cases covering all category operations
+**Test Coverage (131 total tests):**
+
+Resiliency Tracking (44 tests):
+- `ResilienceEventServiceTest` - 11 tests for resilience event operations
+- `CircuitBreakerStateRepositoryTest` - 11 tests for circuit breaker state management
+- `RateLimiterMetricsRepositoryTest` - 11 tests for rate limiter metrics
+- `ResilienceEventRepositoryTest` - 11 tests for event repository operations
+
+Product Catalog (44 tests):
+- `ProductServiceTest` - 22 tests covering all product operations
+- `CategoryServiceTest` - 22 tests covering all category operations
+
+Shopping Cart (42 tests):
+- `ShoppingCartServiceTest` - 16 tests for cart lifecycle management
+- `CartItemServiceTest` - 19 tests for item operations and validation
+- `CartStateHistoryServiceTest` - 7 tests for event tracking and analytics
+
+**Testing Best Practices:**
+- Use `anyOrNull()` from mockito-kotlin for nullable parameters with default values
+- Add `@MockitoSettings(strictness = Strictness.LENIENT)` when needed for complex mocking scenarios
+- For reactive chains with `switchIfEmpty`, add fallback stubs to handle eager evaluation
+- All monetary values in tests use integer cents (e.g., 9999 = $99.99)
 
 ## Development Notes
 

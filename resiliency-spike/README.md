@@ -87,6 +87,8 @@ The database schema is automatically initialized on first startup by the `db-ini
 1. `01-init-schema.sql` - Creates resiliency tracking tables
 2. `02-product-catalog-schema.sql` - Creates product catalog tables and indexes
 3. `03-product-catalog-seed-data.sql` - Seeds comprehensive product catalog data
+4. `04-inventory-schema.sql` - Creates inventory management tables and triggers
+5. `05-shopping-cart-schema.sql` - Creates shopping cart tables with automatic total calculation
 
 **Resiliency Tracking Tables:**
 - `resilience_events` - Tracks resilience events (circuit breaker, rate limiter, etc.)
@@ -96,6 +98,17 @@ The database schema is automatically initialized on first startup by the `db-ini
 **Product Catalog Tables:**
 - `categories` - Product categories with hierarchical parent-child relationships (25 categories)
 - `products` - Product catalog with SKU, pricing, inventory, and JSONB metadata (51 products seeded)
+
+**Inventory Management Tables:**
+- `inventory_locations` - Warehouses, stores, distribution centers (4 locations seeded)
+- `inventory_stock` - Current stock levels per product per location
+- `inventory_transactions` - All inventory movements (receipts, shipments, adjustments, transfers)
+- `inventory_reservations` - Reserved stock for orders with expiration tracking
+
+**Shopping Cart Tables:**
+- `shopping_carts` - Active shopping carts with session tracking, user association, and status management
+- `cart_items` - Items in carts with pricing (stored in cents as integers), quantities, and discounts
+- `cart_state_history` - Complete audit trail of all cart events and status changes
 
 **Seeded Data:**
 The database comes pre-populated with:
@@ -183,6 +196,17 @@ Product Catalog:
 - `Category` - Product categories with hierarchical parent-child relationships
 - `Product` - Products with SKU, pricing, stock quantity, and JSONB metadata
 
+Inventory Management:
+- `InventoryLocation` - Physical/logical locations (warehouses, stores, distribution centers)
+- `InventoryStock` - Stock levels per product per location with automatic availability calculation
+- `InventoryTransaction` - Audit trail of all inventory movements
+- `InventoryReservation` - Reserved stock with expiration and status tracking
+
+Shopping Cart:
+- `ShoppingCart` - Shopping carts with session/user tracking, status (ACTIVE, ABANDONED, CONVERTED, EXPIRED), and monetary amounts in cents
+- `CartItem` - Cart line items with product references, quantities, pricing in cents, and optional discounts
+- `CartStateHistory` - Event sourcing for cart lifecycle (CREATED, ITEM_ADDED, ITEM_REMOVED, ABANDONED, CONVERTED, etc.)
+
 **Repositories (Reactive):**
 All repositories extend `ReactiveCrudRepository` and return `Mono<T>` or `Flux<T>` for non-blocking database operations:
 
@@ -195,6 +219,17 @@ Product Catalog:
 - `CategoryRepository` - Find by name, parent, active status; hierarchical queries; search by name
 - `ProductRepository` - Find by SKU, category, price range; search by name; low stock queries
 
+Inventory Management:
+- `InventoryLocationRepository` - Find by code, type, location; search locations
+- `InventoryStockRepository` - Find by product/location; low stock alerts; availability checks
+- `InventoryTransactionRepository` - Find by product/location/type/date; transaction history
+- `InventoryReservationRepository` - Find by product/location/status; expired reservations
+
+Shopping Cart:
+- `ShoppingCartRepository` - Find by session/user/UUID/status; expired and abandoned cart queries
+- `CartItemRepository` - Find by cart/product; calculate totals; find discounted/high-value items
+- `CartStateHistoryRepository` - Find events by cart/type/date range; conversion/abandonment analytics
+
 **Service Layer:**
 All services use reactive repositories and return `Mono<T>` or `Flux<T>`:
 
@@ -205,9 +240,18 @@ Product Catalog:
 - `CategoryService` - CRUD operations, hierarchical category management, soft delete (activate/deactivate)
 - `ProductService` - CRUD operations, stock management, product filtering/searching, soft delete
 
+Inventory Management:
+- `InventoryLocationService` - CRUD operations, location filtering by type, activate/deactivate
+- `InventoryStockService` - Stock level management, adjustments, reservations, availability checks, low stock alerts
+
+Shopping Cart:
+- `ShoppingCartService` - Cart lifecycle (create, find, abandon, convert, expire), status management, expired cart processing
+- `CartItemService` - Add/remove/update items, apply discounts, validate availability, calculate totals
+- `CartStateHistoryService` - Record events, track status changes, calculate conversion/abandonment rates
+
 ## Testing
 
-The project includes comprehensive unit tests with 95+ test cases covering:
+The project includes comprehensive unit tests with **131 test cases** covering:
 - Service layer logic with business operations
 - Repository operations with reactive database access
 - Edge cases and error handling
@@ -215,23 +259,37 @@ The project includes comprehensive unit tests with 95+ test cases covering:
 
 **Testing Stack:**
 - JUnit 5 with MockitoExtension
-- Mockito Kotlin for mocking
+- Mockito Kotlin for mocking (with `anyOrNull()` for nullable default parameters)
 - Reactor Test (StepVerifier) for reactive assertions
 - Custom test fixtures (`TestFixtures`) for consistent test data
 
-**Test Coverage:**
+**Test Coverage (131 total tests):**
 
-Resiliency Tracking:
-- `ResilienceEventServiceTest` - 11 test cases
-- `ResilienceEventRepositoryTest` - 11 test cases
-- `CircuitBreakerStateRepositoryTest` - 11 test cases
-- `RateLimiterMetricsRepositoryTest` - 11 test cases
+Resiliency Tracking (44 tests):
+- `ResilienceEventServiceTest` - 11 tests for resilience event operations
+- `ResilienceEventRepositoryTest` - 11 tests for event repository operations
+- `CircuitBreakerStateRepositoryTest` - 11 tests for circuit breaker state management
+- `RateLimiterMetricsRepositoryTest` - 11 tests for rate limiter metrics
 
-Product Catalog:
-- `ProductServiceTest` - 27 test cases (all CRUD operations, stock management, filtering)
-- `CategoryServiceTest` - 24 test cases (all CRUD operations, hierarchical queries, soft delete)
+Product Catalog (44 tests):
+- `ProductServiceTest` - 22 tests covering all CRUD operations, stock management, filtering
+- `CategoryServiceTest` - 22 tests covering all CRUD operations, hierarchical queries, soft delete
 
-All tests use `@DisplayName` annotations for clear test descriptions and follow reactive testing patterns with `StepVerifier`.
+Shopping Cart (42 tests):
+- `ShoppingCartServiceTest` - 16 tests for cart lifecycle management (create, find, abandon, convert, expire)
+- `CartItemServiceTest` - 19 tests for item operations (add, remove, update, discounts, validation)
+- `CartStateHistoryServiceTest` - 7 tests for event tracking and conversion/abandonment analytics
+
+Integration Tests (1 test):
+- `ResiliencySpikeApplicationTests` - Spring context loads successfully
+
+**Testing Best Practices:**
+- Use `anyOrNull()` from mockito-kotlin for nullable parameters with default values
+- Add `@MockitoSettings(strictness = Strictness.LENIENT)` when needed for complex mocking scenarios
+- For reactive chains with `switchIfEmpty`, add fallback stubs to handle eager evaluation
+- All monetary values in tests use integer cents (e.g., 9999 = $99.99)
+- All tests use `@DisplayName` annotations for clear test descriptions
+- Follow reactive testing patterns with `StepVerifier` for assertions
 
 ## Development Notes
 
@@ -322,6 +380,73 @@ A fully reactive product catalog implementation demonstrating:
 - Find low stock products for reordering
 - Hierarchical category traversal
 - Count operations for analytics
+
+### Inventory Management System
+A comprehensive inventory tracking system with:
+
+**Location Management:**
+- Multiple location types (warehouse, store, distribution center)
+- Geographic tracking with city/state/country
+- Active/inactive status management
+- Location search and filtering
+
+**Stock Management:**
+- Real-time stock levels per product per location
+- Automatic available quantity calculation (on_hand - reserved)
+- Low stock alerts with configurable thresholds
+- Stock level queries and aggregations
+
+**Transaction Tracking:**
+- Complete audit trail of all inventory movements
+- Transaction types: receipt, shipment, adjustment, transfer
+- Reference numbers for external system integration
+- Quantity and location tracking for all movements
+
+**Reservation System:**
+- Reserve stock for orders with expiration
+- Automatic reservation status management (ACTIVE, EXPIRED, RELEASED, FULFILLED)
+- Released-by tracking for audit purposes
+- Query reserved quantities and expired reservations
+
+### Shopping Cart System
+A fully reactive shopping cart implementation with event sourcing:
+
+**Cart Management:**
+- Session-based and user-associated carts
+- Cart status lifecycle: ACTIVE → ABANDONED/CONVERTED/EXPIRED
+- UUID-based cart identification for security
+- Automatic 7-day expiration
+- Expired and abandoned cart processing
+- Guest-to-user cart association
+
+**Cart Items:**
+- Add/remove/update items with quantity management
+- Pricing stored in integer cents for precision
+- Automatic line total calculation via database triggers
+- Product availability validation before adding items
+- Item-level discount support
+- Metadata support for item customization (color, size, etc.)
+
+**Cart Totals:**
+- Automatic subtotal calculation from line items
+- Tax amount tracking
+- Cart-level discount support
+- Total amount calculation (subtotal + tax - discounts)
+- Item count tracking
+
+**Event Sourcing:**
+- Complete audit trail of all cart events
+- Event types: CREATED, ITEM_ADDED, ITEM_REMOVED, ITEM_UPDATED, ABANDONED, CONVERTED, EXPIRED
+- Status change tracking with previous/new status
+- JSONB event data for extensibility
+- Conversion and abandonment rate analytics
+
+**Advanced Features:**
+- Find discounted items in cart
+- Find high-value items (above threshold)
+- Find bulk items (quantity threshold)
+- Calculate cart totals and item counts
+- Validate all items for availability before checkout
 
 All operations are fully reactive using `Mono<T>` and `Flux<T>` return types, ensuring non-blocking I/O throughout the stack.
 
