@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.math.BigDecimal
+import java.math.RoundingMode
 import java.util.*
 
 /**
@@ -68,14 +69,17 @@ class CartItemService(
         quantity: Int,
         product: Product
     ): Mono<CartItem> {
+        val unitPriceCents = convertToCents(product.price)
+        val lineTotalCents = unitPriceCents * quantity
+
         val newItem = CartItem(
             cartId = cartId,
             productId = productId,
             sku = product.sku,
             productName = product.name,
             quantity = quantity,
-            unitPrice = product.price,
-            lineTotal = product.price.multiply(BigDecimal(quantity))
+            unitPriceCents = unitPriceCents,
+            lineTotalCents = lineTotalCents
         )
         return cartItemRepository.save(newItem)
             .flatMap { savedItem ->
@@ -85,10 +89,19 @@ class CartItemService(
                     mapOf(
                         "product_id" to productId.toString(),
                         "quantity" to quantity.toString(),
-                        "unit_price" to product.price.toString()
+                        "unit_price_cents" to unitPriceCents.toString()
                     )
                 ).thenReturn(savedItem)
             }
+    }
+
+    /**
+     * Convert BigDecimal price to cents (Long)
+     */
+    private fun convertToCents(price: BigDecimal): Long {
+        return price.multiply(BigDecimal(100))
+            .setScale(0, RoundingMode.HALF_UP)
+            .toLong()
     }
 
     /**
@@ -135,12 +148,12 @@ class CartItemService(
     }
 
     /**
-     * Apply discount to a cart item
+     * Apply discount to a cart item (discount amount in cents)
      */
-    fun applyItemDiscount(cartId: Long, productId: UUID, discountAmount: BigDecimal): Mono<CartItem> {
+    fun applyItemDiscount(cartId: Long, productId: UUID, discountAmountCents: Long): Mono<CartItem> {
         return cartItemRepository.findByCartIdAndProductId(cartId, productId)
             .flatMap { item ->
-                val updatedItem = item.copy(discountAmount = discountAmount)
+                val updatedItem = item.copy(discountAmountCents = discountAmountCents)
                 cartItemRepository.save(updatedItem)
                     .flatMap { savedItem ->
                         cartStateHistoryService.recordItemEvent(
@@ -148,7 +161,7 @@ class CartItemService(
                             CartEventType.ITEM_UPDATED,
                             mapOf(
                                 "product_id" to productId.toString(),
-                                "discount_amount" to discountAmount.toString()
+                                "discount_amount_cents" to discountAmountCents.toString()
                             )
                         ).thenReturn(savedItem)
                     }
@@ -177,9 +190,9 @@ class CartItemService(
     }
 
     /**
-     * Calculate total value of items in a cart
+     * Calculate total value of items in a cart (in cents)
      */
-    fun calculateCartTotal(cartId: Long): Mono<BigDecimal> {
+    fun calculateCartTotal(cartId: Long): Mono<Long> {
         return cartItemRepository.calculateCartTotal(cartId)
     }
 
@@ -212,10 +225,10 @@ class CartItemService(
     }
 
     /**
-     * Find high-value items in cart
+     * Find high-value items in cart (minimum price in cents)
      */
-    fun findHighValueItems(cartId: Long, minPrice: BigDecimal): Flux<CartItem> {
-        return cartItemRepository.findHighValueItems(cartId, minPrice)
+    fun findHighValueItems(cartId: Long, minPriceCents: Long): Flux<CartItem> {
+        return cartItemRepository.findHighValueItems(cartId, minPriceCents)
     }
 
     /**

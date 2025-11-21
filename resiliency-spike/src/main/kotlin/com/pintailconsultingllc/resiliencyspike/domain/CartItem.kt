@@ -3,7 +3,6 @@ package com.pintailconsultingllc.resiliencyspike.domain
 import org.springframework.data.annotation.Id
 import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.mapping.Table
-import java.math.BigDecimal
 import java.time.OffsetDateTime
 import java.util.*
 
@@ -12,6 +11,7 @@ import java.util.*
  *
  * Cart items store snapshots of product information (SKU, name, price) at the time
  * they were added to the cart, ensuring price consistency even if product prices change.
+ * Prices are stored in cents as Long integers.
  */
 @Table("cart_items")
 data class CartItem(
@@ -33,14 +33,14 @@ data class CartItem(
     @Column("quantity")
     val quantity: Int,
 
-    @Column("unit_price")
-    val unitPrice: BigDecimal,  // Price snapshot at time of add
+    @Column("unit_price_cents")
+    val unitPriceCents: Long,  // Price in cents snapshot at time of add
 
-    @Column("line_total")
-    val lineTotal: BigDecimal,  // quantity * unit_price (calculated by DB trigger)
+    @Column("line_total_cents")
+    val lineTotalCents: Long,  // quantity * unitPriceCents (calculated by DB trigger)
 
-    @Column("discount_amount")
-    val discountAmount: BigDecimal = BigDecimal.ZERO,
+    @Column("discount_amount_cents")
+    val discountAmountCents: Long = 0,
 
     @Column("metadata")
     val metadata: String? = null,  // JSON stored as String (product options, customizations, etc.)

@@ -3,7 +3,6 @@ package com.pintailconsultingllc.resiliencyspike.domain
 import org.springframework.data.annotation.Id
 import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.mapping.Table
-import java.math.BigDecimal
 import java.time.OffsetDateTime
 import java.util.*
 
@@ -12,6 +11,7 @@ import java.util.*
  *
  * A shopping cart tracks items a customer intends to purchase, along with pricing,
  * totals, and state (active, abandoned, converted, expired).
+ * All monetary amounts are stored in cents as Long integers.
  */
 @Table("shopping_carts")
 data class ShoppingCart(
@@ -33,17 +33,17 @@ data class ShoppingCart(
     @Column("currency_code")
     val currencyCode: String = "USD",
 
-    @Column("subtotal")
-    val subtotal: BigDecimal = BigDecimal.ZERO,
+    @Column("subtotal_cents")
+    val subtotalCents: Long = 0,
 
-    @Column("tax_amount")
-    val taxAmount: BigDecimal = BigDecimal.ZERO,
+    @Column("tax_amount_cents")
+    val taxAmountCents: Long = 0,
 
-    @Column("discount_amount")
-    val discountAmount: BigDecimal = BigDecimal.ZERO,
+    @Column("discount_amount_cents")
+    val discountAmountCents: Long = 0,
 
-    @Column("total_amount")
-    val totalAmount: BigDecimal = BigDecimal.ZERO,
+    @Column("total_amount_cents")
+    val totalAmountCents: Long = 0,
 
     @Column("item_count")
     val itemCount: Int = 0,

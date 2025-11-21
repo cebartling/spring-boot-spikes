@@ -6,7 +6,6 @@ import org.springframework.data.repository.reactive.ReactiveCrudRepository
 import org.springframework.stereotype.Repository
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
-import java.math.BigDecimal
 import java.util.*
 
 /**
@@ -46,10 +45,10 @@ interface CartItemRepository : ReactiveCrudRepository<CartItem, Long> {
     fun deleteByCartId(cartId: Long): Mono<Void>
 
     /**
-     * Calculate total value of items in a cart
+     * Calculate total value of items in a cart (in cents)
      */
-    @Query("SELECT COALESCE(SUM(line_total - discount_amount), 0) FROM cart_items WHERE cart_id = :cartId")
-    fun calculateCartTotal(cartId: Long): Mono<BigDecimal>
+    @Query("SELECT COALESCE(SUM(line_total_cents - discount_amount_cents), 0) FROM cart_items WHERE cart_id = :cartId")
+    fun calculateCartTotal(cartId: Long): Mono<Long>
 
     /**
      * Calculate total quantity of items in a cart
@@ -60,14 +59,14 @@ interface CartItemRepository : ReactiveCrudRepository<CartItem, Long> {
     /**
      * Find items with discounts
      */
-    @Query("SELECT * FROM cart_items WHERE cart_id = :cartId AND discount_amount > 0")
+    @Query("SELECT * FROM cart_items WHERE cart_id = :cartId AND discount_amount_cents > 0")
     fun findDiscountedItems(cartId: Long): Flux<CartItem>
 
     /**
-     * Find high-value items (above a certain price threshold)
+     * Find high-value items (above a certain price threshold in cents)
      */
-    @Query("SELECT * FROM cart_items WHERE cart_id = :cartId AND unit_price >= :minPrice ORDER BY unit_price DESC")
-    fun findHighValueItems(cartId: Long, minPrice: BigDecimal): Flux<CartItem>
+    @Query("SELECT * FROM cart_items WHERE cart_id = :cartId AND unit_price_cents >= :minPriceCents ORDER BY unit_price_cents DESC")
+    fun findHighValueItems(cartId: Long, minPriceCents: Long): Flux<CartItem>
 
     /**
      * Find items with large quantities

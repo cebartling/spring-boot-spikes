@@ -17,10 +17,10 @@ CREATE TABLE shopping_carts (
     session_id VARCHAR(255) NOT NULL,
     status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',  -- ACTIVE, ABANDONED, CONVERTED, EXPIRED
     currency_code VARCHAR(3) NOT NULL DEFAULT 'USD',
-    subtotal DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
-    tax_amount DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
-    discount_amount DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
-    total_amount DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
+    subtotal_cents BIGINT NOT NULL DEFAULT 0,  -- Amount in cents
+    tax_amount_cents BIGINT NOT NULL DEFAULT 0,  -- Amount in cents
+    discount_amount_cents BIGINT NOT NULL DEFAULT 0,  -- Amount in cents
+    total_amount_cents BIGINT NOT NULL DEFAULT 0,  -- Amount in cents
     item_count INTEGER NOT NULL DEFAULT 0,
     metadata JSONB,  -- Store additional cart data (promo codes, gift messages, etc.)
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -29,10 +29,10 @@ CREATE TABLE shopping_carts (
     converted_at TIMESTAMP WITH TIME ZONE,  -- When cart was converted to order
     CONSTRAINT valid_cart_status CHECK (status IN ('ACTIVE', 'ABANDONED', 'CONVERTED', 'EXPIRED')),
     CONSTRAINT valid_amounts CHECK (
-        subtotal >= 0 AND
-        tax_amount >= 0 AND
-        discount_amount >= 0 AND
-        total_amount >= 0
+        subtotal_cents >= 0 AND
+        tax_amount_cents >= 0 AND
+        discount_amount_cents >= 0 AND
+        total_amount_cents >= 0
     ),
     CONSTRAINT valid_item_count CHECK (item_count >= 0)
 );
@@ -46,17 +46,17 @@ CREATE TABLE cart_items (
     sku VARCHAR(100) NOT NULL,  -- Snapshot of SKU at time of add
     product_name VARCHAR(255) NOT NULL,  -- Snapshot of name at time of add
     quantity INTEGER NOT NULL,
-    unit_price DECIMAL(10, 2) NOT NULL,  -- Price at time of add (snapshot)
-    line_total DECIMAL(12, 2) NOT NULL,  -- quantity * unit_price
-    discount_amount DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
+    unit_price_cents BIGINT NOT NULL,  -- Price in cents at time of add (snapshot)
+    line_total_cents BIGINT NOT NULL,  -- quantity * unit_price_cents
+    discount_amount_cents BIGINT NOT NULL DEFAULT 0,  -- Discount in cents
     metadata JSONB,  -- Product options, customizations, etc.
     added_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT valid_quantity CHECK (quantity > 0),
     CONSTRAINT valid_prices CHECK (
-        unit_price >= 0 AND
-        line_total >= 0 AND
-        discount_amount >= 0
+        unit_price_cents >= 0 AND
+        line_total_cents >= 0 AND
+        discount_amount_cents >= 0
     ),
     CONSTRAINT unique_product_per_cart UNIQUE (cart_id, product_id)
 );
@@ -104,8 +104,8 @@ BEGIN
     -- Update cart totals and item count
     UPDATE shopping_carts
     SET
-        subtotal = COALESCE((
-            SELECT SUM(line_total - discount_amount)
+        subtotal_cents = COALESCE((
+            SELECT SUM(line_total_cents - discount_amount_cents)
             FROM cart_items
             WHERE cart_id = NEW.cart_id
         ), 0),
@@ -114,11 +114,11 @@ BEGIN
             FROM cart_items
             WHERE cart_id = NEW.cart_id
         ), 0),
-        total_amount = COALESCE((
-            SELECT SUM(line_total - discount_amount)
+        total_amount_cents = COALESCE((
+            SELECT SUM(line_total_cents - discount_amount_cents)
             FROM cart_items
             WHERE cart_id = NEW.cart_id
-        ), 0) + tax_amount - discount_amount,
+        ), 0) + tax_amount_cents - discount_amount_cents,
         updated_at = CURRENT_TIMESTAMP
     WHERE id = NEW.cart_id;
 
@@ -133,8 +133,8 @@ BEGIN
     -- Update cart totals and item count
     UPDATE shopping_carts
     SET
-        subtotal = COALESCE((
-            SELECT SUM(line_total - discount_amount)
+        subtotal_cents = COALESCE((
+            SELECT SUM(line_total_cents - discount_amount_cents)
             FROM cart_items
             WHERE cart_id = OLD.cart_id
         ), 0),
@@ -143,11 +143,11 @@ BEGIN
             FROM cart_items
             WHERE cart_id = OLD.cart_id
         ), 0),
-        total_amount = COALESCE((
-            SELECT SUM(line_total - discount_amount)
+        total_amount_cents = COALESCE((
+            SELECT SUM(line_total_cents - discount_amount_cents)
             FROM cart_items
             WHERE cart_id = OLD.cart_id
-        ), 0) + tax_amount - discount_amount,
+        ), 0) + tax_amount_cents - discount_amount_cents,
         updated_at = CURRENT_TIMESTAMP
     WHERE id = OLD.cart_id;
 
@@ -168,7 +168,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION calculate_line_total()
 RETURNS TRIGGER AS $$
 BEGIN
-    NEW.line_total = NEW.quantity * NEW.unit_price;
+    NEW.line_total_cents = NEW.quantity * NEW.unit_price_cents;
     NEW.updated_at = CURRENT_TIMESTAMP;
     RETURN NEW;
 END;
@@ -176,7 +176,7 @@ $$ LANGUAGE plpgsql;
 
 -- Triggers for Cart Items
 CREATE TRIGGER trigger_calculate_line_total
-    BEFORE INSERT OR UPDATE OF quantity, unit_price ON cart_items
+    BEFORE INSERT OR UPDATE OF quantity, unit_price_cents ON cart_items
     FOR EACH ROW
     EXECUTE FUNCTION calculate_line_total();
 
@@ -186,7 +186,7 @@ CREATE TRIGGER trigger_update_cart_totals_insert
     EXECUTE FUNCTION update_cart_totals();
 
 CREATE TRIGGER trigger_update_cart_totals_update
-    AFTER UPDATE OF quantity, line_total, discount_amount ON cart_items
+    AFTER UPDATE OF quantity, line_total_cents, discount_amount_cents ON cart_items
     FOR EACH ROW
     EXECUTE FUNCTION update_cart_totals();
 
@@ -209,5 +209,5 @@ COMMENT ON COLUMN shopping_carts.cart_uuid IS 'Public UUID for cart identificati
 COMMENT ON COLUMN shopping_carts.user_id IS 'Optional user identifier - NULL for guest carts';
 COMMENT ON COLUMN shopping_carts.session_id IS 'Session identifier for tracking guest carts';
 COMMENT ON COLUMN shopping_carts.expires_at IS 'Timestamp when cart should be considered abandoned';
-COMMENT ON COLUMN cart_items.unit_price IS 'Price snapshot at time of adding to cart';
+COMMENT ON COLUMN cart_items.unit_price_cents IS 'Price in cents snapshot at time of adding to cart';
 COMMENT ON COLUMN cart_items.sku IS 'SKU snapshot at time of adding to cart';
