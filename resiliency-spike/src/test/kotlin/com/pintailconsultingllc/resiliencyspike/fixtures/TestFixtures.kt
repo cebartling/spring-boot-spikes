@@ -1,10 +1,6 @@
 package com.pintailconsultingllc.resiliencyspike.fixtures
 
-import com.pintailconsultingllc.resiliencyspike.domain.Category
-import com.pintailconsultingllc.resiliencyspike.domain.CircuitBreakerState
-import com.pintailconsultingllc.resiliencyspike.domain.Product
-import com.pintailconsultingllc.resiliencyspike.domain.RateLimiterMetrics
-import com.pintailconsultingllc.resiliencyspike.domain.ResilienceEvent
+import com.pintailconsultingllc.resiliencyspike.domain.*
 import java.math.BigDecimal
 import java.time.OffsetDateTime
 import java.util.*
@@ -125,6 +121,98 @@ object TestFixtures {
             metadata = metadata,
             createdAt = createdAt,
             updatedAt = updatedAt
+        )
+    }
+
+    fun createShoppingCart(
+        id: Long? = 1L,
+        cartUuid: UUID = UUID.randomUUID(),
+        userId: String? = null,
+        sessionId: String = "test-session-123",
+        status: CartStatus = CartStatus.ACTIVE,
+        currencyCode: String = "USD",
+        subtotalCents: Long = 0,
+        taxAmountCents: Long = 0,
+        discountAmountCents: Long = 0,
+        totalAmountCents: Long = 0,
+        itemCount: Int = 0,
+        metadata: String? = null,
+        createdAt: OffsetDateTime = OffsetDateTime.now(),
+        updatedAt: OffsetDateTime = OffsetDateTime.now(),
+        expiresAt: OffsetDateTime? = null,
+        convertedAt: OffsetDateTime? = null,
+        items: List<CartItem> = emptyList()
+    ): ShoppingCart {
+        return ShoppingCart(
+            id = id,
+            cartUuid = cartUuid,
+            userId = userId,
+            sessionId = sessionId,
+            status = status,
+            currencyCode = currencyCode,
+            subtotalCents = subtotalCents,
+            taxAmountCents = taxAmountCents,
+            discountAmountCents = discountAmountCents,
+            totalAmountCents = totalAmountCents,
+            itemCount = itemCount,
+            metadata = metadata,
+            createdAt = createdAt,
+            updatedAt = updatedAt,
+            expiresAt = expiresAt,
+            convertedAt = convertedAt,
+            items = items
+        )
+    }
+
+    fun createCartItem(
+        id: Long? = 1L,
+        cartId: Long = 1L,
+        productId: UUID = UUID.randomUUID(),
+        sku: String = "TEST-SKU-001",
+        productName: String = "Test Product",
+        quantity: Int = 1,
+        unitPriceCents: Long = 9999, // $99.99
+        lineTotalCents: Long = 9999,
+        discountAmountCents: Long = 0,
+        metadata: String? = null,
+        addedAt: OffsetDateTime = OffsetDateTime.now(),
+        updatedAt: OffsetDateTime = OffsetDateTime.now(),
+        product: Product? = null
+    ): CartItem {
+        return CartItem(
+            id = id,
+            cartId = cartId,
+            productId = productId,
+            sku = sku,
+            productName = productName,
+            quantity = quantity,
+            unitPriceCents = unitPriceCents,
+            lineTotalCents = lineTotalCents,
+            discountAmountCents = discountAmountCents,
+            metadata = metadata,
+            addedAt = addedAt,
+            updatedAt = updatedAt,
+            product = product
+        )
+    }
+
+    fun createCartStateHistory(
+        id: Long? = 1L,
+        cartId: Long = 1L,
+        eventType: CartEventType = CartEventType.CREATED,
+        previousStatus: String? = null,
+        newStatus: String? = null,
+        eventData: String? = null,
+        createdAt: OffsetDateTime = OffsetDateTime.now()
+    ): CartStateHistory {
+        return CartStateHistory(
+            id = id,
+            cartId = cartId,
+            eventType = eventType,
+            previousStatus = previousStatus,
+            newStatus = newStatus,
+            eventData = eventData,
+            createdAt = createdAt
         )
     }
 }
