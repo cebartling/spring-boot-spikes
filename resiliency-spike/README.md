@@ -596,7 +596,7 @@ Complete API documentation for all REST endpoints using Springdoc OpenAPI:
 - **Tag sorting** alphabetically for consistency
 
 **Configuration:**
-- Title: "Resiliency Spike API"
+- Title: "Spring Boot Resiliency Spike Solution"
 - Description: "Spring Boot WebFlux API demonstrating resilience patterns with Circuit Breakers, Retries, and Rate Limiters"
 - Version: 0.0.1-SNAPSHOT
 - Contact: Pintail Consulting LLC

@@ -338,7 +338,7 @@ The application includes comprehensive OpenAPI 3.0 documentation for all REST en
 
 **Configuration:**
 All OpenAPI settings are configured in `application.properties`:
-- API title: "Resiliency Spike API"
+- API title: "Spring Boot Resiliency Spike Solution"
 - Description: "Spring Boot WebFlux API demonstrating resilience patterns with Circuit Breakers, Retries, and Rate Limiters"
 - Version: 0.0.1-SNAPSHOT
 - Contact: Pintail Consulting LLC
