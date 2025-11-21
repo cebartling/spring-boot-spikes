@@ -28,6 +28,8 @@ This project demonstrates reactive programming patterns with circuit breakers, r
 
 ### Local Development Setup
 
+#### Option 1: Run Locally with Infrastructure Services
+
 1. **Start infrastructure services:**
    ```bash
    docker-compose up -d
@@ -54,6 +56,23 @@ This project demonstrates reactive programming patterns with circuit breakers, r
    ```bash
    ./gradlew test
    ```
+
+#### Option 2: Run Fully Containerized (Recommended for Production-like Testing)
+
+Run the entire application stack in containers:
+
+```bash
+# Build and start all services (app + infrastructure)
+docker-compose -f docker-compose.app.yml up -d --build
+
+# View logs
+docker-compose -f docker-compose.app.yml logs -f
+
+# Stop all services
+docker-compose -f docker-compose.app.yml down
+```
+
+See [CONTAINER.md](CONTAINER.md) for detailed container deployment instructions.
 
 ### Docker Services
 
@@ -147,9 +166,10 @@ To modify the schema or seed data:
 ./gradlew bootBuildImage
 ```
 
-#### Docker Compose
+#### Docker Compose (Infrastructure Only)
 ```bash
-# Start services
+# Start infrastructure services (Pulsar + PostgreSQL + Vault)
+# Note: This does NOT include the Spring Boot application
 docker-compose up -d
 
 # View logs
@@ -158,6 +178,7 @@ docker-compose logs -f
 # View logs for specific service
 docker-compose logs -f pulsar
 docker-compose logs -f postgres
+docker-compose logs -f vault
 docker-compose logs db-init  # View schema initialization logs
 
 # Stop services
@@ -166,6 +187,62 @@ docker-compose down
 # Stop and remove volumes (clean slate)
 docker-compose down -v
 ```
+
+#### Docker Compose (Full Containerized Stack)
+```bash
+# Start EVERYTHING in containers (app + infrastructure)
+docker-compose -f docker-compose.app.yml up -d --build
+
+# View all logs
+docker-compose -f docker-compose.app.yml logs -f
+
+# View application logs only
+docker-compose -f docker-compose.app.yml logs -f resiliency-spike-app
+
+# View specific service logs
+docker-compose -f docker-compose.app.yml logs -f postgres
+docker-compose -f docker-compose.app.yml logs -f vault
+docker-compose -f docker-compose.app.yml logs -f pulsar
+
+# Check service health status
+docker-compose -f docker-compose.app.yml ps
+
+# Stop services (keeps volumes)
+docker-compose -f docker-compose.app.yml down
+
+# Stop and remove volumes (clean slate)
+docker-compose -f docker-compose.app.yml down -v
+```
+
+#### Container Deployment
+```bash
+# Build optimized container image
+docker build -f Containerfile -t resiliency-spike:latest .
+
+# Build without cache
+docker build --no-cache -f Containerfile -t resiliency-spike:latest .
+
+# Verify image was created
+docker images resiliency-spike
+
+# Run standalone container (requires external services)
+docker run -d \
+  --name resiliency-spike \
+  -p 8080:8080 \
+  -e SPRING_R2DBC_URL=r2dbc:postgresql://host.docker.internal:5432/resiliency_spike \
+  -e SPRING_R2DBC_USERNAME=resiliency_user \
+  -e SPRING_R2DBC_PASSWORD=resiliency_password \
+  resiliency-spike:latest
+```
+
+**Container Image Details:**
+- **Builder Stage**: gradle:8.14.3-jdk21-alpine (~800MB, not in final image)
+- **Runtime Image**: eclipse-temurin:21-jre-alpine (~423MB)
+- **Features**: Multi-stage build, non-root user, health checks, JVM container support
+- **Health Check**: Monitors Spring Boot Actuator endpoint every 30s
+- **JVM Options**: Optimized for containers with G1GC and dynamic RAM percentage
+
+See [CONTAINER.md](CONTAINER.md) for comprehensive container deployment documentation.
 
 #### Monitoring Resilience Patterns (Rate Limiters + Circuit Breakers + Retries)
 ```bash
@@ -504,6 +581,51 @@ open http://localhost:8200/ui
 - Automatic secret injection via Spring configuration
 - Development mode setup with auto-initialization
 - Policy-based access control
+
+### Container Deployment
+Production-ready containerization with multi-stage builds and full orchestration:
+
+**Container Image:**
+- **Multi-stage build** using Containerfile for optimized image size
+- **Builder stage**: gradle:8.14.3-jdk21-alpine (~800MB, not in final image)
+- **Runtime stage**: eclipse-temurin:21-jre-alpine (~423MB final image)
+- **Security**: Non-root user (spring:spring) for enhanced container security
+- **Health checks**: Integrated health monitoring via Spring Boot Actuator endpoint
+- **JVM optimization**: Container-aware JVM settings with G1GC and dynamic RAM percentage
+- **Build caching**: Gradle dependency layer caching for faster rebuilds
+
+**Docker Compose Orchestration:**
+- **Full stack deployment** with docker-compose.app.yml
+- **All services containerized**: Spring Boot app, PostgreSQL, Vault, Pulsar
+- **Health dependencies**: Proper startup ordering with health check dependencies
+- **Volume persistence**: Separate volumes for PostgreSQL and Pulsar data
+- **Network isolation**: Custom bridge network for service communication
+- **Environment configuration**: Externalized configuration via environment variables
+- **One-shot initialization**: Vault and database schema initialization containers
+
+**Deployment Options:**
+1. **Standalone container** - Run application container with external services
+2. **Full stack** - docker-compose.app.yml for complete containerized deployment
+3. **Infrastructure only** - docker-compose.yml for local development with services
+
+**Container Features:**
+- Automatic health checks every 30 seconds via `/actuator/health`
+- 60-second startup grace period for application initialization
+- Container restart policies (unless-stopped) for resilience
+- JVM tuned for container environments (`-XX:+UseContainerSupport`)
+- Dynamic memory allocation (75% of available container RAM)
+- Optimized image layers with .dockerignore for faster builds
+
+**Verified Working:**
+- ✅ Container image builds successfully (~423MB runtime)
+- ✅ All services start healthy (app, PostgreSQL, Vault, Pulsar)
+- ✅ Database schema auto-initialized with 25 categories and 51 products
+- ✅ Application connects to all services (database, Vault, Pulsar)
+- ✅ REST API endpoints functional with circuit breakers and rate limiters
+- ✅ Actuator health checks showing all resilience patterns
+- ✅ Swagger UI and OpenAPI documentation accessible
+
+See [CONTAINER.md](CONTAINER.md) for comprehensive deployment documentation.
 
 ### Resilience Patterns with Resilience4j
 A comprehensive resilience implementation with triple-layered fault tolerance protecting all critical service operations:

@@ -20,7 +20,7 @@ This is a Spring Boot spike project exploring resiliency patterns, built with Ko
 
 ### Build and Run
 ```bash
-# Run the application
+# Run the application (local development)
 ./gradlew bootRun
 
 # Build the project
@@ -29,8 +29,14 @@ This is a Spring Boot spike project exploring resiliency patterns, built with Ko
 # Clean build
 ./gradlew clean build
 
-# Build Docker image
+# Build Docker image (Spring Boot buildpack)
 ./gradlew bootBuildImage
+
+# Build custom container image
+docker build -f Containerfile -t resiliency-spike:latest .
+
+# Run fully containerized (app + all services)
+docker-compose -f docker-compose.app.yml up -d --build
 ```
 
 ### Testing
@@ -66,9 +72,10 @@ This is a Spring Boot spike project exploring resiliency patterns, built with Ko
 ./gradlew dependencies
 ```
 
-### Docker Compose (Local Development)
+### Docker Compose (Local Development Infrastructure Only)
 ```bash
-# Start all services (Pulsar + PostgreSQL)
+# Start infrastructure services (Pulsar + PostgreSQL + Vault)
+# Note: This does NOT include the Spring Boot application
 docker-compose up -d
 
 # View logs from all services
@@ -77,6 +84,7 @@ docker-compose logs -f
 # View logs from specific service
 docker-compose logs -f pulsar
 docker-compose logs -f postgres
+docker-compose logs -f vault
 
 # Check service health status
 docker-compose ps
@@ -90,6 +98,66 @@ docker-compose down -v
 # Restart a specific service
 docker-compose restart pulsar
 ```
+
+### Docker Compose (Full Containerized Stack)
+```bash
+# Start EVERYTHING in containers (app + infrastructure)
+# This is the recommended way to test the full containerized deployment
+docker-compose -f docker-compose.app.yml up -d --build
+
+# View all logs
+docker-compose -f docker-compose.app.yml logs -f
+
+# View application logs only
+docker-compose -f docker-compose.app.yml logs -f resiliency-spike-app
+
+# View specific service logs
+docker-compose -f docker-compose.app.yml logs -f postgres
+docker-compose -f docker-compose.app.yml logs -f vault
+docker-compose -f docker-compose.app.yml logs -f pulsar
+
+# Check service health status
+docker-compose -f docker-compose.app.yml ps
+
+# Stop all services (keeps volumes)
+docker-compose -f docker-compose.app.yml down
+
+# Stop and remove volumes (clean slate)
+docker-compose -f docker-compose.app.yml down -v
+
+# Restart specific service
+docker-compose -f docker-compose.app.yml restart resiliency-spike-app
+```
+
+### Container Deployment
+```bash
+# Build optimized container image
+docker build -f Containerfile -t resiliency-spike:latest .
+
+# Build without cache
+docker build --no-cache -f Containerfile -t resiliency-spike:latest .
+
+# Verify image was created
+docker images resiliency-spike
+
+# Run standalone container (requires external services)
+docker run -d \
+  --name resiliency-spike \
+  -p 8080:8080 \
+  -e SPRING_R2DBC_URL=r2dbc:postgresql://host.docker.internal:5432/resiliency_spike \
+  -e SPRING_R2DBC_USERNAME=resiliency_user \
+  -e SPRING_R2DBC_PASSWORD=resiliency_password \
+  resiliency-spike:latest
+```
+
+**Container Image Details:**
+- **Builder Stage**: gradle:8.14.3-jdk21-alpine (~800MB, not in final image)
+- **Runtime Image**: eclipse-temurin:21-jre-alpine (~423MB)
+- **Features**: Multi-stage build, non-root user (spring:spring), health checks, JVM tuning
+- **Health Check**: Monitors Spring Boot Actuator endpoint every 30s
+- **JVM Options**: `-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC`
+
+See [CONTAINER.md](CONTAINER.md) for comprehensive container deployment documentation.
 
 ## Local Development Infrastructure
 
