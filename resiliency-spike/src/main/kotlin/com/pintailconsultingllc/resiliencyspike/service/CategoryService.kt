@@ -3,6 +3,7 @@ package com.pintailconsultingllc.resiliencyspike.service
 import com.pintailconsultingllc.resiliencyspike.domain.Category
 import com.pintailconsultingllc.resiliencyspike.repository.CategoryRepository
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter
 import io.github.resilience4j.retry.annotation.Retry
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -25,6 +26,7 @@ class CategoryService(
     /**
      * Create a new category
      */
+    @RateLimiter(name = "category", fallbackMethod = "createCategoryFallback")
     @Retry(name = "category", fallbackMethod = "createCategoryFallback")
     @CircuitBreaker(name = "category", fallbackMethod = "createCategoryFallback")
     fun createCategory(category: Category): Mono<Category> {
@@ -32,13 +34,14 @@ class CategoryService(
     }
 
     private fun createCategoryFallback(category: Category, ex: Exception): Mono<Category> {
-        logger.error("Retry/Circuit breaker fallback for createCategory - category: ${category.name}, error: ${ex.message}", ex)
+        logger.error("Rate limiter/Retry/Circuit breaker fallback for createCategory - category: ${category.name}, error: ${ex.message}", ex)
         return Mono.error(RuntimeException("Category service is temporarily unavailable. Please try again later.", ex))
     }
 
     /**
      * Update an existing category
      */
+    @RateLimiter(name = "category", fallbackMethod = "updateCategoryFallback")
     @Retry(name = "category", fallbackMethod = "updateCategoryFallback")
     @CircuitBreaker(name = "category", fallbackMethod = "updateCategoryFallback")
     fun updateCategory(category: Category): Mono<Category> {
@@ -46,13 +49,14 @@ class CategoryService(
     }
 
     private fun updateCategoryFallback(category: Category, ex: Exception): Mono<Category> {
-        logger.error("Retry/Circuit breaker fallback for updateCategory - category: ${category.name}, error: ${ex.message}", ex)
+        logger.error("Rate limiter/Retry/Circuit breaker fallback for updateCategory - category: ${category.name}, error: ${ex.message}", ex)
         return Mono.error(RuntimeException("Unable to update category. Please try again later.", ex))
     }
 
     /**
      * Find a category by ID
      */
+    @RateLimiter(name = "category", fallbackMethod = "findCategoryByIdFallback")
     @Retry(name = "category", fallbackMethod = "findCategoryByIdFallback")
     @CircuitBreaker(name = "category", fallbackMethod = "findCategoryByIdFallback")
     fun findCategoryById(id: UUID): Mono<Category> {
@@ -60,7 +64,7 @@ class CategoryService(
     }
 
     private fun findCategoryByIdFallback(id: UUID, ex: Exception): Mono<Category> {
-        logger.error("Retry/Circuit breaker fallback for findCategoryById - id: $id, error: ${ex.message}", ex)
+        logger.error("Rate limiter/Retry/Circuit breaker fallback for findCategoryById - id: $id, error: ${ex.message}", ex)
         return Mono.error(RuntimeException("Unable to retrieve category. Please try again later.", ex))
     }
 

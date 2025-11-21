@@ -176,11 +176,18 @@ The codebase follows a standard Spring Boot Kotlin structure under the base pack
 This is a fully reactive application using Spring WebFlux, not traditional Spring MVC. All HTTP handling uses reactive types (Mono/Flux) and the application runs on Netty by default, not Tomcat.
 
 **Resilience4j Integration:**
-The project uses Spring Cloud Circuit Breaker with Resilience4j for implementing resilience patterns. Circuit breakers and retry mechanisms are applied to all major service methods using `@CircuitBreaker` and `@Retry` annotations with fallback methods. Four resilience instances are configured:
+The project uses Spring Cloud Circuit Breaker with Resilience4j for implementing comprehensive resilience patterns. Rate limiters, circuit breakers, and retry mechanisms are applied to all major service methods using `@RateLimiter`, `@CircuitBreaker`, and `@Retry` annotations with fallback methods. Four resilience instances are configured:
 - `shoppingCart` - Protects shopping cart operations
 - `cartItem` - Protects cart item operations
 - `product` - Protects product catalog operations
 - `category` - Protects category operations
+
+Each rate limiter is configured with:
+- 100 requests per period limit (prevents abuse and throttling)
+- 1-second refresh period (rolling time window)
+- 0-second timeout (fail immediately if limit exceeded)
+- Health indicators for monitoring via Actuator
+- Event buffer for tracking rate limit events
 
 Each circuit breaker is configured with:
 - 50% failure rate threshold (opens after 50% failures)
@@ -202,12 +209,14 @@ Reactive Pulsar integration is configured for message streaming. This is reactiv
 
 **Actuator:**
 Spring Boot Actuator is enabled for monitoring, health checks, and metrics. Exposed endpoints include:
-- `/actuator/health` - Overall application health including circuit breaker states
+- `/actuator/health` - Overall application health including circuit breaker and rate limiter states
 - `/actuator/circuitbreakers` - List all circuit breakers with current states
 - `/actuator/circuitbreakerevents` - Recent circuit breaker state transitions and events
 - `/actuator/retries` - List all retry instances with current metrics
 - `/actuator/retryevents` - Recent retry events and attempts
-- `/actuator/metrics` - Application metrics including circuit breaker and retry statistics
+- `/actuator/ratelimiters` - List all rate limiters with current metrics
+- `/actuator/ratelimiterevents` - Recent rate limiter events (accepted/rejected requests)
+- `/actuator/metrics` - Application metrics including circuit breaker, retry, and rate limiter statistics
 - `/actuator/info` - Application information
 
 **Spring Data R2DBC:**
@@ -280,20 +289,22 @@ Shopping Cart:
 - `CartStateHistoryRepository` - Find events by cart/type/date range; support conversion and abandonment analytics
 
 **Service Classes:**
-All services use reactive repositories and return `Mono<T>` or `Flux<T>`. Critical operations are protected with circuit breakers and retry mechanisms.
+All services use reactive repositories and return `Mono<T>` or `Flux<T>`. Critical operations are protected with rate limiters, circuit breakers, and retry mechanisms.
 
 Resiliency Tracking:
 - `ResilienceEventService` - Manage resilience events
 
-Product Catalog (Circuit Breaker + Retry Protected):
+Product Catalog (Rate Limiter + Circuit Breaker + Retry Protected):
 - `CategoryService` - CRUD operations, hierarchical category management, soft delete
-  - Resilience: `@Retry` + `@CircuitBreaker` (category instance)
+  - Resilience: `@RateLimiter` + `@Retry` + `@CircuitBreaker` (category instance)
   - Protected methods: `createCategory()`, `updateCategory()`, `findCategoryById()`
+  - Rate limit: 100 requests per second
   - Retry strategy: 3 attempts with exponential backoff (500ms → 1000ms → 2000ms)
   - Fallback: User-friendly error messages with logging
 - `ProductService` - CRUD operations, stock management, product filtering/searching, soft delete
-  - Resilience: `@Retry` + `@CircuitBreaker` (product instance)
+  - Resilience: `@RateLimiter` + `@Retry` + `@CircuitBreaker` (product instance)
   - Protected methods: `createProduct()`, `updateProduct()`, `findProductById()`
+  - Rate limit: 100 requests per second
   - Retry strategy: 3 attempts with exponential backoff (500ms → 1000ms → 2000ms)
   - Fallback: User-friendly error messages with logging
 
@@ -301,15 +312,17 @@ Inventory Management:
 - `InventoryLocationService` - CRUD operations, location filtering by type, activate/deactivate
 - `InventoryStockService` - Stock level management, adjustments, reservations, availability checks, low stock alerts
 
-Shopping Cart (Circuit Breaker + Retry Protected):
+Shopping Cart (Rate Limiter + Circuit Breaker + Retry Protected):
 - `ShoppingCartService` - Cart lifecycle (create, find, abandon, convert, expire), status management, expired cart processing
-  - Resilience: `@Retry` + `@CircuitBreaker` (shoppingCart instance)
+  - Resilience: `@RateLimiter` + `@Retry` + `@CircuitBreaker` (shoppingCart instance)
   - Protected methods: `createCart()`, `findOrCreateCart()`, `findCartById()`, `findCartByUuid()`, `updateCartStatus()`
+  - Rate limit: 100 requests per second
   - Retry strategy: 3 attempts with exponential backoff (500ms → 1000ms → 2000ms)
   - Fallback: User-friendly error messages with logging
 - `CartItemService` - Add/remove/update items, apply discounts, validate availability, calculate totals
-  - Resilience: `@Retry` + `@CircuitBreaker` (cartItem instance)
+  - Resilience: `@RateLimiter` + `@Retry` + `@CircuitBreaker` (cartItem instance)
   - Protected methods: `addItemToCart()`
+  - Rate limit: 100 requests per second
   - Retry strategy: 3 attempts with exponential backoff (500ms → 1000ms → 2000ms)
   - Fallback: User-friendly error messages with logging
 - `CartStateHistoryService` - Record events, track status changes, calculate conversion/abandonment rates
@@ -404,33 +417,41 @@ Database connection configured in `application.properties` with values from Vaul
 - Connection pooling enabled (10 initial, 20 max connections)
 - All operations are non-blocking and return `Mono<T>` or `Flux<T>`
 
-### Resilience Configuration (Circuit Breakers + Retries)
+### Resilience Configuration (Rate Limiters + Circuit Breakers + Retries)
 
-The application implements comprehensive resilience patterns using Resilience4j with annotation-based configuration. All critical service methods are protected with both retry logic and circuit breakers, working together to handle transient failures and prevent cascading failures.
+The application implements comprehensive resilience patterns using Resilience4j with annotation-based configuration. All critical service methods are protected with rate limiters, retry logic, and circuit breakers, working together to prevent abuse, handle transient failures, and prevent cascading failures.
 
 **Resilience Instances:**
 
-Four resilience instances are configured in `application.properties`, each with both retry and circuit breaker configurations:
+Four resilience instances are configured in `application.properties`, each with rate limiter, retry, and circuit breaker configurations:
 
 1. **shoppingCart** - Shopping cart operations
    - Protected methods: `createCart()`, `findOrCreateCart()`, `findCartById()`, `findCartByUuid()`, `updateCartStatus()`
    - Service: `ShoppingCartService`
-   - Pattern: `@Retry` → `@CircuitBreaker` → method execution
+   - Pattern: `@RateLimiter` → `@Retry` → `@CircuitBreaker` → method execution
 
 2. **cartItem** - Cart item operations
    - Protected methods: `addItemToCart()`
    - Service: `CartItemService`
-   - Pattern: `@Retry` → `@CircuitBreaker` → method execution
+   - Pattern: `@RateLimiter` → `@Retry` → `@CircuitBreaker` → method execution
 
 3. **product** - Product catalog operations
    - Protected methods: `createProduct()`, `updateProduct()`, `findProductById()`
    - Service: `ProductService`
-   - Pattern: `@Retry` → `@CircuitBreaker` → method execution
+   - Pattern: `@RateLimiter` → `@Retry` → `@CircuitBreaker` → method execution
 
 4. **category** - Category operations
    - Protected methods: `createCategory()`, `updateCategory()`, `findCategoryById()`
    - Service: `CategoryService`
-   - Pattern: `@Retry` → `@CircuitBreaker` → method execution
+   - Pattern: `@RateLimiter` → `@Retry` → `@CircuitBreaker` → method execution
+
+**Rate Limiter Configuration (all instances):**
+- **Limit for Period**: 100 requests - Maximum requests allowed per time window
+- **Limit Refresh Period**: 1 second - Rolling time window for rate limiting
+- **Timeout Duration**: 0 seconds - Fail immediately if limit exceeded (no waiting)
+- **Health Indicator**: Enabled - Exposed via Spring Boot Actuator
+- **Event Consumer Buffer Size**: 100 - Number of events to buffer for monitoring
+- **Behavior**: When limit is exceeded, request is rejected and fallback is invoked immediately
 
 **Retry Configuration (all instances):**
 - **Max Attempts**: 3 - Initial call plus 2 retries
@@ -457,23 +478,29 @@ Four resilience instances are configured in `application.properties`, each with 
 - **Health Indicator**: Enabled - Exposed via Spring Boot Actuator
 - **Record Exceptions**: All exceptions trigger circuit breaker (shoppingCart only)
 
-**How Retry and Circuit Breaker Work Together:**
+**How Rate Limiter, Retry, and Circuit Breaker Work Together:**
 
-When a method is annotated with both `@Retry` and `@CircuitBreaker`:
-1. **First**: Retry attempts to recover from transient failures automatically
+When a method is annotated with `@RateLimiter`, `@Retry`, and `@CircuitBreaker`:
+1. **First**: Rate limiter prevents abuse and throttles requests
+   - Checks if request quota is available (100 requests per second)
+   - If limit exceeded, immediately rejects request and invokes fallback
+   - Prevents system overload and ensures fair resource allocation
+2. **Second**: Retry attempts to recover from transient failures automatically
+   - Only executes if rate limiter allows the request
    - Retries up to 3 times with exponential backoff
    - Only retries specific transient exceptions
    - If all retries fail, passes failure to circuit breaker
-2. **Then**: Circuit breaker prevents cascading failures
+3. **Third**: Circuit breaker prevents cascading failures
    - Tracks success/failure rates across all retry attempts
    - Opens circuit if too many failures occur (even after retries)
    - When open, fails fast without attempting retries
-3. **Finally**: Fallback method provides graceful degradation
-   - Called when both retry and circuit breaker cannot recover
+4. **Finally**: Fallback method provides graceful degradation
+   - Called when any resilience pattern cannot recover
    - Returns user-friendly error message
    - Logs full exception context for debugging
 
 This layered approach provides:
+- **Request throttling** to prevent abuse and overload (rate limiter)
 - **Immediate recovery** from transient failures (retry)
 - **Fast failure** when service is degraded (circuit breaker)
 - **Graceful degradation** with meaningful error messages (fallback)
@@ -485,13 +512,20 @@ All fallback methods follow a consistent pattern:
 - Return `Mono.error()` with user-friendly message
 - Preserve original exception in the error chain
 - Use SLF4J logger for structured logging
-- Fallback message indicates "Retry/Circuit breaker fallback" for clarity
+- Fallback message indicates "Rate limiter/Retry/Circuit breaker fallback" for clarity
+- Same fallback method handles all three resilience patterns (rate limiter, retry, circuit breaker)
 
 **Monitoring Resilience Patterns:**
 
 ```bash
-# Check overall health (includes circuit breaker states)
+# Check overall health (includes circuit breaker and rate limiter states)
 curl http://localhost:8080/actuator/health
+
+# Rate Limiter Monitoring
+curl http://localhost:8080/actuator/ratelimiters
+curl http://localhost:8080/actuator/ratelimiterevents
+curl http://localhost:8080/actuator/metrics/resilience4j.ratelimiter.available.permissions
+curl http://localhost:8080/actuator/metrics/resilience4j.ratelimiter.waiting.threads
 
 # Circuit Breaker Monitoring
 curl http://localhost:8080/actuator/circuitbreakers
@@ -504,6 +538,7 @@ curl http://localhost:8080/actuator/retryevents
 curl http://localhost:8080/actuator/metrics/resilience4j.retry.calls
 
 # Specific instance metrics
+curl http://localhost:8080/actuator/metrics/resilience4j.ratelimiter.available.permissions?tag=name:shoppingCart
 curl http://localhost:8080/actuator/metrics/resilience4j.circuitbreaker.calls?tag=name:shoppingCart
 curl http://localhost:8080/actuator/metrics/resilience4j.retry.calls?tag=name:shoppingCart
 ```
@@ -515,15 +550,17 @@ curl http://localhost:8080/actuator/metrics/resilience4j.retry.calls?tag=name:sh
 - **DISABLED**: Circuit breaker bypassed (for testing)
 
 **Best Practices:**
-- Retry and circuit breaker annotations are stacked on the same methods for layered resilience
-- `@Retry` is placed before `@CircuitBreaker` in the annotation order
-- Both annotations share the same fallback method for consistency
+- Rate limiter, retry, and circuit breaker annotations are stacked on the same methods for layered resilience
+- Annotation order: `@RateLimiter` → `@Retry` → `@CircuitBreaker` (outer to inner)
+- All three annotations share the same fallback method for consistency
+- Rate limiter fails immediately (0s timeout) to provide fast feedback
 - Retry only on transient exceptions (IOException, TimeoutException, TransientDataAccessException)
 - Circuit breakers track all failures, including those after exhausted retries
 - Fallback methods have identical signatures to protected methods plus `Exception` parameter
 - All fallback methods log errors at ERROR level with contextual information
 - Health indicators and event endpoints allow real-time monitoring via Actuator
-- Resilience4j debug logging enabled for troubleshooting retry and circuit breaker behavior
+- Resilience4j debug logging enabled for troubleshooting all resilience patterns
+- Rate limits can be adjusted per instance based on actual load requirements (default: 100 req/sec)
 
 ## Testing
 

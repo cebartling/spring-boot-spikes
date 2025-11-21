@@ -5,6 +5,7 @@ import com.pintailconsultingllc.resiliencyspike.domain.CartStatus
 import com.pintailconsultingllc.resiliencyspike.domain.ShoppingCart
 import com.pintailconsultingllc.resiliencyspike.repository.ShoppingCartRepository
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter
 import io.github.resilience4j.retry.annotation.Retry
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -29,6 +30,7 @@ class ShoppingCartService(
     /**
      * Create a new shopping cart
      */
+    @RateLimiter(name = "shoppingCart", fallbackMethod = "createCartFallback")
     @Retry(name = "shoppingCart", fallbackMethod = "createCartFallback")
     @CircuitBreaker(name = "shoppingCart", fallbackMethod = "createCartFallback")
     fun createCart(sessionId: String, userId: String? = null, expiresAt: OffsetDateTime? = null): Mono<ShoppingCart> {
@@ -45,13 +47,14 @@ class ShoppingCartService(
     }
 
     private fun createCartFallback(sessionId: String, userId: String?, expiresAt: OffsetDateTime?, ex: Exception): Mono<ShoppingCart> {
-        logger.error("Circuit breaker fallback for createCart - sessionId: $sessionId, error: ${ex.message}", ex)
+        logger.error("Rate limiter/Retry/Circuit breaker fallback for createCart - sessionId: $sessionId, error: ${ex.message}", ex)
         return Mono.error(RuntimeException("Shopping cart service is temporarily unavailable. Please try again later.", ex))
     }
 
     /**
      * Find or create a cart for a session
      */
+    @RateLimiter(name = "shoppingCart", fallbackMethod = "findOrCreateCartFallback")
     @Retry(name = "shoppingCart", fallbackMethod = "findOrCreateCartFallback")
     @CircuitBreaker(name = "shoppingCart", fallbackMethod = "findOrCreateCartFallback")
     fun findOrCreateCart(sessionId: String, userId: String? = null): Mono<ShoppingCart> {
@@ -60,7 +63,7 @@ class ShoppingCartService(
     }
 
     private fun findOrCreateCartFallback(sessionId: String, userId: String?, ex: Exception): Mono<ShoppingCart> {
-        logger.error("Retry/Circuit breaker fallback for findOrCreateCart - sessionId: $sessionId, error: ${ex.message}", ex)
+        logger.error("Rate limiter/Retry/Circuit breaker fallback for findOrCreateCart - sessionId: $sessionId, error: ${ex.message}", ex)
         return Mono.error(RuntimeException("Unable to retrieve or create cart. Please try again later.", ex))
     }
 
@@ -123,6 +126,7 @@ class ShoppingCartService(
     /**
      * Update cart status
      */
+    @RateLimiter(name = "shoppingCart", fallbackMethod = "updateCartStatusFallback")
     @Retry(name = "shoppingCart", fallbackMethod = "updateCartStatusFallback")
     @CircuitBreaker(name = "shoppingCart", fallbackMethod = "updateCartStatusFallback")
     fun updateCartStatus(cartId: Long, newStatus: CartStatus): Mono<ShoppingCart> {
@@ -152,7 +156,7 @@ class ShoppingCartService(
     }
 
     private fun updateCartStatusFallback(cartId: Long, newStatus: CartStatus, ex: Exception): Mono<ShoppingCart> {
-        logger.error("Circuit breaker fallback for updateCartStatus - cartId: $cartId, newStatus: $newStatus, error: ${ex.message}", ex)
+        logger.error("Rate limiter/Retry/Circuit breaker fallback for updateCartStatus - cartId: $cartId, newStatus: $newStatus, error: ${ex.message}", ex)
         return Mono.error(RuntimeException("Unable to update cart status. Please try again later.", ex))
     }
 

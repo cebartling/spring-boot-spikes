@@ -6,6 +6,7 @@ import com.pintailconsultingllc.resiliencyspike.domain.Product
 import com.pintailconsultingllc.resiliencyspike.repository.CartItemRepository
 import com.pintailconsultingllc.resiliencyspike.repository.ProductRepository
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter
 import io.github.resilience4j.retry.annotation.Retry
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -33,6 +34,7 @@ class CartItemService(
      * Add an item to a cart
      * If the item already exists, update the quantity
      */
+    @RateLimiter(name = "cartItem", fallbackMethod = "addItemToCartFallback")
     @Retry(name = "cartItem", fallbackMethod = "addItemToCartFallback")
     @CircuitBreaker(name = "cartItem", fallbackMethod = "addItemToCartFallback")
     fun addItemToCart(cartId: Long, productId: UUID, quantity: Int): Mono<CartItem> {
@@ -51,7 +53,7 @@ class CartItemService(
     }
 
     private fun addItemToCartFallback(cartId: Long, productId: UUID, quantity: Int, ex: Exception): Mono<CartItem> {
-        logger.error("Retry/Circuit breaker fallback for addItemToCart - cartId: $cartId, productId: $productId, error: ${ex.message}", ex)
+        logger.error("Rate limiter/Retry/Circuit breaker fallback for addItemToCart - cartId: $cartId, productId: $productId, error: ${ex.message}", ex)
         return Mono.error(RuntimeException("Unable to add item to cart. Please try again later.", ex))
     }
 
