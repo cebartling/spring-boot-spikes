@@ -169,7 +169,9 @@ class CartStateHistoryService(
             .count()
 
         return Mono.zip(createdCarts, convertedCarts)
-            .map { (created, converted) ->
+            .map { tuple ->
+                val created = tuple.t1
+                val converted = tuple.t2
                 if (created > 0) {
                     (converted.toDouble() / created.toDouble()) * 100.0
                 } else {
@@ -192,7 +194,9 @@ class CartStateHistoryService(
             .count()
 
         return Mono.zip(createdCarts, abandonedCarts)
-            .map { (created, abandoned) ->
+            .map { tuple ->
+                val created = tuple.t1
+                val abandoned = tuple.t2
                 if (created > 0) {
                     (abandoned.toDouble() / created.toDouble()) * 100.0
                 } else {

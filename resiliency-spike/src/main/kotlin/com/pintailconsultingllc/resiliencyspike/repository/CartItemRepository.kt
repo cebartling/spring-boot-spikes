@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.math.BigDecimal
+import java.util.*
 
 /**
  * Reactive repository for CartItem entities
@@ -22,12 +23,12 @@ interface CartItemRepository : ReactiveCrudRepository<CartItem, Long> {
     /**
      * Find a specific item in a cart by product ID
      */
-    fun findByCartIdAndProductId(cartId: Long, productId: Long): Mono<CartItem>
+    fun findByCartIdAndProductId(cartId: Long, productId: UUID): Mono<CartItem>
 
     /**
      * Find all items for a specific product across all carts
      */
-    fun findByProductId(productId: Long): Flux<CartItem>
+    fun findByProductId(productId: UUID): Flux<CartItem>
 
     /**
      * Find items by SKU

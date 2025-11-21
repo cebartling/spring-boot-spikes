@@ -42,7 +42,7 @@ CREATE TABLE shopping_carts (
 CREATE TABLE cart_items (
     id BIGSERIAL PRIMARY KEY,
     cart_id BIGINT NOT NULL REFERENCES shopping_carts(id) ON DELETE CASCADE,
-    product_id BIGINT NOT NULL REFERENCES products(id),
+    product_id UUID NOT NULL REFERENCES products(id),
     sku VARCHAR(100) NOT NULL,  -- Snapshot of SKU at time of add
     product_name VARCHAR(255) NOT NULL,  -- Snapshot of name at time of add
     quantity INTEGER NOT NULL,

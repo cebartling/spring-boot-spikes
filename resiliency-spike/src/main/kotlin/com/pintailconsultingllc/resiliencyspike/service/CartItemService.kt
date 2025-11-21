@@ -2,12 +2,14 @@ package com.pintailconsultingllc.resiliencyspike.service
 
 import com.pintailconsultingllc.resiliencyspike.domain.CartEventType
 import com.pintailconsultingllc.resiliencyspike.domain.CartItem
+import com.pintailconsultingllc.resiliencyspike.domain.Product
 import com.pintailconsultingllc.resiliencyspike.repository.CartItemRepository
 import com.pintailconsultingllc.resiliencyspike.repository.ProductRepository
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.math.BigDecimal
+import java.util.*
 
 /**
  * Service for managing cart items
@@ -24,59 +26,75 @@ class CartItemService(
      * Add an item to a cart
      * If the item already exists, update the quantity
      */
-    fun addItemToCart(cartId: Long, productId: Long, quantity: Int): Mono<CartItem> {
+    fun addItemToCart(cartId: Long, productId: UUID, quantity: Int): Mono<CartItem> {
         return productRepository.findById(productId)
             .flatMap { product ->
                 cartItemRepository.findByCartIdAndProductId(cartId, productId)
                     .flatMap { existingItem ->
                         // Update existing item quantity
-                        val updatedItem = existingItem.copy(quantity = existingItem.quantity + quantity)
-                        cartItemRepository.save(updatedItem)
-                            .flatMap { savedItem ->
-                                cartStateHistoryService.recordItemEvent(
-                                    cartId,
-                                    CartEventType.QUANTITY_CHANGED,
-                                    mapOf(
-                                        "product_id" to productId.toString(),
-                                        "previous_quantity" to existingItem.quantity.toString(),
-                                        "new_quantity" to savedItem.quantity.toString()
-                                    )
-                                ).thenReturn(savedItem)
-                            }
+                        updateExistingItem(cartId, existingItem, quantity, productId)
                     }
                     .switchIfEmpty(
                         // Create new item
-                        Mono.defer {
-                            val newItem = CartItem(
-                                cartId = cartId,
-                                productId = productId,
-                                sku = product.sku,
-                                productName = product.name,
-                                quantity = quantity,
-                                unitPrice = product.price,
-                                lineTotal = product.price.multiply(BigDecimal(quantity))
-                            )
-                            cartItemRepository.save(newItem)
-                                .flatMap { savedItem ->
-                                    cartStateHistoryService.recordItemEvent(
-                                        cartId,
-                                        CartEventType.ITEM_ADDED,
-                                        mapOf(
-                                            "product_id" to productId.toString(),
-                                            "quantity" to quantity.toString(),
-                                            "unit_price" to product.price.toString()
-                                        )
-                                    ).thenReturn(savedItem)
-                                }
-                        }
+                        createNewItem(cartId, productId, quantity, product)
                     )
+            }
+    }
+
+    private fun updateExistingItem(
+        cartId: Long,
+        existingItem: CartItem,
+        additionalQuantity: Int,
+        productId: UUID
+    ): Mono<CartItem> {
+        val updatedItem = existingItem.copy(quantity = existingItem.quantity + additionalQuantity)
+        return cartItemRepository.save(updatedItem)
+            .flatMap { savedItem ->
+                cartStateHistoryService.recordItemEvent(
+                    cartId,
+                    CartEventType.QUANTITY_CHANGED,
+                    mapOf(
+                        "product_id" to productId.toString(),
+                        "previous_quantity" to existingItem.quantity.toString(),
+                        "new_quantity" to savedItem.quantity.toString()
+                    )
+                ).thenReturn(savedItem)
+            }
+    }
+
+    private fun createNewItem(
+        cartId: Long,
+        productId: UUID,
+        quantity: Int,
+        product: Product
+    ): Mono<CartItem> {
+        val newItem = CartItem(
+            cartId = cartId,
+            productId = productId,
+            sku = product.sku,
+            productName = product.name,
+            quantity = quantity,
+            unitPrice = product.price,
+            lineTotal = product.price.multiply(BigDecimal(quantity))
+        )
+        return cartItemRepository.save(newItem)
+            .flatMap { savedItem ->
+                cartStateHistoryService.recordItemEvent(
+                    cartId,
+                    CartEventType.ITEM_ADDED,
+                    mapOf(
+                        "product_id" to productId.toString(),
+                        "quantity" to quantity.toString(),
+                        "unit_price" to product.price.toString()
+                    )
+                ).thenReturn(savedItem)
             }
     }
 
     /**
      * Remove an item from a cart
      */
-    fun removeItemFromCart(cartId: Long, productId: Long): Mono<Void> {
+    fun removeItemFromCart(cartId: Long, productId: UUID): Mono<Void> {
         return cartItemRepository.findByCartIdAndProductId(cartId, productId)
             .flatMap { item ->
                 cartItemRepository.delete(item)
@@ -88,7 +106,7 @@ class CartItemService(
                                 "product_id" to productId.toString(),
                                 "quantity" to item.quantity.toString()
                             )
-                        )
+                        ).then()
                     )
             }
     }
@@ -96,7 +114,7 @@ class CartItemService(
     /**
      * Update item quantity
      */
-    fun updateItemQuantity(cartId: Long, productId: Long, quantity: Int): Mono<CartItem> {
+    fun updateItemQuantity(cartId: Long, productId: UUID, quantity: Int): Mono<CartItem> {
         return cartItemRepository.findByCartIdAndProductId(cartId, productId)
             .flatMap { item ->
                 val previousQuantity = item.quantity
@@ -119,7 +137,7 @@ class CartItemService(
     /**
      * Apply discount to a cart item
      */
-    fun applyItemDiscount(cartId: Long, productId: Long, discountAmount: BigDecimal): Mono<CartItem> {
+    fun applyItemDiscount(cartId: Long, productId: UUID, discountAmount: BigDecimal): Mono<CartItem> {
         return cartItemRepository.findByCartIdAndProductId(cartId, productId)
             .flatMap { item ->
                 val updatedItem = item.copy(discountAmount = discountAmount)
@@ -147,7 +165,7 @@ class CartItemService(
     /**
      * Find a specific item in a cart
      */
-    fun findCartItem(cartId: Long, productId: Long): Mono<CartItem> {
+    fun findCartItem(cartId: Long, productId: UUID): Mono<CartItem> {
         return cartItemRepository.findByCartIdAndProductId(cartId, productId)
     }
 
@@ -182,7 +200,7 @@ class CartItemService(
                     cartId,
                     CartEventType.ITEM_REMOVED,
                     mapOf("action" to "clear_cart")
-                )
+                ).then()
             )
     }
 
@@ -210,7 +228,7 @@ class CartItemService(
     /**
      * Update item metadata (product options, customizations, etc.)
      */
-    fun updateItemMetadata(cartId: Long, productId: Long, metadata: String): Mono<CartItem> {
+    fun updateItemMetadata(cartId: Long, productId: UUID, metadata: String): Mono<CartItem> {
         return cartItemRepository.findByCartIdAndProductId(cartId, productId)
             .flatMap { item ->
                 val updatedItem = item.copy(metadata = metadata)
@@ -231,15 +249,15 @@ class CartItemService(
     /**
      * Validate item availability (check if product still exists and has stock)
      */
-    fun validateItemAvailability(cartId: Long, productId: Long): Mono<Boolean> {
+    fun validateItemAvailability(cartId: Long, productId: UUID): Mono<Boolean> {
         return cartItemRepository.findByCartIdAndProductId(cartId, productId)
             .flatMap { item ->
                 productRepository.findById(productId)
                     .map { product ->
                         product.isActive && product.stockQuantity >= item.quantity
                     }
-                    .defaultIfEmpty(false)
             }
+            .defaultIfEmpty(false)
     }
 
     /**

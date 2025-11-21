@@ -5,6 +5,7 @@ import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.mapping.Table
 import java.math.BigDecimal
 import java.time.OffsetDateTime
+import java.util.*
 
 /**
  * Entity representing an individual item in a shopping cart.
@@ -21,7 +22,7 @@ data class CartItem(
     val cartId: Long,
 
     @Column("product_id")
-    val productId: Long,
+    val productId: UUID,
 
     @Column("sku")
     val sku: String,  // Snapshot at time of add
