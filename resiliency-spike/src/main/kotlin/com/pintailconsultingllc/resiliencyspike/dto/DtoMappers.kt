@@ -2,6 +2,7 @@ package com.pintailconsultingllc.resiliencyspike.dto
 
 import com.pintailconsultingllc.resiliencyspike.domain.CartItem
 import com.pintailconsultingllc.resiliencyspike.domain.CartStateHistory
+import com.pintailconsultingllc.resiliencyspike.domain.Product
 import com.pintailconsultingllc.resiliencyspike.domain.ShoppingCart
 
 /**
@@ -56,5 +57,21 @@ fun CartStateHistory.toResponse(): CartStateHistoryResponse {
         newStatus = this.newStatus,
         eventData = this.eventData,
         createdAt = this.createdAt
+    )
+}
+
+fun Product.toResponse(): ProductResponse {
+    return ProductResponse(
+        id = this.id!!,
+        sku = this.sku,
+        name = this.name,
+        description = this.description,
+        categoryId = this.categoryId,
+        price = this.price,
+        stockQuantity = this.stockQuantity,
+        isActive = this.isActive,
+        metadata = this.metadata,
+        createdAt = this.createdAt,
+        updatedAt = this.updatedAt
     )
 }
