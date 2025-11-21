@@ -158,11 +158,14 @@ All services are connected via a custom bridge network (`resiliency-spike-networ
 The codebase follows a standard Spring Boot Kotlin structure under the base package `com.pintailconsultingllc.resiliencyspike`:
 
 - `src/main/kotlin/` - Main application code
+  - `controller/` - REST API controllers
   - `domain/` - Entity classes (R2DBC entities)
+  - `dto/` - Data Transfer Objects for API requests/responses
   - `repository/` - Reactive repository interfaces
   - `service/` - Service layer with business logic
 - `src/main/resources/` - Application properties and configuration
 - `src/test/kotlin/` - Test code
+  - `controller/` - REST API contract tests
   - `fixtures/` - Test data fixtures and helper utilities
   - `service/` - Service layer unit tests
 - `docker/init-scripts/` - Database initialization SQL scripts
@@ -268,6 +271,56 @@ Shopping Cart:
 - `CartItemService` - Add/remove/update items, apply discounts, validate availability, calculate totals
 - `CartStateHistoryService` - Record events, track status changes, calculate conversion/abandonment rates
 
+**REST API Controllers:**
+All controllers expose reactive REST APIs and return reactive types:
+
+Shopping Cart APIs:
+- `ShoppingCartController` - `/api/v1/carts` - 24 endpoints for complete cart management
+  - Create carts, get by ID/UUID/session/user/status
+  - Associate carts with users, update expiration
+  - Cart lifecycle operations (abandon, convert, expire, restore)
+  - Find expired/abandoned carts, process batch operations
+  - Cart statistics and analytics
+- `CartItemController` - `/api/v1/carts/{cartId}/items` - 15 endpoints for cart item operations
+  - Get all items or specific items
+  - Add/remove/update items with quantity, discount, metadata
+  - Calculate cart totals and counts
+  - Find discounted, high-value, and bulk items
+  - Validate item and cart availability
+- `CartStateHistoryController` - `/api/v1/carts/{cartId}/history` - 7 endpoints for cart history
+  - Get full history or recent events
+  - Filter events by type
+  - Count events and get activity summaries
+- `CartAnalyticsController` - `/api/v1/analytics/carts` - 5 endpoints for analytics
+  - Get events, conversions, and abandonments in date ranges
+  - Calculate conversion and abandonment rates
+
+**DTOs (Data Transfer Objects):**
+All DTOs support JSON serialization with Jackson Kotlin module:
+
+Shopping Cart DTOs:
+- `ShoppingCartResponse` - Cart representation with all details
+- `CreateCartRequest` - Create new cart (sessionId, userId, expiresAt)
+- `AssociateCartWithUserRequest` - Associate cart with user
+- `UpdateCartExpirationRequest` - Update cart expiration time
+- `CartStatisticsResponse` - Cart counts by status
+
+Cart Item DTOs:
+- `CartItemResponse` - Item representation with product details
+- `AddItemToCartRequest` - Add item (productId, quantity)
+- `UpdateItemQuantityRequest` - Update quantity
+- `ApplyItemDiscountRequest` - Apply discount
+- `UpdateItemMetadataRequest` - Update item metadata
+- `CartTotalsResponse` - Subtotal, tax, discount, total, item count
+- `ItemAvailabilityResponse` - Product availability validation
+- `CartValidationResponse` - Full cart validation results
+
+Cart History DTOs:
+- `CartStateHistoryResponse` - Event representation
+- `ConversionRateResponse` - Conversion rate analytics
+- `AbandonmentRateResponse` - Abandonment rate analytics
+- `CartActivitySummaryResponse` - Event counts by type
+
 ### Secrets Management with Vault
 
 The application uses HashiCorp Vault for secrets management:
@@ -313,6 +366,7 @@ Database connection configured in `application.properties` with values from Vaul
 The project includes comprehensive unit tests using JUnit 5, Mockito, and Reactor Test.
 
 **Test Structure:**
+- `src/test/kotlin/controller/` - REST API contract tests (WebFluxTest)
 - `src/test/kotlin/fixtures/` - Test data fixtures and helper utilities
 - `src/test/kotlin/service/` - Service layer unit tests with MockitoExtension
 - `src/test/kotlin/repository/` - Repository unit tests with mocked dependencies
@@ -322,14 +376,24 @@ The project includes comprehensive unit tests using JUnit 5, Mockito, and Reacto
 - `mockito-junit-jupiter` - Mockito JUnit 5 integration
 - `reactor-test` - StepVerifier for testing reactive streams
 - `kotlin-test-junit5` - Kotlin test assertions
+- `spring-boot-test` - WebTestClient for API contract testing
 
 **Test Patterns:**
+
+Service/Repository Tests:
 - All tests use `@ExtendWith(MockitoExtension::class)` for dependency mocking
 - Use `@DisplayName` annotations for clear test descriptions
 - Reactive assertions with `StepVerifier` from reactor-test
 - Test fixtures in `TestFixtures` object for consistent test data
 
-**Test Coverage (131 total tests):**
+Controller Tests:
+- Use `@WebFluxTest` for lightweight controller testing
+- Mock service layer dependencies with `@MockBean`
+- Use `WebTestClient` for reactive endpoint testing
+- Verify HTTP status codes, response bodies, and JSON structure
+- Test query parameters and request body validation
+
+**Test Coverage (192 total tests):**
 
 Resiliency Tracking (44 tests):
 - `ResilienceEventServiceTest` - 11 tests for resilience event operations
@@ -341,16 +405,47 @@ Product Catalog (44 tests):
 - `ProductServiceTest` - 22 tests covering all product operations
 - `CategoryServiceTest` - 22 tests covering all category operations
 
-Shopping Cart (42 tests):
+Shopping Cart Services (42 tests):
 - `ShoppingCartServiceTest` - 16 tests for cart lifecycle management
 - `CartItemServiceTest` - 19 tests for item operations and validation
 - `CartStateHistoryServiceTest` - 7 tests for event tracking and analytics
 
+REST API Contract Tests (61 tests):
+- `ShoppingCartControllerTest` - 25 tests for cart management endpoints
+  - Create, get, find carts by various criteria
+  - Associate with user, update expiration
+  - Lifecycle operations (abandon, convert, expire, restore)
+  - Batch operations and statistics
+- `CartItemControllerTest` - 17 tests for item management endpoints
+  - Get, add, update, remove items
+  - Apply discounts and update metadata
+  - Calculate totals and validate availability
+  - Find discounted, high-value, and bulk items
+- `CartStateHistoryControllerTest` - 10 tests for cart history endpoints
+  - Get history, recent events, events by type
+  - Count events and get activity summaries
+- `CartAnalyticsControllerTest` - 9 tests for analytics endpoints
+  - Get events, conversions, abandonments in date ranges
+  - Calculate conversion and abandonment rates
+  - Handle edge cases (zero conversions, 100% conversion)
+
+Integration Tests (1 test):
+- `ResiliencySpikeApplicationTests` - Spring context loads successfully
+
 **Testing Best Practices:**
+
+Service Tests:
 - Use `anyOrNull()` from mockito-kotlin for nullable parameters with default values
 - Add `@MockitoSettings(strictness = Strictness.LENIENT)` when needed for complex mocking scenarios
 - For reactive chains with `switchIfEmpty`, add fallback stubs to handle eager evaluation
 - All monetary values in tests use integer cents (e.g., 9999 = $99.99)
+
+Controller Tests:
+- Use `any()` matchers when exact parameter matching is not critical
+- Verify service method calls with `verify()` to ensure proper delegation
+- Test both success and error scenarios
+- Include tests for query parameters with default values
+- Validate JSON response structure and content
 
 ## Development Notes
 

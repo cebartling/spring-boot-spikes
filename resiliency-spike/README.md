@@ -249,9 +249,18 @@ Shopping Cart:
 - `CartItemService` - Add/remove/update items, apply discounts, validate availability, calculate totals
 - `CartStateHistoryService` - Record events, track status changes, calculate conversion/abandonment rates
 
+**REST API Layer:**
+All controllers expose reactive REST APIs with comprehensive endpoints:
+
+- `ShoppingCartController` - `/api/v1/carts` - 24 endpoints for cart management
+- `CartItemController` - `/api/v1/carts/{cartId}/items` - 15 endpoints for item operations
+- `CartStateHistoryController` - `/api/v1/carts/{cartId}/history` - 7 endpoints for cart history
+- `CartAnalyticsController` - `/api/v1/analytics/carts` - 5 endpoints for analytics and reporting
+
 ## Testing
 
-The project includes comprehensive unit tests with **131 test cases** covering:
+The project includes comprehensive test coverage with **192 test cases** covering:
+- REST API contract testing with WebFluxTest
 - Service layer logic with business operations
 - Repository operations with reactive database access
 - Edge cases and error handling
@@ -261,9 +270,10 @@ The project includes comprehensive unit tests with **131 test cases** covering:
 - JUnit 5 with MockitoExtension
 - Mockito Kotlin for mocking (with `anyOrNull()` for nullable default parameters)
 - Reactor Test (StepVerifier) for reactive assertions
+- Spring WebFluxTest with WebTestClient for API testing
 - Custom test fixtures (`TestFixtures`) for consistent test data
 
-**Test Coverage (131 total tests):**
+**Test Coverage (192 total tests):**
 
 Resiliency Tracking (44 tests):
 - `ResilienceEventServiceTest` - 11 tests for resilience event operations
@@ -275,21 +285,52 @@ Product Catalog (44 tests):
 - `ProductServiceTest` - 22 tests covering all CRUD operations, stock management, filtering
 - `CategoryServiceTest` - 22 tests covering all CRUD operations, hierarchical queries, soft delete
 
-Shopping Cart (42 tests):
+Shopping Cart Services (42 tests):
 - `ShoppingCartServiceTest` - 16 tests for cart lifecycle management (create, find, abandon, convert, expire)
 - `CartItemServiceTest` - 19 tests for item operations (add, remove, update, discounts, validation)
 - `CartStateHistoryServiceTest` - 7 tests for event tracking and conversion/abandonment analytics
+
+REST API Contract Tests (61 tests):
+- `ShoppingCartControllerTest` - 25 tests for cart management endpoints
+  - Create, retrieve, and find carts by various criteria
+  - Associate carts with users and update expiration
+  - Cart lifecycle operations (abandon, convert, expire, restore)
+  - Batch operations and cart statistics
+- `CartItemControllerTest` - 17 tests for item management endpoints
+  - Get, add, update, and remove items
+  - Apply discounts and update item metadata
+  - Calculate cart totals and validate availability
+  - Find discounted, high-value, and bulk items
+- `CartStateHistoryControllerTest` - 10 tests for cart history endpoints
+  - Retrieve full history and recent events
+  - Filter events by type and count operations
+  - Generate activity summaries
+- `CartAnalyticsControllerTest` - 9 tests for analytics endpoints
+  - Retrieve events, conversions, and abandonments by date range
+  - Calculate conversion and abandonment rates
+  - Handle edge cases (zero conversions, 100% conversion)
 
 Integration Tests (1 test):
 - `ResiliencySpikeApplicationTests` - Spring context loads successfully
 
 **Testing Best Practices:**
+
+Service Tests:
 - Use `anyOrNull()` from mockito-kotlin for nullable parameters with default values
 - Add `@MockitoSettings(strictness = Strictness.LENIENT)` when needed for complex mocking scenarios
 - For reactive chains with `switchIfEmpty`, add fallback stubs to handle eager evaluation
 - All monetary values in tests use integer cents (e.g., 9999 = $99.99)
 - All tests use `@DisplayName` annotations for clear test descriptions
 - Follow reactive testing patterns with `StepVerifier` for assertions
+
+Controller Tests:
+- Use `@WebFluxTest` for lightweight controller testing without full application context
+- Mock service layer dependencies with `@MockBean`
+- Use `WebTestClient` for reactive endpoint testing
+- Verify HTTP status codes (200 OK, 201 CREATED, 204 NO_CONTENT)
+- Validate JSON response structure and content with `jsonPath()`
+- Test query parameters with default values
+- Use argument matchers for complex object comparisons
 
 ## Development Notes
 
@@ -449,6 +490,68 @@ A fully reactive shopping cart implementation with event sourcing:
 - Validate all items for availability before checkout
 
 All operations are fully reactive using `Mono<T>` and `Flux<T>` return types, ensuring non-blocking I/O throughout the stack.
+
+### REST APIs for Shopping Cart System
+A complete set of reactive REST APIs providing full cart management capabilities:
+
+**Cart Management APIs** (`/api/v1/carts`):
+- `POST /api/v1/carts` - Create new cart
+- `GET /api/v1/carts/{cartId}` - Get cart by ID
+- `GET /api/v1/carts/uuid/{cartUuid}` - Get cart by UUID
+- `GET /api/v1/carts/session/{sessionId}` - Get or create cart for session
+- `GET /api/v1/carts/session/{sessionId}/current` - Get current cart by session
+- `GET /api/v1/carts/user/{userId}` - Get all carts for user
+- `GET /api/v1/carts/status/{status}` - Get carts by status (ACTIVE, ABANDONED, CONVERTED, EXPIRED)
+- `PUT /api/v1/carts/{cartId}/user` - Associate cart with user
+- `PUT /api/v1/carts/{cartId}/expiration` - Update cart expiration
+- `POST /api/v1/carts/{cartId}/abandon` - Mark cart as abandoned
+- `POST /api/v1/carts/{cartId}/convert` - Mark cart as converted
+- `POST /api/v1/carts/{cartId}/expire` - Mark cart as expired
+- `POST /api/v1/carts/{cartId}/restore` - Restore cart to active
+- `GET /api/v1/carts/expired` - Get all expired carts
+- `GET /api/v1/carts/abandoned?hoursInactive=24` - Get abandoned carts
+- `POST /api/v1/carts/process-expired` - Batch process expired carts
+- `POST /api/v1/carts/process-abandoned?hoursInactive=24` - Batch process abandoned carts
+- `GET /api/v1/carts/with-items?status=ACTIVE` - Get carts with items
+- `GET /api/v1/carts/empty` - Get empty carts
+- `GET /api/v1/carts/count/{status}` - Count carts by status
+- `GET /api/v1/carts/statistics` - Get comprehensive cart statistics
+- `DELETE /api/v1/carts/{cartId}` - Delete cart
+
+**Cart Item APIs** (`/api/v1/carts/{cartId}/items`):
+- `GET /api/v1/carts/{cartId}/items` - Get all items in cart
+- `GET /api/v1/carts/{cartId}/items/{productId}` - Get specific item
+- `POST /api/v1/carts/{cartId}/items` - Add item to cart
+- `PUT /api/v1/carts/{cartId}/items/{productId}/quantity` - Update item quantity
+- `PUT /api/v1/carts/{cartId}/items/{productId}/discount` - Apply item discount
+- `PUT /api/v1/carts/{cartId}/items/{productId}/metadata` - Update item metadata
+- `DELETE /api/v1/carts/{cartId}/items/{productId}` - Remove item from cart
+- `DELETE /api/v1/carts/{cartId}/items` - Clear all items from cart
+- `GET /api/v1/carts/{cartId}/items/totals` - Get cart totals
+- `GET /api/v1/carts/{cartId}/items/count` - Count items in cart
+- `GET /api/v1/carts/{cartId}/items/discounted` - Get discounted items
+- `GET /api/v1/carts/{cartId}/items/high-value?minPriceCents=10000` - Get high-value items
+- `GET /api/v1/carts/{cartId}/items/bulk?minQuantity=10` - Get bulk quantity items
+- `GET /api/v1/carts/{cartId}/items/{productId}/validate` - Validate item availability
+- `GET /api/v1/carts/{cartId}/items/validate` - Validate all cart items
+
+**Cart History APIs** (`/api/v1/carts/{cartId}/history`):
+- `GET /api/v1/carts/{cartId}/history` - Get full cart history
+- `GET /api/v1/carts/{cartId}/history/recent?hoursBack=24` - Get recent events
+- `GET /api/v1/carts/{cartId}/history/type/{eventType}` - Get events by type
+- `GET /api/v1/carts/{cartId}/history/latest` - Get most recent event
+- `GET /api/v1/carts/{cartId}/history/count/{eventType}` - Count events by type
+- `GET /api/v1/carts/{cartId}/history/count` - Count total events
+- `GET /api/v1/carts/{cartId}/history/summary` - Get activity summary
+
+**Analytics APIs** (`/api/v1/analytics/carts`):
+- `GET /api/v1/analytics/carts/events?startDate={iso-date}&endDate={iso-date}` - Get events in date range
+- `GET /api/v1/analytics/carts/conversions?startDate={iso-date}&endDate={iso-date}` - Get conversion events
+- `GET /api/v1/analytics/carts/abandonments?startDate={iso-date}&endDate={iso-date}` - Get abandonment events
+- `GET /api/v1/analytics/carts/conversion-rate?startDate={iso-date}&endDate={iso-date}` - Calculate conversion rate
+- `GET /api/v1/analytics/carts/abandonment-rate?startDate={iso-date}&endDate={iso-date}` - Calculate abandonment rate
+
+All APIs return reactive types (`Mono<T>` or `Flux<T>`), use standard HTTP status codes (200 OK, 201 CREATED, 204 NO_CONTENT), and support JSON request/response bodies with proper error handling.
 
 ## Resources
 
