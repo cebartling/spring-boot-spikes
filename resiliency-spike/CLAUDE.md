@@ -176,13 +176,30 @@ The codebase follows a standard Spring Boot Kotlin structure under the base pack
 This is a fully reactive application using Spring WebFlux, not traditional Spring MVC. All HTTP handling uses reactive types (Mono/Flux) and the application runs on Netty by default, not Tomcat.
 
 **Resilience4j Integration:**
-The project uses Spring Cloud Circuit Breaker with Resilience4j for implementing resilience patterns (circuit breakers, rate limiters, retries, bulkheads, time limiters).
+The project uses Spring Cloud Circuit Breaker with Resilience4j for implementing resilience patterns. Circuit breakers are applied to all major service methods using `@CircuitBreaker` annotations with fallback methods. Four circuit breaker instances are configured:
+- `shoppingCart` - Protects shopping cart operations
+- `cartItem` - Protects cart item operations
+- `product` - Protects product catalog operations
+- `category` - Protects category operations
+
+Each circuit breaker is configured with:
+- 50% failure rate threshold (opens after 50% failures)
+- 10-call sliding window with minimum 5 calls
+- 5-second wait in open state before testing recovery
+- 2-second slow call threshold
+- Automatic transition from OPEN to HALF_OPEN state
+- Health indicators for monitoring via Actuator
 
 **Apache Pulsar:**
 Reactive Pulsar integration is configured for message streaming. This is reactive messaging, so use reactive Pulsar templates and reactive consumers/producers.
 
 **Actuator:**
-Spring Boot Actuator is enabled for monitoring, health checks, and metrics. Actuator endpoints will expose information about circuit breakers, health, and application metrics.
+Spring Boot Actuator is enabled for monitoring, health checks, and metrics. Exposed endpoints include:
+- `/actuator/health` - Overall application health including circuit breaker states
+- `/actuator/circuitbreakers` - List all circuit breakers with current states
+- `/actuator/circuitbreakerevents` - Recent circuit breaker state transitions and events
+- `/actuator/metrics` - Application metrics including circuit breaker statistics
+- `/actuator/info` - Application information
 
 **Spring Data R2DBC:**
 Uses reactive database access with Spring Data R2DBC and PostgreSQL. All database operations return `Mono<T>` or `Flux<T>` for non-blocking I/O. R2DBC repositories extend `ReactiveCrudRepository` and support custom queries with `@Query` annotation.
@@ -199,6 +216,7 @@ Uses reactive database access with Spring Data R2DBC and PostgreSQL. All databas
 - `spring-boot-starter-data-r2dbc` - Reactive database access with R2DBC
 - `r2dbc-postgresql` - PostgreSQL R2DBC driver
 - `spring-cloud-starter-vault-config` - HashiCorp Vault integration for secrets management
+- `spring-cloud-starter-circuitbreaker-reactor-resilience4j` - Circuit breaker implementation
 - `reactor-kotlin-extensions` - Kotlin-friendly extensions for Project Reactor
 - `kotlinx-coroutines-reactor` - Coroutine support for reactive code
 - `jackson-module-kotlin` - JSON serialization for Kotlin data classes
@@ -253,22 +271,34 @@ Shopping Cart:
 - `CartStateHistoryRepository` - Find events by cart/type/date range; support conversion and abandonment analytics
 
 **Service Classes:**
-All services use reactive repositories and return `Mono<T>` or `Flux<T>`:
+All services use reactive repositories and return `Mono<T>` or `Flux<T>`. Critical operations are protected with circuit breakers.
 
 Resiliency Tracking:
 - `ResilienceEventService` - Manage resilience events
 
-Product Catalog:
+Product Catalog (Circuit Breaker Protected):
 - `CategoryService` - CRUD operations, hierarchical category management, soft delete
+  - Circuit breaker: `category`
+  - Protected methods: `createCategory()`, `updateCategory()`, `findCategoryById()`
+  - Fallback: User-friendly error messages with logging
 - `ProductService` - CRUD operations, stock management, product filtering/searching, soft delete
+  - Circuit breaker: `product`
+  - Protected methods: `createProduct()`, `updateProduct()`, `findProductById()`
+  - Fallback: User-friendly error messages with logging
 
 Inventory Management:
 - `InventoryLocationService` - CRUD operations, location filtering by type, activate/deactivate
 - `InventoryStockService` - Stock level management, adjustments, reservations, availability checks, low stock alerts
 
-Shopping Cart:
+Shopping Cart (Circuit Breaker Protected):
 - `ShoppingCartService` - Cart lifecycle (create, find, abandon, convert, expire), status management, expired cart processing
+  - Circuit breaker: `shoppingCart`
+  - Protected methods: `createCart()`, `findOrCreateCart()`, `findCartById()`, `findCartByUuid()`, `updateCartStatus()`
+  - Fallback: User-friendly error messages with logging
 - `CartItemService` - Add/remove/update items, apply discounts, validate availability, calculate totals
+  - Circuit breaker: `cartItem`
+  - Protected methods: `addItemToCart()`
+  - Fallback: User-friendly error messages with logging
 - `CartStateHistoryService` - Record events, track status changes, calculate conversion/abandonment rates
 
 **REST API Controllers:**
@@ -360,6 +390,78 @@ Database connection configured in `application.properties` with values from Vaul
 - Credentials: Retrieved from Vault (username/password)
 - Connection pooling enabled (10 initial, 20 max connections)
 - All operations are non-blocking and return `Mono<T>` or `Flux<T>`
+
+### Circuit Breaker Configuration
+
+The application implements circuit breakers using Resilience4j with the `@CircuitBreaker` annotation pattern. All critical service methods are protected with fallback mechanisms.
+
+**Circuit Breaker Instances:**
+
+Four circuit breaker instances are configured in `application.properties`:
+
+1. **shoppingCart** - Shopping cart operations
+   - Protected methods: `createCart()`, `findOrCreateCart()`, `findCartById()`, `findCartByUuid()`, `updateCartStatus()`
+   - Service: `ShoppingCartService`
+
+2. **cartItem** - Cart item operations
+   - Protected methods: `addItemToCart()`
+   - Service: `CartItemService`
+
+3. **product** - Product catalog operations
+   - Protected methods: `createProduct()`, `updateProduct()`, `findProductById()`
+   - Service: `ProductService`
+
+4. **category** - Category operations
+   - Protected methods: `createCategory()`, `updateCategory()`, `findCategoryById()`
+   - Service: `CategoryService`
+
+**Configuration Parameters (all instances):**
+- **Sliding Window Size**: 10 calls - Tracks last 10 calls to calculate failure rate
+- **Minimum Number of Calls**: 5 - Need at least 5 calls before calculating metrics
+- **Failure Rate Threshold**: 50% - Opens circuit if 50% or more calls fail
+- **Slow Call Rate Threshold**: 50% - Opens circuit if 50% of calls are slow
+- **Slow Call Duration Threshold**: 2 seconds - Calls taking longer are considered slow
+- **Wait Duration in Open State**: 5 seconds - How long to wait before attempting recovery
+- **Permitted Calls in Half-Open**: 3 - Test calls when transitioning to half-open state
+- **Automatic Transition**: Enabled - Automatically moves from OPEN → HALF_OPEN
+- **Health Indicator**: Enabled - Exposed via Spring Boot Actuator
+
+**Fallback Behavior:**
+
+All fallback methods follow a consistent pattern:
+- Log error with full context (method name, parameters, exception)
+- Return `Mono.error()` with user-friendly message
+- Preserve original exception in the error chain
+- Use SLF4J logger for structured logging
+
+**Monitoring Circuit Breakers:**
+
+```bash
+# Check circuit breaker health
+curl http://localhost:8080/actuator/health
+
+# List all circuit breakers and their states
+curl http://localhost:8080/actuator/circuitbreakers
+
+# View recent circuit breaker events
+curl http://localhost:8080/actuator/circuitbreakerevents
+
+# Get circuit breaker metrics
+curl http://localhost:8080/actuator/metrics/resilience4j.circuitbreaker.calls
+```
+
+**Circuit Breaker States:**
+- **CLOSED**: Normal operation, all calls pass through
+- **OPEN**: Too many failures, calls fail fast with fallback
+- **HALF_OPEN**: Testing recovery, limited calls allowed
+- **DISABLED**: Circuit breaker bypassed (for testing)
+
+**Best Practices:**
+- Circuit breakers protect database operations and external service calls
+- Fallback methods have identical signatures to protected methods plus `Exception` parameter
+- All fallback methods log errors at ERROR level with contextual information
+- Health indicators allow monitoring via Actuator endpoints
+- Resilience4j debug logging enabled for troubleshooting
 
 ## Testing
 

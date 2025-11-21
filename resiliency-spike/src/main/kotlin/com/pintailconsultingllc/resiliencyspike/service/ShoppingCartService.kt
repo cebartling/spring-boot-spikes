@@ -4,6 +4,8 @@ import com.pintailconsultingllc.resiliencyspike.domain.CartEventType
 import com.pintailconsultingllc.resiliencyspike.domain.CartStatus
 import com.pintailconsultingllc.resiliencyspike.domain.ShoppingCart
 import com.pintailconsultingllc.resiliencyspike.repository.ShoppingCartRepository
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
@@ -13,6 +15,7 @@ import java.util.*
 /**
  * Service for managing shopping carts
  * Demonstrates reactive database operations with R2DBC for shopping cart functionality
+ * Circuit breaker protection applied to database operations
  */
 @Service
 class ShoppingCartService(
@@ -20,9 +23,12 @@ class ShoppingCartService(
     private val cartStateHistoryService: CartStateHistoryService
 ) {
 
+    private val logger = LoggerFactory.getLogger(ShoppingCartService::class.java)
+
     /**
      * Create a new shopping cart
      */
+    @CircuitBreaker(name = "shoppingCart", fallbackMethod = "createCartFallback")
     fun createCart(sessionId: String, userId: String? = null, expiresAt: OffsetDateTime? = null): Mono<ShoppingCart> {
         val cart = ShoppingCart(
             sessionId = sessionId,
@@ -36,26 +42,49 @@ class ShoppingCartService(
             }
     }
 
+    private fun createCartFallback(sessionId: String, userId: String?, expiresAt: OffsetDateTime?, ex: Exception): Mono<ShoppingCart> {
+        logger.error("Circuit breaker fallback for createCart - sessionId: $sessionId, error: ${ex.message}", ex)
+        return Mono.error(RuntimeException("Shopping cart service is temporarily unavailable. Please try again later.", ex))
+    }
+
     /**
      * Find or create a cart for a session
      */
+    @CircuitBreaker(name = "shoppingCart", fallbackMethod = "findOrCreateCartFallback")
     fun findOrCreateCart(sessionId: String, userId: String? = null): Mono<ShoppingCart> {
         return cartRepository.findBySessionIdAndStatus(sessionId, CartStatus.ACTIVE)
             .switchIfEmpty(createCart(sessionId, userId))
     }
 
+    private fun findOrCreateCartFallback(sessionId: String, userId: String?, ex: Exception): Mono<ShoppingCart> {
+        logger.error("Circuit breaker fallback for findOrCreateCart - sessionId: $sessionId, error: ${ex.message}", ex)
+        return Mono.error(RuntimeException("Unable to retrieve or create cart. Please try again later.", ex))
+    }
+
     /**
      * Find a cart by ID
      */
+    @CircuitBreaker(name = "shoppingCart", fallbackMethod = "findCartByIdFallback")
     fun findCartById(cartId: Long): Mono<ShoppingCart> {
         return cartRepository.findById(cartId)
+    }
+
+    private fun findCartByIdFallback(cartId: Long, ex: Exception): Mono<ShoppingCart> {
+        logger.error("Circuit breaker fallback for findCartById - cartId: $cartId, error: ${ex.message}", ex)
+        return Mono.error(RuntimeException("Unable to retrieve cart. Please try again later.", ex))
     }
 
     /**
      * Find a cart by UUID
      */
+    @CircuitBreaker(name = "shoppingCart", fallbackMethod = "findCartByUuidFallback")
     fun findCartByUuid(cartUuid: UUID): Mono<ShoppingCart> {
         return cartRepository.findByCartUuid(cartUuid)
+    }
+
+    private fun findCartByUuidFallback(cartUuid: UUID, ex: Exception): Mono<ShoppingCart> {
+        logger.error("Circuit breaker fallback for findCartByUuid - cartUuid: $cartUuid, error: ${ex.message}", ex)
+        return Mono.error(RuntimeException("Unable to retrieve cart. Please try again later.", ex))
     }
 
     /**
@@ -89,6 +118,7 @@ class ShoppingCartService(
     /**
      * Update cart status
      */
+    @CircuitBreaker(name = "shoppingCart", fallbackMethod = "updateCartStatusFallback")
     fun updateCartStatus(cartId: Long, newStatus: CartStatus): Mono<ShoppingCart> {
         return cartRepository.findById(cartId)
             .flatMap { cart ->
@@ -113,6 +143,11 @@ class ShoppingCartService(
                         ).thenReturn(savedCart)
                     }
             }
+    }
+
+    private fun updateCartStatusFallback(cartId: Long, newStatus: CartStatus, ex: Exception): Mono<ShoppingCart> {
+        logger.error("Circuit breaker fallback for updateCartStatus - cartId: $cartId, newStatus: $newStatus, error: ${ex.message}", ex)
+        return Mono.error(RuntimeException("Unable to update cart status. Please try again later.", ex))
     }
 
     /**

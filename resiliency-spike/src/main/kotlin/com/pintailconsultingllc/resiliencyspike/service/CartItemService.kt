@@ -5,6 +5,8 @@ import com.pintailconsultingllc.resiliencyspike.domain.CartItem
 import com.pintailconsultingllc.resiliencyspike.domain.Product
 import com.pintailconsultingllc.resiliencyspike.repository.CartItemRepository
 import com.pintailconsultingllc.resiliencyspike.repository.ProductRepository
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
@@ -15,6 +17,7 @@ import java.util.*
 /**
  * Service for managing cart items
  * Demonstrates reactive database operations with R2DBC for cart item functionality
+ * Circuit breaker protection applied to database operations
  */
 @Service
 class CartItemService(
@@ -23,10 +26,13 @@ class CartItemService(
     private val cartStateHistoryService: CartStateHistoryService
 ) {
 
+    private val logger = LoggerFactory.getLogger(CartItemService::class.java)
+
     /**
      * Add an item to a cart
      * If the item already exists, update the quantity
      */
+    @CircuitBreaker(name = "cartItem", fallbackMethod = "addItemToCartFallback")
     fun addItemToCart(cartId: Long, productId: UUID, quantity: Int): Mono<CartItem> {
         return productRepository.findById(productId)
             .flatMap { product ->
@@ -40,6 +46,11 @@ class CartItemService(
                         createNewItem(cartId, productId, quantity, product)
                     )
             }
+    }
+
+    private fun addItemToCartFallback(cartId: Long, productId: UUID, quantity: Int, ex: Exception): Mono<CartItem> {
+        logger.error("Circuit breaker fallback for addItemToCart - cartId: $cartId, productId: $productId, error: ${ex.message}", ex)
+        return Mono.error(RuntimeException("Unable to add item to cart. Please try again later.", ex))
     }
 
     private fun updateExistingItem(

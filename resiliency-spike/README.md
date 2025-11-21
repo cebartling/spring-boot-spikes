@@ -167,6 +167,24 @@ docker-compose down
 docker-compose down -v
 ```
 
+#### Monitoring Circuit Breakers
+```bash
+# Check application health (includes circuit breaker states)
+curl http://localhost:8080/actuator/health
+
+# View all circuit breakers and their current states
+curl http://localhost:8080/actuator/circuitbreakers
+
+# View recent circuit breaker events (state transitions)
+curl http://localhost:8080/actuator/circuitbreakerevents
+
+# Get circuit breaker metrics
+curl http://localhost:8080/actuator/metrics/resilience4j.circuitbreaker.calls
+
+# Get detailed metrics for specific circuit breaker
+curl http://localhost:8080/actuator/metrics/resilience4j.circuitbreaker.calls?tag=name:shoppingCart
+```
+
 ## Architecture
 
 This is a fully **reactive application** using Spring WebFlux:
@@ -177,9 +195,17 @@ This is a fully **reactive application** using Spring WebFlux:
 
 ### Key Components
 
-- **Resilience4j** - Circuit breakers, rate limiters, retries, bulkheads, and time limiters
+- **Resilience4j Circuit Breakers** - Fault tolerance and resilience patterns implemented with `@CircuitBreaker` annotations
+  - 4 circuit breaker instances: `shoppingCart`, `cartItem`, `product`, `category`
+  - 50% failure rate threshold with 10-call sliding window
+  - Automatic recovery testing with 5-second wait duration
+  - Health indicators exposed via Actuator endpoints
 - **Apache Pulsar** - Reactive messaging and event streaming
-- **Spring Boot Actuator** - Health checks, metrics, and monitoring endpoints
+- **Spring Boot Actuator** - Health checks, metrics, and circuit breaker monitoring
+  - `/actuator/circuitbreakers` - Circuit breaker states
+  - `/actuator/circuitbreakerevents` - Recent circuit breaker events
+  - `/actuator/health` - Overall health including circuit breakers
+  - `/actuator/metrics` - Circuit breaker metrics
 - **WebFlux** - Reactive REST APIs
 - **Spring Data R2DBC** - Reactive database access with PostgreSQL
 
@@ -231,22 +257,26 @@ Shopping Cart:
 - `CartStateHistoryRepository` - Find events by cart/type/date range; conversion/abandonment analytics
 
 **Service Layer:**
-All services use reactive repositories and return `Mono<T>` or `Flux<T>`:
+All services use reactive repositories and return `Mono<T>` or `Flux<T>`. Critical operations are protected with circuit breakers.
 
 Resiliency Tracking:
 - `ResilienceEventService` - Manage resilience events
 
-Product Catalog:
-- `CategoryService` - CRUD operations, hierarchical category management, soft delete (activate/deactivate)
+Product Catalog (Circuit Breaker Protected):
+- `CategoryService` - CRUD operations, hierarchical category management, soft delete
+  - Circuit breaker: `category` with fallback methods
 - `ProductService` - CRUD operations, stock management, product filtering/searching, soft delete
+  - Circuit breaker: `product` with fallback methods
 
 Inventory Management:
 - `InventoryLocationService` - CRUD operations, location filtering by type, activate/deactivate
 - `InventoryStockService` - Stock level management, adjustments, reservations, availability checks, low stock alerts
 
-Shopping Cart:
+Shopping Cart (Circuit Breaker Protected):
 - `ShoppingCartService` - Cart lifecycle (create, find, abandon, convert, expire), status management, expired cart processing
+  - Circuit breaker: `shoppingCart` with fallback methods
 - `CartItemService` - Add/remove/update items, apply discounts, validate availability, calculate totals
+  - Circuit breaker: `cartItem` with fallback methods
 - `CartStateHistoryService` - Record events, track status changes, calculate conversion/abandonment rates
 
 **REST API Layer:**
@@ -389,6 +419,42 @@ open http://localhost:8200/ui
 - Automatic secret injection via Spring configuration
 - Development mode setup with auto-initialization
 - Policy-based access control
+
+### Circuit Breakers with Resilience4j
+A comprehensive circuit breaker implementation protecting all critical service operations:
+
+**Circuit Breaker Instances:**
+- **shoppingCart** - Shopping cart operations (5 protected methods)
+- **cartItem** - Cart item operations (1 protected method)
+- **product** - Product catalog operations (3 protected methods)
+- **category** - Category operations (3 protected methods)
+
+**Configuration:**
+- 50% failure rate threshold - Opens circuit after 50% of calls fail
+- 10-call sliding window - Evaluates last 10 calls for failure rate
+- 5-second wait in open state - Recovery testing interval
+- 2-second slow call threshold - Treats slow calls as potential failures
+- Automatic transition from OPEN → HALF_OPEN state
+- Health indicators for real-time monitoring
+
+**Fallback Behavior:**
+- All protected methods have fallback handlers
+- User-friendly error messages during service degradation
+- Full exception logging with contextual information
+- Graceful degradation instead of complete failure
+
+**Monitoring:**
+- `/actuator/circuitbreakers` - Current states of all circuit breakers
+- `/actuator/circuitbreakerevents` - Recent state transitions and events
+- `/actuator/health` - Overall health including circuit breaker status
+- `/actuator/metrics/resilience4j.circuitbreaker.*` - Detailed metrics
+
+**Benefits:**
+- Fault isolation - Failures don't cascade across services
+- Fast failure - Fail quickly when services are unavailable
+- Automatic recovery - Tests service health automatically
+- Resource protection - Prevents thread exhaustion from slow calls
+- Observability - Real-time visibility into service health
 
 ### Resiliency Patterns
 - Circuit breaker state tracking and metrics

@@ -2,6 +2,8 @@ package com.pintailconsultingllc.resiliencyspike.service
 
 import com.pintailconsultingllc.resiliencyspike.domain.Product
 import com.pintailconsultingllc.resiliencyspike.repository.ProductRepository
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
@@ -11,31 +13,52 @@ import java.util.*
 /**
  * Service for managing products in the catalog
  * Demonstrates reactive database operations with R2DBC
+ * Circuit breaker protection applied to database operations
  */
 @Service
 class ProductService(
     private val productRepository: ProductRepository
 ) {
 
+    private val logger = LoggerFactory.getLogger(ProductService::class.java)
+
     /**
      * Create a new product
      */
+    @CircuitBreaker(name = "product", fallbackMethod = "createProductFallback")
     fun createProduct(product: Product): Mono<Product> {
         return productRepository.save(product)
+    }
+
+    private fun createProductFallback(product: Product, ex: Exception): Mono<Product> {
+        logger.error("Circuit breaker fallback for createProduct - product: ${product.name}, error: ${ex.message}", ex)
+        return Mono.error(RuntimeException("Product service is temporarily unavailable. Please try again later.", ex))
     }
 
     /**
      * Update an existing product
      */
+    @CircuitBreaker(name = "product", fallbackMethod = "updateProductFallback")
     fun updateProduct(product: Product): Mono<Product> {
         return productRepository.save(product)
+    }
+
+    private fun updateProductFallback(product: Product, ex: Exception): Mono<Product> {
+        logger.error("Circuit breaker fallback for updateProduct - product: ${product.name}, error: ${ex.message}", ex)
+        return Mono.error(RuntimeException("Unable to update product. Please try again later.", ex))
     }
 
     /**
      * Find a product by ID
      */
+    @CircuitBreaker(name = "product", fallbackMethod = "findProductByIdFallback")
     fun findProductById(id: UUID): Mono<Product> {
         return productRepository.findById(id)
+    }
+
+    private fun findProductByIdFallback(id: UUID, ex: Exception): Mono<Product> {
+        logger.error("Circuit breaker fallback for findProductById - id: $id, error: ${ex.message}", ex)
+        return Mono.error(RuntimeException("Unable to retrieve product. Please try again later.", ex))
     }
 
     /**

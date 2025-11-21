@@ -2,6 +2,8 @@ package com.pintailconsultingllc.resiliencyspike.service
 
 import com.pintailconsultingllc.resiliencyspike.domain.Category
 import com.pintailconsultingllc.resiliencyspike.repository.CategoryRepository
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
@@ -10,31 +12,52 @@ import java.util.*
 /**
  * Service for managing product categories
  * Demonstrates reactive database operations with R2DBC and hierarchical data
+ * Circuit breaker protection applied to database operations
  */
 @Service
 class CategoryService(
     private val categoryRepository: CategoryRepository
 ) {
 
+    private val logger = LoggerFactory.getLogger(CategoryService::class.java)
+
     /**
      * Create a new category
      */
+    @CircuitBreaker(name = "category", fallbackMethod = "createCategoryFallback")
     fun createCategory(category: Category): Mono<Category> {
         return categoryRepository.save(category)
+    }
+
+    private fun createCategoryFallback(category: Category, ex: Exception): Mono<Category> {
+        logger.error("Circuit breaker fallback for createCategory - category: ${category.name}, error: ${ex.message}", ex)
+        return Mono.error(RuntimeException("Category service is temporarily unavailable. Please try again later.", ex))
     }
 
     /**
      * Update an existing category
      */
+    @CircuitBreaker(name = "category", fallbackMethod = "updateCategoryFallback")
     fun updateCategory(category: Category): Mono<Category> {
         return categoryRepository.save(category)
+    }
+
+    private fun updateCategoryFallback(category: Category, ex: Exception): Mono<Category> {
+        logger.error("Circuit breaker fallback for updateCategory - category: ${category.name}, error: ${ex.message}", ex)
+        return Mono.error(RuntimeException("Unable to update category. Please try again later.", ex))
     }
 
     /**
      * Find a category by ID
      */
+    @CircuitBreaker(name = "category", fallbackMethod = "findCategoryByIdFallback")
     fun findCategoryById(id: UUID): Mono<Category> {
         return categoryRepository.findById(id)
+    }
+
+    private fun findCategoryByIdFallback(id: UUID, ex: Exception): Mono<Category> {
+        logger.error("Circuit breaker fallback for findCategoryById - id: $id, error: ${ex.message}", ex)
+        return Mono.error(RuntimeException("Unable to retrieve category. Please try again later.", ex))
     }
 
     /**
