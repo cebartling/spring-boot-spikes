@@ -81,7 +81,7 @@ See [CONTAINER.md](CONTAINER.md) for detailed container deployment instructions.
 - **OTLP HTTP Port:** 4318 (OpenTelemetry trace ingestion)
 - **OTLP gRPC Port:** 4317 (OpenTelemetry trace ingestion)
 - **Purpose:** Distributed tracing backend and visualization
-- **Access:** http://localhost:16686
+- **Access:** [Jaeger UI](http://localhost:16686)
 
 The application automatically sends traces to Jaeger via OpenTelemetry. All HTTP requests, database queries, Pulsar operations, and Resilience4j patterns are automatically instrumented.
 
@@ -316,6 +316,7 @@ The Swagger UI provides:
 - Organized by tags: Product Catalog, Shopping Cart, Cart Items, Cart History, Cart Analytics
 
 #### Observability and Distributed Tracing
+
 ```bash
 # Access Jaeger UI for distributed tracing
 open http://localhost:16686
