@@ -1,10 +1,30 @@
 # Resiliency Spike
 
-A Spring Boot spike project exploring resiliency patterns using Kotlin, Spring WebFlux, Resilience4j, and Apache Pulsar.
+A comprehensive Spring Boot spike project exploring enterprise-grade resiliency patterns, reactive programming, and distributed observability using Kotlin, Spring WebFlux, Resilience4j, and Apache Pulsar.
 
 ## Overview
 
-This project demonstrates reactive programming patterns with circuit breakers, rate limiting, and other resilience patterns in a modern Spring Boot application.
+This spike solution serves as a deep technical exploration of production-ready resilience patterns in modern reactive applications. Built as a fully-functional e-commerce platform with product catalog, inventory management, and shopping cart capabilities, it demonstrates how to architect resilient systems that gracefully handle failures, prevent cascading outages, and maintain observability under adverse conditions.
+
+### What This Spike Demonstrates
+
+**Comprehensive Resilience Patterns:** The application implements a triple-layered fault tolerance strategy combining rate limiting (preventing abuse and overload), retry logic with exponential backoff (recovering from transient failures), and circuit breakers (failing fast when services degrade). Every critical operation is protected with Resilience4j annotations, providing real-time metrics and health indicators through Spring Boot Actuator endpoints. This layered approach ensures the system can throttle abusive traffic, automatically recover from temporary failures, and prevent thread exhaustion when downstream services are unavailable.
+
+**Full-Stack Reactive Architecture:** Built entirely on Spring WebFlux and Project Reactor, the application maintains non-blocking operations from HTTP layer through database access. Using R2DBC for reactive PostgreSQL connectivity, all repository methods return `Mono<T>` or `Flux<T>`, enabling backpressure-aware streaming and efficient resource utilization under high concurrency. The reactive design allows the application to handle thousands of concurrent requests with a small thread pool, demonstrating significant performance advantages over traditional blocking architectures.
+
+**Distributed Tracing & Observability:** Integrated OpenTelemetry instrumentation with Jaeger backend provides complete visibility into request flows across all system layers. Every HTTP request, database query, circuit breaker activation, and rate limiter decision is automatically traced with W3C Trace Context propagation. Logs include correlation IDs (trace/span IDs) for seamless debugging, while the Jaeger UI enables visual analysis of performance bottlenecks, error traces, and service dependencies. This comprehensive observability stack demonstrates production-grade monitoring capabilities essential for operating distributed systems.
+
+**Production-Ready Containerization:** The spike includes multi-stage Docker builds optimized for size (~423MB runtime) and security (non-root user), along with complete Docker Compose orchestration supporting both local development and full containerized deployment. Health checks, JVM container tuning, and proper service dependencies demonstrate deployment best practices, while dual-profile configuration (infrastructure-only vs. full-stack) provides flexibility for different development scenarios.
+
+### Real-World Use Cases
+
+This spike architecture is applicable to any scenario requiring resilient, high-performance reactive systems: e-commerce platforms handling flash sales with traffic spikes, financial services requiring circuit protection around payment gateways, microservices architectures needing comprehensive observability, and API gateways managing rate limiting across multiple consumers. The patterns demonstrated here—from event sourcing in the shopping cart to JSONB metadata for schema flexibility—reflect production requirements encountered in enterprise applications.
+
+### Technical Foundation
+
+Beyond the specific resilience patterns, this spike establishes best practices for modern Spring Boot development: comprehensive OpenAPI documentation (69 endpoints), secrets management via HashiCorp Vault, event sourcing for audit trails, monetary precision using integer cents, and extensive test coverage (214 tests) using reactive testing strategies with StepVerifier and WebFluxTest.
+
+For teams evaluating reactive architectures, planning resilience strategies, or implementing distributed tracing, this spike provides a complete reference implementation with detailed documentation covering both the "how" (technical implementation) and the "why" (design decisions and trade-offs).
 
 ## Tech Stack
 
