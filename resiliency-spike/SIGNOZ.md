@@ -185,6 +185,330 @@ service:
       exporters: [clickhousemetricswrite]
 ```
 
+## Switching from Jaeger to SigNoz
+
+This section provides step-by-step instructions to switch your observability backend from Jaeger to SigNoz.
+
+### Why Switch to SigNoz?
+
+While Jaeger excels at distributed tracing, SigNoz provides a comprehensive APM platform with:
+- **Unified Observability**: Traces, metrics, and logs in one platform
+- **Built-in Dashboards**: Pre-configured APM dashboards without additional setup
+- **Custom Alerts**: Alert on metrics, traces, and logs without external tools
+- **Service Maps**: Visual dependency graphs with health indicators
+- **Long-term Storage**: ClickHouse provides efficient storage for large-scale data
+- **Exception Tracking**: Dedicated view for errors with automatic grouping
+
+### Prerequisites
+
+Before switching, ensure:
+1. Jaeger is currently working (traces visible at http://localhost:16686)
+2. Docker has sufficient resources (SigNoz requires ~4GB RAM minimum)
+3. Ports 3301, 4319, 4320, 8085, 8123, 9000 are available
+
+### Step 1: Stop Current Infrastructure (Optional)
+
+If you want to switch completely, stop Jaeger:
+
+```bash
+# Stop all infrastructure services
+docker-compose --profile infra down
+
+# Or stop only Jaeger (keeps other services running)
+docker-compose stop jaeger
+```
+
+**Note**: You can run both Jaeger and SigNoz simultaneously since they use different ports (Jaeger: 4317/4318, SigNoz: 4319/4320).
+
+### Step 2: Update Application Configuration
+
+#### For Local Development (./gradlew bootRun)
+
+Edit `src/main/resources/application.properties`:
+
+```properties
+# Comment out Jaeger endpoint
+# management.otlp.tracing.endpoint=http://localhost:4318/v1/traces
+
+# Uncomment SigNoz endpoint
+management.otlp.tracing.endpoint=http://localhost:4320/v1/traces
+```
+
+**Quick Toggle Method**:
+```bash
+# In application.properties, simply switch the commented line:
+# FROM:
+# management.otlp.tracing.endpoint=http://localhost:4318/v1/traces  # Jaeger (active)
+# # management.otlp.tracing.endpoint=http://localhost:4320/v1/traces  # SigNoz (commented)
+
+# TO:
+# # management.otlp.tracing.endpoint=http://localhost:4318/v1/traces  # Jaeger (commented)
+# management.otlp.tracing.endpoint=http://localhost:4320/v1/traces  # SigNoz (active)
+```
+
+#### For Containerized Deployment (docker-compose --profile app)
+
+Edit `docker-compose.yml`, find the `resiliency-spike-app` service:
+
+```yaml
+resiliency-spike-app:
+  environment:
+    # Comment out Jaeger
+    # - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://jaeger:4318/v1/traces
+
+    # Uncomment SigNoz
+    - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://signoz-otel-collector:4318/v1/traces
+```
+
+### Step 3: Start SigNoz Services
+
+#### Infrastructure Profile (Local Development)
+
+```bash
+# Start all infrastructure including SigNoz
+docker-compose --profile infra up -d
+
+# Wait for all services to be healthy (may take 30-60 seconds)
+docker-compose --profile infra ps
+
+# Expected output should show all SigNoz services as "healthy":
+# - signoz-clickhouse
+# - signoz-query-service
+# - signoz-otel-collector
+# - signoz-frontend
+```
+
+#### Full Containerized Stack
+
+```bash
+# Rebuild and start with SigNoz
+docker-compose --profile app up -d --build
+
+# Monitor startup
+docker-compose --profile app logs -f
+```
+
+### Step 4: Verify SigNoz is Receiving Traces
+
+#### Check SigNoz Services
+
+```bash
+# All services should show "healthy"
+docker-compose --profile infra ps
+
+# Check OTel Collector is receiving data
+docker-compose --profile infra logs signoz-otel-collector | grep "TracesExporter"
+
+# Expected output: "Traces exported" messages
+
+# Check ClickHouse is healthy
+curl http://localhost:8123/ping
+# Expected: Ok.
+
+# Check Query Service health
+curl http://localhost:8085/api/v1/health
+# Expected: {"status":"ok"}
+```
+
+#### Check Application is Sending Traces
+
+```bash
+# Start/restart your Spring Boot application
+./gradlew bootRun
+
+# Look for OTLP export messages in application logs
+# You should see successful trace exports to http://localhost:4320/v1/traces
+```
+
+### Step 5: Access SigNoz UI
+
+1. **Open SigNoz UI**: http://localhost:3301
+
+2. **First-Time Setup** (if prompted):
+   - Email: `admin@resiliency-spike.local`
+   - Password: `admin123` (change in production!)
+   - Organization: `resiliency-spike`
+
+3. **Navigate to Services**:
+   - Click "Services" in the left sidebar
+   - You should see `resiliency-spike` service
+   - Click on it to view APM metrics
+
+4. **Generate Some Traffic**:
+   ```bash
+   # Make some API requests to generate traces
+   curl http://localhost:8080/api/v1/products
+   curl http://localhost:8080/api/v1/products/search?searchTerm=laptop
+   curl http://localhost:8080/api/v1/carts
+   ```
+
+5. **View Traces**:
+   - Navigate to "Traces" in the sidebar
+   - Filter by service: `resiliency-spike`
+   - You should see recent traces appear within seconds
+
+### Step 6: Verify Trace Data
+
+In SigNoz UI, check that you can see:
+
+- [x] **HTTP Requests**: GET /api/v1/products, POST /api/v1/carts, etc.
+- [x] **Database Queries**: SELECT FROM products, INSERT INTO cart_items
+- [x] **Resilience Patterns**: Circuit breaker, retry, rate limiter spans
+- [x] **Span Attributes**: http.method, http.status_code, db.statement
+- [x] **Trace Timeline**: Parent-child span relationships
+- [x] **Service Map**: Visual dependency graph
+
+### Step 7: Explore SigNoz Features
+
+#### Create a Custom Dashboard
+
+1. Navigate to **Dashboards** → **New Dashboard**
+2. Add panels:
+   - **HTTP Latency**: Metric `http.server.duration`, P99 aggregation
+   - **Error Rate**: Metric `http.server.request.count`, filter by status >= 400
+   - **Circuit Breaker State**: Metric `resilience4j.circuitbreaker.state`
+3. Save as "Resiliency Spike Overview"
+
+#### Set Up an Alert
+
+1. Navigate to **Alerts** → **New Alert**
+2. Create "High Error Rate" alert:
+   ```
+   Alert Name: High Error Rate
+   Query: http.server.request.count
+   Condition: error_rate > 5%
+   Window: 5 minutes
+   Severity: Critical
+   ```
+3. Save and configure notification channel (email, Slack, etc.)
+
+### Step 8: Compare with Jaeger (Optional)
+
+If you kept Jaeger running, you can compare both UIs side-by-side:
+
+| Feature | Jaeger | SigNoz |
+|---------|--------|--------|
+| **Trace Search** | http://localhost:16686 | http://localhost:3301/traces |
+| **Service View** | Basic service list | Full APM metrics with charts |
+| **Span Details** | Detailed span view | Detailed + correlated metrics |
+| **Dependencies** | Service graph | Service map with health |
+| **Dashboards** | N/A | Custom dashboards |
+| **Alerts** | N/A | Built-in alerting |
+
+### Switching Back to Jaeger
+
+If you need to switch back:
+
+1. **Update application.properties**:
+   ```properties
+   management.otlp.tracing.endpoint=http://localhost:4318/v1/traces  # Jaeger
+   # management.otlp.tracing.endpoint=http://localhost:4320/v1/traces  # SigNoz
+   ```
+
+2. **Restart application**:
+   ```bash
+   # Stop current run
+   # Restart with updated config
+   ./gradlew bootRun
+   ```
+
+3. **No need to stop SigNoz** - both can run simultaneously
+
+### Troubleshooting the Switch
+
+#### Problem: Traces not appearing in SigNoz
+
+**Solution**:
+```bash
+# 1. Verify SigNoz services are healthy
+docker-compose --profile infra ps
+
+# 2. Check OTel Collector logs for errors
+docker-compose --profile infra logs signoz-otel-collector | tail -50
+
+# 3. Verify application endpoint is correct
+grep "management.otlp.tracing.endpoint" src/main/resources/application.properties
+
+# 4. Test OTel Collector is reachable
+curl -v http://localhost:4320/v1/traces
+
+# 5. Check application logs for OTLP export errors
+# Look for "io.opentelemetry" errors in application output
+```
+
+#### Problem: SigNoz UI not loading
+
+**Solution**:
+```bash
+# 1. Check if frontend is running
+docker-compose --profile infra ps signoz-frontend
+
+# 2. Check frontend logs
+docker-compose --profile infra logs signoz-frontend | tail -50
+
+# 3. Verify query service is healthy
+curl http://localhost:8085/api/v1/health
+
+# 4. Try accessing directly
+open http://localhost:3301
+```
+
+#### Problem: High memory usage
+
+**Solution**:
+SigNoz (especially ClickHouse) requires more resources than Jaeger:
+
+```bash
+# Check Docker resource usage
+docker stats
+
+# If needed, increase Docker Desktop memory allocation:
+# Docker Desktop → Settings → Resources → Memory: 8GB+
+
+# Or reduce sampling in application.properties:
+management.tracing.sampling.probability=0.1  # 10% sampling
+```
+
+#### Problem: Port conflicts
+
+**Solution**:
+```bash
+# Check if ports are in use
+lsof -i :3301  # SigNoz UI
+lsof -i :4320  # SigNoz OTLP HTTP
+lsof -i :4319  # SigNoz OTLP gRPC
+
+# If conflicts exist, modify docker-compose.yml port mappings
+```
+
+### Configuration Summary
+
+After switching, verify your configuration:
+
+**Local Development (`application.properties`)**:
+```properties
+management.tracing.enabled=true
+management.tracing.sampling.probability=1.0
+management.otlp.tracing.endpoint=http://localhost:4320/v1/traces  # SigNoz
+management.otlp.tracing.compression=gzip
+management.tracing.propagation.type=w3c
+```
+
+**Containerized (`docker-compose.yml`)**:
+```yaml
+resiliency-spike-app:
+  environment:
+    - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://signoz-otel-collector:4318/v1/traces
+```
+
+**Key Differences from Jaeger**:
+- Port: 4320 (SigNoz) vs 4318 (Jaeger) for HTTP
+- Port: 4319 (SigNoz) vs 4317 (Jaeger) for gRPC
+- UI: :3301 (SigNoz) vs :16686 (Jaeger)
+- Backend: ClickHouse + Query Service vs in-memory/Elasticsearch
+
+---
+
 ## Running SigNoz
 
 ### Option 1: Infrastructure Profile (Local Development)
