@@ -30,8 +30,12 @@ services:
       - SPRING_PULSAR_CLIENT_SERVICE_URL=pulsar://pulsar:6650
       - SPRING_PULSAR_ADMIN_ADMIN_URL=http://pulsar:8080
 
-      # OpenTelemetry configuration (Jaeger endpoint)
+      # OpenTelemetry configuration
+      # Choose one of the following:
+      # Option 1: Jaeger (default)
       - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://jaeger:4318/v1/traces
+      # Option 2: SigNoz (uncomment and comment Jaeger above)
+      # - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://signoz-otel-collector:4318/v1/traces
 
       # JVM options
       - JAVA_OPTS=-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC -Djava.security.egd=file:/dev/./urandom
@@ -225,10 +229,135 @@ services:
       - resiliency-spike-network
     restart: unless-stopped
 
+  # ===========================
+  # SigNoz - ClickHouse Database
+  # Profiles: infra, app
+  # ===========================
+  signoz-clickhouse:
+    profiles: ["infra", "app"]
+    image: clickhouse/clickhouse-server:23.11-alpine
+    container_name: resiliency-spike-signoz-clickhouse
+    ports:
+      - "9000:9000"     # ClickHouse native protocol
+      - "8123:8123"     # ClickHouse HTTP interface
+    environment:
+      - CLICKHOUSE_DB=signoz
+      - CLICKHOUSE_USER=signoz
+      - CLICKHOUSE_PASSWORD=signoz_password
+    volumes:
+      - signoz-clickhouse-data:/var/lib/clickhouse
+    networks:
+      - resiliency-spike-network
+    healthcheck:
+      test: ["CMD-SHELL", "clickhouse-client --query 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  # ===========================
+  # SigNoz - Query Service
+  # Profiles: infra, app
+  # ===========================
+  signoz-query-service:
+    profiles: ["infra", "app"]
+    image: signoz/query-service:0.42.0
+    container_name: resiliency-spike-signoz-query-service
+    ports:
+      - "8085:8085"     # Query service port
+    environment:
+      - STORAGE=clickhouse
+      - CLICKHOUSE_HOST=signoz-clickhouse
+      - CLICKHOUSE_PORT=9000
+      - CLICKHOUSE_DATABASE=signoz
+      - CLICKHOUSE_USER=signoz
+      - CLICKHOUSE_PASSWORD=signoz_password
+      - GODEBUG=netdns=go
+      - TELEMETRY_ENABLED=false
+      - ClickHouseUrl=tcp://signoz-clickhouse:9000/?database=signoz
+    volumes:
+      - signoz-query-service-data:/var/lib/signoz
+    depends_on:
+      signoz-clickhouse:
+        condition: service_healthy
+    networks:
+      - resiliency-spike-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8085/api/v1/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  # ===========================
+  # SigNoz - OTel Collector
+  # Profiles: infra, app
+  # ===========================
+  signoz-otel-collector:
+    profiles: ["infra", "app"]
+    image: signoz/signoz-otel-collector:0.88.11
+    container_name: resiliency-spike-signoz-otel-collector
+    ports:
+      - "4319:4317"     # OTLP gRPC receiver (mapped to 4319 to avoid conflict with Jaeger)
+      - "4320:4318"     # OTLP HTTP receiver (mapped to 4320 to avoid conflict with Jaeger)
+    environment:
+      - OTEL_RESOURCE_ATTRIBUTES=host.name=signoz-host,os.type=linux
+      - CLICKHOUSE_HOST=signoz-clickhouse
+      - CLICKHOUSE_PORT=9000
+      - CLICKHOUSE_DATABASE=signoz
+      - CLICKHOUSE_USER=signoz
+      - CLICKHOUSE_PASSWORD=signoz_password
+    depends_on:
+      signoz-clickhouse:
+        condition: service_healthy
+    networks:
+      - resiliency-spike-network
+    volumes:
+      - ./docker/signoz/otel-collector-config.yaml:/etc/otel/config.yaml:ro
+    command: ["--config=/etc/otel/config.yaml"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:13133/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  # ===========================
+  # SigNoz - Frontend UI
+  # Profiles: infra, app
+  # ===========================
+  signoz-frontend:
+    profiles: ["infra", "app"]
+    image: signoz/frontend:0.42.0
+    container_name: resiliency-spike-signoz-frontend
+    ports:
+      - "3301:3301"     # SigNoz UI
+    environment:
+      - QUERY_SERVICE_URL=http://signoz-query-service:8085
+    depends_on:
+      signoz-query-service:
+        condition: service_healthy
+    networks:
+      - resiliency-spike-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3301/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
 volumes:
   pulsar-data:
     driver: local
   postgres-data:
+    driver: local
+  signoz-clickhouse-data:
+    driver: local
+  signoz-query-service-data:
     driver: local
 
 networks:

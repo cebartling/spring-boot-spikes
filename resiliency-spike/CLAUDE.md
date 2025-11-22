@@ -193,6 +193,18 @@ The project includes a single Docker Compose configuration (`docker-compose.yml`
 - Integration: Micrometer Tracing Bridge with OTLP exporter
 - See [OBSERVABILITY.md](OBSERVABILITY.md) for comprehensive documentation
 
+**SigNoz (APM & Observability Platform):**
+- Frontend UI port: `3301` - SigNoz web interface for traces, metrics, and APM
+- OTLP HTTP port: `4320` - OpenTelemetry ingestion (mapped to avoid conflict with Jaeger)
+- OTLP gRPC port: `4319` - Alternative OpenTelemetry ingestion (mapped to avoid conflict)
+- Query Service port: `8085` - SigNoz backend API
+- ClickHouse port: `9000` - Native protocol for trace/metrics storage
+- Access UI: http://localhost:3301
+- Purpose: All-in-one observability platform (APM, traces, metrics, logs)
+- Features: Service maps, trace analysis, metrics dashboards, alerts, exceptions tracking
+- Storage: ClickHouse columnar database for high-performance analytics
+- See [SIGNOZ.md](SIGNOZ.md) for comprehensive SigNoz documentation
+
 **Apache Pulsar (Standalone Mode):**
 - Broker port: `6650` - Used by application to connect to Pulsar
 - Admin/HTTP port: `8081` - Pulsar admin API and web console (mapped from container port 8080 to avoid conflict with Spring Boot)
@@ -252,19 +264,28 @@ All services are connected via a custom bridge network (`resiliency-spike-networ
 
 ## Observability with OpenTelemetry
 
-The project includes comprehensive distributed tracing using OpenTelemetry and Jaeger:
+The project includes comprehensive distributed tracing and observability using OpenTelemetry with two backend options:
 
 **OpenTelemetry Integration:**
 - Micrometer Tracing Bridge for seamless Spring Boot integration
-- OTLP exporter for sending traces to Jaeger
+- OTLP exporter for sending traces to observability backends
 - W3C Trace Context propagation standard
 - Automatic instrumentation of HTTP, R2DBC, Pulsar, Resilience4j
 
-**Jaeger Backend:**
-- All-in-one image with collector, query service, and UI
-- In-memory storage for development (configurable for production)
-- Web UI at http://localhost:16686
-- OTLP receivers on ports 4317 (gRPC) and 4318 (HTTP)
+**Backend Options:**
+
+1. **Jaeger (Default)** - Lightweight distributed tracing
+   - All-in-one image with collector, query service, and UI
+   - In-memory storage for development (configurable for production)
+   - Web UI at http://localhost:16686
+   - OTLP receivers on ports 4317 (gRPC) and 4318 (HTTP)
+
+2. **SigNoz (Alternative)** - Full-featured APM and observability platform
+   - ClickHouse-based storage for high-performance analytics
+   - Web UI at http://localhost:3301
+   - OTLP receivers on ports 4319 (gRPC) and 4320 (HTTP)
+   - Additional features: service maps, metrics dashboards, alerts, exceptions tracking
+   - See [SIGNOZ.md](SIGNOZ.md) for detailed SigNoz documentation
 
 **What Gets Traced:**
 - All HTTP requests through WebFlux endpoints
@@ -286,8 +307,12 @@ INFO [resiliency-spike,a1b2c3d4e5f6g7h8,i9j0k1l2m3n4o5p6] Processing request...
 management.tracing.enabled=true
 management.tracing.sampling.probability=1.0
 
-# OTLP endpoint (Jaeger)
+# OTLP endpoint - Choose backend:
+# Jaeger (default):
 management.otlp.tracing.endpoint=http://localhost:4318/v1/traces
+# SigNoz (alternative - uncomment to use):
+# management.otlp.tracing.endpoint=http://localhost:4320/v1/traces
+
 management.otlp.tracing.compression=gzip
 
 # W3C Trace Context propagation
@@ -297,15 +322,25 @@ management.tracing.propagation.type=w3c
 logging.pattern.level=%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]
 ```
 
-**Accessing Jaeger UI:**
+**Switching Between Backends:**
+
+To use **Jaeger** (default):
+```properties
+management.otlp.tracing.endpoint=http://localhost:4318/v1/traces
+```
+
+To use **SigNoz**:
+```properties
+management.otlp.tracing.endpoint=http://localhost:4320/v1/traces
+```
+
+**Accessing UIs:**
 ```bash
-# Open Jaeger UI
+# Jaeger UI
 open http://localhost:16686
 
-# Select service: resiliency-spike
-# Search by operation: GET /api/v1/products
-# Filter by tags: http.status_code=500, error=true
-# Analyze trace timeline
+# SigNoz UI
+open http://localhost:3301
 ```
 
 **Common Use Cases:**
@@ -318,13 +353,17 @@ open http://localhost:16686
 
 **Verified Working:**
 - ✅ Traces exported to Jaeger successfully
+- ✅ Traces exported to SigNoz successfully
 - ✅ HTTP requests generate full trace hierarchy
 - ✅ Database queries captured with timing
 - ✅ Circuit breaker and rate limiter spans visible
 - ✅ Trace context in logs
 - ✅ Jaeger UI functional
+- ✅ SigNoz UI functional with APM features
 
-See [OBSERVABILITY.md](OBSERVABILITY.md) for comprehensive documentation including advanced configuration, custom instrumentation, production considerations, and troubleshooting.
+**Documentation:**
+- [OBSERVABILITY.md](OBSERVABILITY.md) - Comprehensive Jaeger documentation
+- [SIGNOZ.md](SIGNOZ.md) - Comprehensive SigNoz documentation including APM features, service maps, alerts
 
 ## Code Architecture
 

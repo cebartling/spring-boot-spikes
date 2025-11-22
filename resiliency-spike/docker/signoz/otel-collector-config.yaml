@@ -1,0 +1,78 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+        cors:
+          allowed_origins:
+            - "*"
+
+processors:
+  batch:
+    timeout: 10s
+    send_batch_size: 1024
+
+  # Resource processor to add host information
+  resource:
+    attributes:
+      - key: service.namespace
+        value: resiliency-spike
+        action: upsert
+
+  # Memory limiter to prevent OOM
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 512
+    spike_limit_mib: 128
+
+exporters:
+  # ClickHouse exporter for traces
+  clickhousetraces:
+    datasource: tcp://signoz-clickhouse:9000/?database=signoz
+    docker_multi_node_cluster: false
+    low_cardinal_exception_grouping: false
+
+  # ClickHouse exporter for metrics
+  clickhousemetricswrite:
+    endpoint: tcp://signoz-clickhouse:9000/?database=signoz
+    resource_to_telemetry_conversion:
+      enabled: true
+
+  # ClickHouse exporter for logs
+  clickhouselogsexporter:
+    dsn: tcp://signoz-clickhouse:9000/?database=signoz
+
+  # Logging exporter for debugging (optional)
+  logging:
+    loglevel: info
+    sampling_initial: 5
+    sampling_thereafter: 200
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+  pprof:
+    endpoint: 0.0.0.0:1777
+  zpages:
+    endpoint: 0.0.0.0:55679
+
+service:
+  extensions: [health_check, pprof, zpages]
+
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resource]
+      exporters: [clickhousetraces]
+
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resource]
+      exporters: [clickhousemetricswrite]
+
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resource]
+      exporters: [clickhouselogsexporter]
