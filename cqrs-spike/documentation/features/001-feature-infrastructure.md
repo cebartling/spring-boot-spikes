@@ -95,16 +95,32 @@ As a development team, we need a comprehensive local development infrastructure 
 - Documentation describes how to access each service
 - Documentation explains the infrastructure architecture
 
+### AC9: Observability Platform
+
+**Implementation Plan:** [AC9 - Observability Platform](../plans/AC9-observability-platform.md)
+
+- A distributed tracing system is available for tracking requests across services
+- Trace data is collected from the Spring Boot application automatically
+- Traces can be queried and visualized through a UI
+- A log aggregation system is available for centralizing application and infrastructure logs
+- Logs from all services are collected and searchable in a central location
+- Log retention policies are configured for local development
+- A metrics collection system is available for monitoring application and infrastructure performance
+- Application metrics (JVM, HTTP, database connections) are automatically exported
+- Custom business metrics can be recorded and queried
+- Metrics can be visualized through dashboards
+- All observability components integrate seamlessly with the application
+
 ## Future Acceptance Criteria (Phase 2)
 
-### AC9: Message Broker Service
+### AC10: Message Broker Service
 - A message broker (e.g., RabbitMQ, Kafka, Redis Streams) is available
 - The broker is accessible via standard protocols
 - Management UI is available for inspecting queues/topics
 - The broker persists messages across restarts where appropriate
 - Credentials are managed via the secrets management service
 
-### AC10: Cache Service
+### AC11: Cache Service
 - A cache service (e.g., Redis, Memcached) is available
 - The cache is accessible on a standard port
 - The cache can be flushed/cleared for testing purposes
