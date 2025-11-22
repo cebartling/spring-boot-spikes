@@ -13,6 +13,7 @@ This is a Spring Boot spike project exploring resiliency patterns, built with Ko
 - Spring Cloud Circuit Breaker with Resilience4j
 - Apache Pulsar (reactive)
 - Spring Boot Actuator
+- OpenTelemetry with Jaeger (distributed tracing)
 - Java 21
 - Gradle (Kotlin DSL)
 
@@ -182,6 +183,16 @@ The project includes a single Docker Compose configuration (`docker-compose.yml`
 
 **Services:**
 
+**Jaeger (Distributed Tracing):**
+- UI port: `16686` - Jaeger web interface for trace visualization
+- OTLP HTTP port: `4318` - OpenTelemetry trace ingestion endpoint
+- OTLP gRPC port: `4317` - Alternative OpenTelemetry ingestion
+- Access UI: http://localhost:16686
+- Purpose: Distributed tracing backend with automatic instrumentation via OpenTelemetry
+- Traces: HTTP requests, database queries, Pulsar operations, circuit breakers, rate limiters, retries
+- Integration: Micrometer Tracing Bridge with OTLP exporter
+- See [OBSERVABILITY.md](OBSERVABILITY.md) for comprehensive documentation
+
 **Apache Pulsar (Standalone Mode):**
 - Broker port: `6650` - Used by application to connect to Pulsar
 - Admin/HTTP port: `8081` - Pulsar admin API and web console (mapped from container port 8080 to avoid conflict with Spring Boot)
@@ -238,6 +249,82 @@ SQL scripts in `docker/init-scripts/` are executed alphabetically during first s
 The init container waits for PostgreSQL to be healthy before running scripts and exits after completion (restart: "no").
 
 All services are connected via a custom bridge network (`resiliency-spike-network`) and include healthchecks to ensure they're ready before the application connects.
+
+## Observability with OpenTelemetry
+
+The project includes comprehensive distributed tracing using OpenTelemetry and Jaeger:
+
+**OpenTelemetry Integration:**
+- Micrometer Tracing Bridge for seamless Spring Boot integration
+- OTLP exporter for sending traces to Jaeger
+- W3C Trace Context propagation standard
+- Automatic instrumentation of HTTP, R2DBC, Pulsar, Resilience4j
+
+**Jaeger Backend:**
+- All-in-one image with collector, query service, and UI
+- In-memory storage for development (configurable for production)
+- Web UI at http://localhost:16686
+- OTLP receivers on ports 4317 (gRPC) and 4318 (HTTP)
+
+**What Gets Traced:**
+- All HTTP requests through WebFlux endpoints
+- R2DBC database queries with timing information
+- Pulsar message publish/consume operations
+- Circuit breaker state changes and decisions
+- Rate limiter accept/reject decisions
+- Retry attempts with exponential backoff
+
+**Trace Context in Logs:**
+All log messages include trace ID and span ID for correlation:
+```
+INFO [resiliency-spike,a1b2c3d4e5f6g7h8,i9j0k1l2m3n4o5p6] Processing request...
+```
+
+**Configuration (application.properties):**
+```properties
+# Enable tracing
+management.tracing.enabled=true
+management.tracing.sampling.probability=1.0
+
+# OTLP endpoint (Jaeger)
+management.otlp.tracing.endpoint=http://localhost:4318/v1/traces
+management.otlp.tracing.compression=gzip
+
+# W3C Trace Context propagation
+management.tracing.propagation.type=w3c
+
+# Log pattern with trace context
+logging.pattern.level=%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]
+```
+
+**Accessing Jaeger UI:**
+```bash
+# Open Jaeger UI
+open http://localhost:16686
+
+# Select service: resiliency-spike
+# Search by operation: GET /api/v1/products
+# Filter by tags: http.status_code=500, error=true
+# Analyze trace timeline
+```
+
+**Common Use Cases:**
+1. **Debug Slow Requests** - Examine trace timeline to find bottlenecks (DB queries, circuit breakers)
+2. **Investigate Errors** - Filter traces with `error=true` to see exception details
+3. **Monitor Circuit Breakers** - Track state changes and fallback invocations
+4. **Analyze Database Performance** - Identify slow queries and N+1 problems
+5. **Track Rate Limiter Impact** - See which requests are throttled or rejected
+6. **Correlate Logs** - Use trace ID from logs to find corresponding trace in Jaeger
+
+**Verified Working:**
+- ✅ Traces exported to Jaeger successfully
+- ✅ HTTP requests generate full trace hierarchy
+- ✅ Database queries captured with timing
+- ✅ Circuit breaker and rate limiter spans visible
+- ✅ Trace context in logs
+- ✅ Jaeger UI functional
+
+See [OBSERVABILITY.md](OBSERVABILITY.md) for comprehensive documentation including advanced configuration, custom instrumentation, production considerations, and troubleshooting.
 
 ## Code Architecture
 
@@ -323,6 +410,8 @@ Uses reactive database access with Spring Data R2DBC and PostgreSQL. All databas
 - `spring-cloud-starter-vault-config` - HashiCorp Vault integration for secrets management
 - `spring-cloud-starter-circuitbreaker-reactor-resilience4j` - Circuit breaker implementation
 - `springdoc-openapi-starter-webflux-ui` - OpenAPI 3.0 documentation with Swagger UI for WebFlux
+- `micrometer-tracing-bridge-otel` - OpenTelemetry integration via Micrometer
+- `opentelemetry-exporter-otlp` - OTLP exporter for sending traces to Jaeger
 - `reactor-kotlin-extensions` - Kotlin-friendly extensions for Project Reactor
 - `kotlinx-coroutines-reactor` - Coroutine support for reactive code
 - `jackson-module-kotlin` - JSON serialization for Kotlin data classes
@@ -525,6 +614,40 @@ Cart History DTOs:
 - `ConversionRateResponse` - Conversion rate analytics
 - `AbandonmentRateResponse` - Abandonment rate analytics
 - `CartActivitySummaryResponse` - Event counts by type
+
+### OpenTelemetry and Observability
+
+**Dependencies:**
+- `micrometer-tracing-bridge-otel` - Bridges Micrometer to OpenTelemetry
+- `opentelemetry-exporter-otlp` - Exports traces via OTLP to Jaeger
+
+**Automatic Instrumentation:**
+Spring Boot automatically instruments:
+- WebFlux HTTP endpoints
+- R2DBC database queries
+- Pulsar messaging operations
+- Resilience4j patterns (circuit breakers, rate limiters, retries)
+
+**Configuration:**
+All tracing configuration in `application.properties`:
+- Sampling: 100% (configurable)
+- OTLP endpoint: http://localhost:4318/v1/traces
+- Propagation: W3C Trace Context
+- Log pattern includes trace ID and span ID
+
+**Accessing Traces:**
+- Jaeger UI: http://localhost:16686
+- Service: `resiliency-spike`
+- Search by operation, tags, duration, time range
+
+**Key Features:**
+- Visual trace timelines showing operation sequence
+- Service dependency graphs
+- Error trace identification
+- Performance bottleneck analysis
+- Log correlation with trace IDs
+
+See [OBSERVABILITY.md](OBSERVABILITY.md) for detailed documentation.
 
 ### Secrets Management with Vault
 

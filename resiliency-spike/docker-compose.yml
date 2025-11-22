@@ -30,6 +30,9 @@ services:
       - SPRING_PULSAR_CLIENT_SERVICE_URL=pulsar://pulsar:6650
       - SPRING_PULSAR_ADMIN_ADMIN_URL=http://pulsar:8080
 
+      # OpenTelemetry configuration (Jaeger endpoint)
+      - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://jaeger:4318/v1/traces
+
       # JVM options
       - JAVA_OPTS=-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC -Djava.security.egd=file:/dev/./urandom
     depends_on:
@@ -43,6 +46,8 @@ services:
         condition: service_healthy
       db-init:
         condition: service_completed_successfully
+      jaeger:
+        condition: service_started
     networks:
       - resiliency-spike-network
     healthcheck:
@@ -193,6 +198,29 @@ services:
       start_period: 30s
     volumes:
       - pulsar-data:/pulsar/data
+    networks:
+      - resiliency-spike-network
+    restart: unless-stopped
+
+  # ===========================
+  # Jaeger (Distributed Tracing)
+  # Profiles: infra, app
+  # ===========================
+  jaeger:
+    profiles: ["infra", "app"]
+    image: jaegertracing/all-in-one:latest
+    container_name: resiliency-spike-jaeger
+    ports:
+      - "16686:16686"   # Jaeger UI
+      - "4317:4317"     # OTLP gRPC receiver
+      - "4318:4318"     # OTLP HTTP receiver
+      - "14250:14250"   # Jaeger gRPC
+      - "14268:14268"   # Jaeger HTTP
+      - "6831:6831/udp" # Jaeger Thrift compact
+      - "6832:6832/udp" # Jaeger Thrift binary
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+      - LOG_LEVEL=info
     networks:
       - resiliency-spike-network
     restart: unless-stopped

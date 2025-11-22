@@ -76,6 +76,17 @@ See [CONTAINER.md](CONTAINER.md) for detailed container deployment instructions.
 
 ### Docker Services
 
+#### Jaeger (Distributed Tracing)
+- **UI Port:** 16686 (Jaeger web interface)
+- **OTLP HTTP Port:** 4318 (OpenTelemetry trace ingestion)
+- **OTLP gRPC Port:** 4317 (OpenTelemetry trace ingestion)
+- **Purpose:** Distributed tracing backend and visualization
+- **Access:** http://localhost:16686
+
+The application automatically sends traces to Jaeger via OpenTelemetry. All HTTP requests, database queries, Pulsar operations, and Resilience4j patterns are automatically instrumented.
+
+See [OBSERVABILITY.md](OBSERVABILITY.md) for comprehensive observability documentation.
+
 #### Apache Pulsar
 - **Broker Port:** 6650 (for application connections)
 - **Admin/HTTP Port:** 8081 (web console and admin API - mapped from container port 8080)
@@ -304,6 +315,40 @@ The Swagger UI provides:
 - HTTP status codes and descriptions
 - Organized by tags: Product Catalog, Shopping Cart, Cart Items, Cart History, Cart Analytics
 
+#### Observability and Distributed Tracing
+```bash
+# Access Jaeger UI for distributed tracing
+open http://localhost:16686
+
+# View traces for specific service
+# In Jaeger UI: Select "resiliency-spike" service
+
+# Search traces by operation
+# Example: GET /api/v1/products
+
+# Filter traces by tags
+# Example: http.status_code=500, error=true
+
+# Analyze trace timeline
+# Shows HTTP requests, database queries, circuit breakers, rate limiters
+```
+
+**What Gets Traced:**
+- All HTTP requests through WebFlux endpoints
+- R2DBC database queries (PostgreSQL)
+- Pulsar message operations
+- Circuit breaker state changes
+- Rate limiter decisions
+- Retry attempts
+
+**Trace Context in Logs:**
+All log messages include trace ID and span ID for correlation:
+```
+INFO [resiliency-spike,a1b2c3d4e5f6g7h8,i9j0k1l2m3n4o5p6] Processing request...
+```
+
+See [OBSERVABILITY.md](OBSERVABILITY.md) for detailed observability documentation.
+
 ## Architecture
 
 This is a fully **reactive application** using Spring WebFlux:
@@ -314,6 +359,14 @@ This is a fully **reactive application** using Spring WebFlux:
 
 ### Key Components
 
+- **OpenTelemetry Distributed Tracing** - Full observability with automatic instrumentation
+  - Integrated via Micrometer Tracing Bridge
+  - OTLP export to Jaeger backend
+  - Automatic tracing of HTTP, R2DBC, Pulsar, Resilience4j
+  - W3C Trace Context propagation
+  - Trace context in logs (trace ID, span ID)
+  - Jaeger UI for trace visualization and analysis
+  - See [OBSERVABILITY.md](OBSERVABILITY.md) for details
 - **Resilience4j Rate Limiters + Circuit Breakers + Retries** - Comprehensive resilience patterns with triple-layered fault tolerance
   - **4 resilience instances**: `shoppingCart`, `cartItem`, `product`, `category`
   - **Rate limiter**: 100 requests per second with immediate rejection on exceeded limits
@@ -588,6 +641,78 @@ open http://localhost:8200/ui
 
 ## Features Implemented
 
+### OpenTelemetry Distributed Tracing
+Complete observability implementation with automatic instrumentation and Jaeger integration:
+
+**Implementation:**
+- **Micrometer Tracing Bridge** - Seamless integration with Spring Boot's observability
+- **OpenTelemetry OTLP Exporter** - Exports traces to Jaeger backend
+- **Jaeger All-in-One** - Distributed tracing backend with web UI
+- **W3C Trace Context** - Standard trace propagation across service boundaries
+- **100% Sampling** - All requests traced (configurable for production)
+
+**Automatic Instrumentation:**
+- **HTTP Requests** - All WebFlux endpoints automatically traced
+- **Database Queries** - R2DBC PostgreSQL operations with query timing
+- **Messaging** - Pulsar publish/consume operations
+- **Circuit Breakers** - State changes and fallback invocations
+- **Rate Limiters** - Accept/reject decisions
+- **Retries** - Retry attempts with exponential backoff tracking
+
+**Trace Information:**
+- Unique trace ID for entire request flow
+- Span IDs for each operation (HTTP, DB, circuit breaker, etc.)
+- Parent-child span relationships
+- Operation duration and timing
+- Tags and attributes (HTTP method, status, SQL queries)
+- Error tracking and exception details
+
+**Jaeger UI Features:**
+- Visual trace timeline showing operation sequence
+- Service dependency graphs
+- Filtering by operation, tags, duration
+- Error trace identification
+- Performance bottleneck analysis
+- Distributed trace visualization
+
+**Log Correlation:**
+All log messages include trace context for correlation:
+```
+INFO [resiliency-spike,a1b2c3d4e5f6g7h8,i9j0k1l2m3n4o5p6] Processing request...
+                      ^               ^               ^
+                      Service         Trace ID        Span ID
+```
+
+**Access Points:**
+- Jaeger UI: http://localhost:16686
+- Service traces: Filter by `resiliency-spike`
+- Query by operation, tags, duration, time range
+- Export traces for analysis
+
+**Configuration:**
+- Sampling rate: 1.0 (100% - adjustable for production)
+- OTLP endpoint: http://localhost:4318/v1/traces
+- Compression: gzip enabled
+- Baggage propagation: user-id, session-id
+
+**Use Cases:**
+- Debug slow API endpoints by examining trace timelines
+- Investigate errors using trace filtering (`error=true`)
+- Monitor circuit breaker behavior and state transitions
+- Analyze database query performance and N+1 problems
+- Track rate limiter impact on request flow
+- Correlate logs with distributed traces using trace IDs
+
+**Verified Working:**
+- ✅ Traces exported to Jaeger successfully
+- ✅ HTTP requests traced with full span hierarchy
+- ✅ Database queries captured with timing
+- ✅ Circuit breaker and rate limiter spans visible
+- ✅ Trace context propagated to logs
+- ✅ Jaeger UI accessible and functional
+
+See [OBSERVABILITY.md](OBSERVABILITY.md) for comprehensive documentation including advanced configuration, custom instrumentation, production considerations, and troubleshooting.
+
 ### Secrets Management
 - HashiCorp Vault integration with Spring Cloud Vault
 - KV v2 secrets engine for secure storage
@@ -634,12 +759,13 @@ Production-ready containerization with multi-stage builds and full orchestration
 
 **Verified Working:**
 - ✅ Container image builds successfully (~423MB runtime)
-- ✅ All services start healthy (app, PostgreSQL, Vault, Pulsar)
+- ✅ All services start healthy (app, PostgreSQL, Vault, Pulsar, Jaeger)
 - ✅ Database schema auto-initialized with 25 categories and 51 products
-- ✅ Application connects to all services (database, Vault, Pulsar)
+- ✅ Application connects to all services (database, Vault, Pulsar, Jaeger)
 - ✅ REST API endpoints functional with circuit breakers and rate limiters
 - ✅ Actuator health checks showing all resilience patterns
 - ✅ Swagger UI and OpenAPI documentation accessible
+- ✅ Distributed tracing operational with Jaeger
 
 See [CONTAINER.md](CONTAINER.md) for comprehensive deployment documentation.
 
