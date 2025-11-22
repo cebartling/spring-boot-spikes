@@ -32,7 +32,7 @@ This project demonstrates reactive programming patterns with circuit breakers, r
 
 1. **Start infrastructure services:**
    ```bash
-   docker-compose up -d
+   docker-compose --profile infra up -d
    ```
 
    This starts:
@@ -44,7 +44,7 @@ This project demonstrates reactive programming patterns with circuit breakers, r
 
 2. **Verify services are healthy:**
    ```bash
-   docker-compose ps
+   docker-compose --profile infra ps
    ```
 
 3. **Run the application:**
@@ -63,13 +63,13 @@ Run the entire application stack in containers:
 
 ```bash
 # Build and start all services (app + infrastructure)
-docker-compose -f docker-compose.app.yml up -d --build
+docker-compose --profile app up -d --build
 
 # View logs
-docker-compose -f docker-compose.app.yml logs -f
+docker-compose --profile app logs -f
 
 # Stop all services
-docker-compose -f docker-compose.app.yml down
+docker-compose --profile app down
 ```
 
 See [CONTAINER.md](CONTAINER.md) for detailed container deployment instructions.
@@ -170,48 +170,61 @@ To modify the schema or seed data:
 ```bash
 # Start infrastructure services (Pulsar + PostgreSQL + Vault)
 # Note: This does NOT include the Spring Boot application
-docker-compose up -d
+docker-compose --profile infra up -d
 
 # View logs
-docker-compose logs -f
+docker-compose --profile infra logs -f
 
 # View logs for specific service
-docker-compose logs -f pulsar
-docker-compose logs -f postgres
-docker-compose logs -f vault
-docker-compose logs db-init  # View schema initialization logs
+docker-compose --profile infra logs -f pulsar
+docker-compose --profile infra logs -f postgres
+docker-compose --profile infra logs -f vault
+docker-compose --profile infra logs db-init  # View schema initialization logs
 
 # Stop services
-docker-compose down
+docker-compose --profile infra down
 
 # Stop and remove volumes (clean slate)
-docker-compose down -v
+docker-compose --profile infra down -v
 ```
 
 #### Docker Compose (Full Containerized Stack)
 ```bash
 # Start EVERYTHING in containers (app + infrastructure)
-docker-compose -f docker-compose.app.yml up -d --build
+docker-compose --profile app up -d --build
 
 # View all logs
-docker-compose -f docker-compose.app.yml logs -f
+docker-compose --profile app logs -f
 
 # View application logs only
-docker-compose -f docker-compose.app.yml logs -f resiliency-spike-app
+docker-compose --profile app logs -f resiliency-spike-app
 
 # View specific service logs
-docker-compose -f docker-compose.app.yml logs -f postgres
-docker-compose -f docker-compose.app.yml logs -f vault
-docker-compose -f docker-compose.app.yml logs -f pulsar
+docker-compose --profile app logs -f postgres
+docker-compose --profile app logs -f vault
+docker-compose --profile app logs -f pulsar
 
 # Check service health status
-docker-compose -f docker-compose.app.yml ps
+docker-compose --profile app ps
 
 # Stop services (keeps volumes)
-docker-compose -f docker-compose.app.yml down
+docker-compose --profile app down
 
 # Stop and remove volumes (clean slate)
-docker-compose -f docker-compose.app.yml down -v
+docker-compose --profile app down -v
+```
+
+#### Using Environment Variables for Profiles
+```bash
+# Set default profile for the session (infrastructure only)
+export COMPOSE_PROFILES=infra
+docker-compose up -d
+docker-compose logs -f
+
+# Or for full stack (app + infrastructure)
+export COMPOSE_PROFILES=app
+docker-compose up -d --build
+docker-compose logs -f
 ```
 
 #### Container Deployment
@@ -595,7 +608,10 @@ Production-ready containerization with multi-stage builds and full orchestration
 - **Build caching**: Gradle dependency layer caching for faster rebuilds
 
 **Docker Compose Orchestration:**
-- **Full stack deployment** with docker-compose.app.yml
+- **Single docker-compose.yml** with profile-based service control
+- **Two deployment profiles**:
+  - `infra` - Infrastructure only (Postgres, Vault, Pulsar, init containers)
+  - `app` - Full stack (infrastructure + Spring Boot application)
 - **All services containerized**: Spring Boot app, PostgreSQL, Vault, Pulsar
 - **Health dependencies**: Proper startup ordering with health check dependencies
 - **Volume persistence**: Separate volumes for PostgreSQL and Pulsar data
@@ -605,8 +621,8 @@ Production-ready containerization with multi-stage builds and full orchestration
 
 **Deployment Options:**
 1. **Standalone container** - Run application container with external services
-2. **Full stack** - docker-compose.app.yml for complete containerized deployment
-3. **Infrastructure only** - docker-compose.yml for local development with services
+2. **Full stack** - `docker-compose --profile app` for complete containerized deployment
+3. **Infrastructure only** - `docker-compose --profile infra` for local development with services
 
 **Container Features:**
 - Automatic health checks every 30 seconds via `/actuator/health`

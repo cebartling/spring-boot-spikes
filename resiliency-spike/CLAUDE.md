@@ -36,7 +36,7 @@ This is a Spring Boot spike project exploring resiliency patterns, built with Ko
 docker build -f Containerfile -t resiliency-spike:latest .
 
 # Run fully containerized (app + all services)
-docker-compose -f docker-compose.app.yml up -d --build
+docker-compose --profile app up -d --build
 ```
 
 ### Testing
@@ -76,57 +76,70 @@ docker-compose -f docker-compose.app.yml up -d --build
 ```bash
 # Start infrastructure services (Pulsar + PostgreSQL + Vault)
 # Note: This does NOT include the Spring Boot application
-docker-compose up -d
+docker-compose --profile infra up -d
 
 # View logs from all services
-docker-compose logs -f
+docker-compose --profile infra logs -f
 
 # View logs from specific service
-docker-compose logs -f pulsar
-docker-compose logs -f postgres
-docker-compose logs -f vault
+docker-compose --profile infra logs -f pulsar
+docker-compose --profile infra logs -f postgres
+docker-compose --profile infra logs -f vault
 
 # Check service health status
-docker-compose ps
+docker-compose --profile infra ps
 
 # Stop all services
-docker-compose down
+docker-compose --profile infra down
 
 # Stop and remove volumes (clean slate)
-docker-compose down -v
+docker-compose --profile infra down -v
 
 # Restart a specific service
-docker-compose restart pulsar
+docker-compose --profile infra restart pulsar
 ```
 
 ### Docker Compose (Full Containerized Stack)
 ```bash
 # Start EVERYTHING in containers (app + infrastructure)
 # This is the recommended way to test the full containerized deployment
-docker-compose -f docker-compose.app.yml up -d --build
+docker-compose --profile app up -d --build
 
 # View all logs
-docker-compose -f docker-compose.app.yml logs -f
+docker-compose --profile app logs -f
 
 # View application logs only
-docker-compose -f docker-compose.app.yml logs -f resiliency-spike-app
+docker-compose --profile app logs -f resiliency-spike-app
 
 # View specific service logs
-docker-compose -f docker-compose.app.yml logs -f postgres
-docker-compose -f docker-compose.app.yml logs -f vault
-docker-compose -f docker-compose.app.yml logs -f pulsar
+docker-compose --profile app logs -f postgres
+docker-compose --profile app logs -f vault
+docker-compose --profile app logs -f pulsar
 
 # Check service health status
-docker-compose -f docker-compose.app.yml ps
+docker-compose --profile app ps
 
 # Stop all services (keeps volumes)
-docker-compose -f docker-compose.app.yml down
+docker-compose --profile app down
 
 # Stop and remove volumes (clean slate)
-docker-compose -f docker-compose.app.yml down -v
+docker-compose --profile app down -v
 
 # Restart specific service
-docker-compose -f docker-compose.app.yml restart resiliency-spike-app
+docker-compose --profile app restart resiliency-spike-app
+```
+
+### Using Environment Variables for Profiles
+```bash
+# Set default profile for the session (infrastructure only)
+export COMPOSE_PROFILES=infra
+docker-compose up -d
+docker-compose logs -f
+
+# Or for full stack (app + infrastructure)
+export COMPOSE_PROFILES=app
+docker-compose up -d --build
+docker-compose logs -f
 ```
 
 ### Container Deployment
@@ -161,7 +174,13 @@ See [CONTAINER.md](CONTAINER.md) for comprehensive container deployment document
 
 ## Local Development Infrastructure
 
-The project includes a Docker Compose configuration (`docker-compose.yml`) for local development with the following services:
+The project includes a single Docker Compose configuration (`docker-compose.yml`) with profile support for flexible deployment:
+
+**Profiles:**
+- **`infra`** - Infrastructure services only (for local Spring Boot development)
+- **`app`** - Full stack including containerized Spring Boot application
+
+**Services:**
 
 **Apache Pulsar (Standalone Mode):**
 - Broker port: `6650` - Used by application to connect to Pulsar

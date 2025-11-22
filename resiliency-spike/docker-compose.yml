@@ -1,25 +1,64 @@
 services:
-  pulsar:
-    image: apachepulsar/pulsar:latest
-    container_name: resiliency-spike-pulsar
-    command: bin/pulsar standalone
+  # ===========================
+  # Spring Boot Application
+  # Profile: app
+  # ===========================
+  resiliency-spike-app:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: Containerfile
+    container_name: resiliency-spike-app
     ports:
-      - "6650:6650"   # Pulsar broker port
-      - "8081:8080"   # Pulsar admin/HTTP port (mapped to 8081 to avoid conflict with Spring Boot)
+      - "8080:8080"
     environment:
-      - PULSAR_MEM=-Xms512m -Xmx512m -XX:MaxDirectMemorySize=256m
-    healthcheck:
-      test: ["CMD", "bin/pulsar-admin", "brokers", "healthcheck"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-    volumes:
-      - pulsar-data:/pulsar/data
+      # Spring profiles
+      - SPRING_PROFILES_ACTIVE=docker
+
+      # Vault configuration
+      - SPRING_CLOUD_VAULT_HOST=vault
+      - SPRING_CLOUD_VAULT_PORT=8200
+      - SPRING_CLOUD_VAULT_SCHEME=http
+      - SPRING_CLOUD_VAULT_TOKEN=dev-root-token
+
+      # R2DBC PostgreSQL configuration (fallback if Vault is unavailable)
+      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/resiliency_spike
+      - SPRING_R2DBC_USERNAME=resiliency_user
+      - SPRING_R2DBC_PASSWORD=resiliency_password
+
+      # Pulsar configuration
+      - SPRING_PULSAR_CLIENT_SERVICE_URL=pulsar://pulsar:6650
+      - SPRING_PULSAR_ADMIN_ADMIN_URL=http://pulsar:8080
+
+      # JVM options
+      - JAVA_OPTS=-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC -Djava.security.egd=file:/dev/./urandom
+    depends_on:
+      postgres:
+        condition: service_healthy
+      vault:
+        condition: service_healthy
+      vault-init:
+        condition: service_completed_successfully
+      pulsar:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
     networks:
       - resiliency-spike-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 3s
+      start_period: 60s
+      retries: 3
+    restart: unless-stopped
 
+  # ===========================
+  # PostgreSQL Database
+  # Profiles: infra, app
+  # ===========================
   postgres:
+    profiles: ["infra", "app"]
     image: postgres:18-alpine
     container_name: resiliency-spike-postgres
     ports:
@@ -38,8 +77,14 @@ services:
       - postgres-data:/var/lib/postgresql/data
     networks:
       - resiliency-spike-network
+    restart: unless-stopped
 
+  # ===========================
+  # HashiCorp Vault (Dev Mode)
+  # Profiles: infra, app
+  # ===========================
   vault:
+    profiles: ["infra", "app"]
     image: hashicorp/vault:latest
     container_name: resiliency-spike-vault
     ports:
@@ -59,8 +104,14 @@ services:
     networks:
       - resiliency-spike-network
     command: server -dev
+    restart: unless-stopped
 
+  # ===========================
+  # Vault Initialization (one-shot)
+  # Profiles: infra, app
+  # ===========================
   vault-init:
+    profiles: ["infra", "app"]
     image: hashicorp/vault:latest
     container_name: resiliency-spike-vault-init
     depends_on:
@@ -83,7 +134,12 @@ services:
       "
     restart: "no"
 
+  # ===========================
+  # Database Initialization (one-shot)
+  # Profiles: infra, app
+  # ===========================
   db-init:
+    profiles: ["infra", "app"]
     image: postgres:18-alpine
     container_name: resiliency-spike-db-init
     depends_on:
@@ -114,6 +170,32 @@ services:
         echo 'Schema initialization complete';
       "
     restart: "no"
+
+  # ===========================
+  # Apache Pulsar (Standalone)
+  # Profiles: infra, app
+  # ===========================
+  pulsar:
+    profiles: ["infra", "app"]
+    image: apachepulsar/pulsar:3.3.2
+    container_name: resiliency-spike-pulsar
+    command: bin/pulsar standalone
+    ports:
+      - "6650:6650"   # Pulsar broker port
+      - "8081:8080"   # Pulsar admin/HTTP port (mapped to 8081 to avoid conflict with Spring Boot)
+    environment:
+      - PULSAR_MEM=-Xms512m -Xmx512m -XX:MaxDirectMemorySize=256m
+    healthcheck:
+      test: ["CMD", "bin/pulsar-admin", "brokers", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    volumes:
+      - pulsar-data:/pulsar/data
+    networks:
+      - resiliency-spike-network
+    restart: unless-stopped
 
 volumes:
   pulsar-data:
