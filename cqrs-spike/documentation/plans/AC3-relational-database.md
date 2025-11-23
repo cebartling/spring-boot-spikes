@@ -6,7 +6,8 @@
 
 ## Overview
 
-Set up a PostgreSQL relational database for local development that provides persistent storage for the CQRS application, integrates with the secrets management system, and supports CQRS/Event Sourcing patterns.
+Set up a PostgreSQL relational database for local development that provides persistent storage for the CQRS application,
+integrates with the secrets management system, and supports CQRS/Event Sourcing patterns.
 
 ## Prerequisites
 
@@ -16,9 +17,10 @@ Set up a PostgreSQL relational database for local development that provides pers
 
 ## Technology Selection
 
-### Recommended: PostgreSQL 16
+### Recommended: PostgreSQL 18
 
 **Rationale:**
+
 - Robust support for JSONB data types (excellent for event sourcing)
 - ACID compliance essential for event store consistency
 - Excellent performance for both transactional and analytical workloads
@@ -28,6 +30,7 @@ Set up a PostgreSQL relational database for local development that provides pers
 - Materialized views for read model optimization
 
 **Alternatives Considered:**
+
 - MySQL: Less robust JSON support, weaker for event sourcing patterns
 - MariaDB: Good alternative but PostgreSQL JSONB superior for events
 - H2: Not suitable for development environment that mirrors production
@@ -37,16 +40,19 @@ Set up a PostgreSQL relational database for local development that provides pers
 ### CQRS/Event Sourcing Schema Strategy
 
 **Event Store Schema:**
+
 - Dedicated schema for event sourcing: `event_store`
 - Aggregate-based event streams with optimistic locking
 - Immutable event records
 
 **Read Model Schema:**
+
 - Separate schema for projections: `read_model`
 - Denormalized views optimized for queries
 - Can be rebuilt from event store
 
 **Command Model Schema:**
+
 - Transaction-focused schema: `command_model`
 - Traditional normalized design where needed
 
@@ -55,11 +61,12 @@ Set up a PostgreSQL relational database for local development that provides pers
 ### 1. Docker Configuration
 
 **PostgreSQL Container Setup:**
+
 ```yaml
 # docker-compose.yml
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     container_name: cqrs-postgres
     ports:
       - "5432:5432"
@@ -74,7 +81,7 @@ services:
       - ./infrastructure/postgres/config/postgresql.conf:/etc/postgresql/postgresql.conf
     command: postgres -c config_file=/etc/postgresql/postgresql.conf
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cqrs_user} -d ${POSTGRES_DB:-cqrs_db}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cqrs_user} -d ${POSTGRES_DB:-cqrs_db}" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -96,6 +103,7 @@ networks:
 ```
 
 **Key Configuration Details:**
+
 - Port 5432: Standard PostgreSQL port
 - Alpine image: Smaller footprint for faster startup
 - Health check: Ensures database is ready before application starts
@@ -106,6 +114,7 @@ networks:
 ### 2. PostgreSQL Configuration
 
 **Custom postgresql.conf:**
+
 ```conf
 # infrastructure/postgres/config/postgresql.conf
 
@@ -156,6 +165,7 @@ timezone = 'UTC'
 ### 3. Database Initialization Scripts
 
 **Initial Schema Creation:**
+
 ```sql
 -- infrastructure/postgres/init/01-create-schemas.sql
 
@@ -165,145 +175,200 @@ CREATE SCHEMA IF NOT EXISTS read_model;
 CREATE SCHEMA IF NOT EXISTS command_model;
 
 -- Create extensions
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE
+EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE
+EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- Set search path
-ALTER DATABASE cqrs_db SET search_path TO event_store, read_model, command_model, public;
+ALTER
+DATABASE cqrs_db SET search_path TO event_store, read_model, command_model, public;
 
 -- Grant permissions to application user
-GRANT USAGE ON SCHEMA event_store TO cqrs_user;
-GRANT USAGE ON SCHEMA read_model TO cqrs_user;
-GRANT USAGE ON SCHEMA command_model TO cqrs_user;
+GRANT USAGE ON SCHEMA
+event_store TO cqrs_user;
+GRANT USAGE ON SCHEMA
+read_model TO cqrs_user;
+GRANT USAGE ON SCHEMA
+command_model TO cqrs_user;
 
-GRANT CREATE ON SCHEMA event_store TO cqrs_user;
-GRANT CREATE ON SCHEMA read_model TO cqrs_user;
-GRANT CREATE ON SCHEMA command_model TO cqrs_user;
+GRANT CREATE
+ON SCHEMA event_store TO cqrs_user;
+GRANT CREATE
+ON SCHEMA read_model TO cqrs_user;
+GRANT CREATE
+ON SCHEMA command_model TO cqrs_user;
 
 -- Comment on schemas
-COMMENT ON SCHEMA event_store IS 'Event Sourcing - immutable event log';
-COMMENT ON SCHEMA read_model IS 'CQRS Read Side - denormalized projections';
-COMMENT ON SCHEMA command_model IS 'CQRS Write Side - normalized domain model';
+COMMENT
+ON SCHEMA event_store IS 'Event Sourcing - immutable event log';
+COMMENT
+ON SCHEMA read_model IS 'CQRS Read Side - denormalized projections';
+COMMENT
+ON SCHEMA command_model IS 'CQRS Write Side - normalized domain model';
 ```
 
 **Event Store Base Tables:**
+
 ```sql
 -- infrastructure/postgres/init/02-event-store.sql
 
-SET search_path TO event_store;
+SET
+search_path TO event_store;
 
 -- Event Stream table
-CREATE TABLE IF NOT EXISTS event_stream (
-    stream_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    aggregate_type VARCHAR(255) NOT NULL,
+CREATE TABLE IF NOT EXISTS event_stream
+(
+    stream_id
+    UUID
+    PRIMARY
+    KEY
+    DEFAULT
+    uuid_generate_v4
+(
+),
+    aggregate_type VARCHAR
+(
+    255
+) NOT NULL,
     aggregate_id UUID NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    version INTEGER NOT NULL DEFAULT 0,
-    UNIQUE (aggregate_type, aggregate_id)
-);
+                             version INTEGER NOT NULL DEFAULT 0,
+                             UNIQUE (aggregate_type, aggregate_id)
+    );
 
-CREATE INDEX idx_event_stream_aggregate ON event_stream(aggregate_type, aggregate_id);
+CREATE INDEX idx_event_stream_aggregate ON event_stream (aggregate_type, aggregate_id);
 
-COMMENT ON TABLE event_stream IS 'Aggregate event streams';
-COMMENT ON COLUMN event_stream.version IS 'Current version for optimistic locking';
+COMMENT
+ON TABLE event_stream IS 'Aggregate event streams';
+COMMENT
+ON COLUMN event_stream.version IS 'Current version for optimistic locking';
 
 -- Domain Events table
-CREATE TABLE IF NOT EXISTS domain_event (
-    event_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    stream_id UUID NOT NULL REFERENCES event_stream(stream_id),
-    event_type VARCHAR(255) NOT NULL,
+CREATE TABLE IF NOT EXISTS domain_event
+(
+    event_id
+    UUID
+    PRIMARY
+    KEY
+    DEFAULT
+    uuid_generate_v4
+(
+),
+    stream_id UUID NOT NULL REFERENCES event_stream
+(
+    stream_id
+),
+    event_type VARCHAR
+(
+    255
+) NOT NULL,
     event_version INTEGER NOT NULL,
     aggregate_version INTEGER NOT NULL,
     event_data JSONB NOT NULL,
     metadata JSONB,
     occurred_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    causation_id UUID,
-    correlation_id UUID
-);
+                              causation_id UUID,
+                              correlation_id UUID
+                              );
 
-CREATE INDEX idx_domain_event_stream ON domain_event(stream_id, aggregate_version);
-CREATE INDEX idx_domain_event_type ON domain_event(event_type);
-CREATE INDEX idx_domain_event_occurred ON domain_event(occurred_at DESC);
-CREATE INDEX idx_domain_event_correlation ON domain_event(correlation_id);
+CREATE INDEX idx_domain_event_stream ON domain_event (stream_id, aggregate_version);
+CREATE INDEX idx_domain_event_type ON domain_event (event_type);
+CREATE INDEX idx_domain_event_occurred ON domain_event (occurred_at DESC);
+CREATE INDEX idx_domain_event_correlation ON domain_event (correlation_id);
 CREATE INDEX idx_domain_event_data ON domain_event USING GIN(event_data);
 
-COMMENT ON TABLE domain_event IS 'Immutable domain events';
-COMMENT ON COLUMN domain_event.aggregate_version IS 'Version of aggregate after this event';
-COMMENT ON COLUMN domain_event.causation_id IS 'ID of command that caused this event';
-COMMENT ON COLUMN domain_event.correlation_id IS 'Correlation ID for tracking related events';
+COMMENT
+ON TABLE domain_event IS 'Immutable domain events';
+COMMENT
+ON COLUMN domain_event.aggregate_version IS 'Version of aggregate after this event';
+COMMENT
+ON COLUMN domain_event.causation_id IS 'ID of command that caused this event';
+COMMENT
+ON COLUMN domain_event.correlation_id IS 'Correlation ID for tracking related events';
 
 -- Event Store function for appending events
-CREATE OR REPLACE FUNCTION append_events(
+CREATE
+OR REPLACE FUNCTION append_events(
     p_aggregate_type VARCHAR,
     p_aggregate_id UUID,
     p_expected_version INTEGER,
     p_events JSONB[]
 ) RETURNS UUID AS $$
 DECLARE
-    v_stream_id UUID;
-    v_current_version INTEGER;
-    v_event JSONB;
-    v_new_version INTEGER;
+v_stream_id UUID;
+    v_current_version
+INTEGER;
+    v_event
+JSONB;
+    v_new_version
+INTEGER;
 BEGIN
     -- Get or create stream
-    INSERT INTO event_stream (aggregate_type, aggregate_id, version)
-    VALUES (p_aggregate_type, p_aggregate_id, 0)
-    ON CONFLICT (aggregate_type, aggregate_id) DO NOTHING
-    RETURNING stream_id, version INTO v_stream_id, v_current_version;
+INSERT INTO event_stream (aggregate_type, aggregate_id, version)
+VALUES (p_aggregate_type, p_aggregate_id, 0) ON CONFLICT (aggregate_type, aggregate_id) DO NOTHING
+    RETURNING stream_id, version
+INTO v_stream_id, v_current_version;
 
-    IF v_stream_id IS NULL THEN
-        SELECT stream_id, version INTO v_stream_id, v_current_version
-        FROM event_stream
-        WHERE aggregate_type = p_aggregate_type AND aggregate_id = p_aggregate_id;
-    END IF;
+IF
+v_stream_id IS NULL THEN
+SELECT stream_id, version
+INTO v_stream_id, v_current_version
+FROM event_stream
+WHERE aggregate_type = p_aggregate_type
+  AND aggregate_id = p_aggregate_id;
+END IF;
 
     -- Optimistic concurrency check
-    IF v_current_version != p_expected_version THEN
+    IF
+v_current_version != p_expected_version THEN
         RAISE EXCEPTION 'Concurrency violation: expected version %, but current version is %',
             p_expected_version, v_current_version;
-    END IF;
+END IF;
 
     -- Append events
-    v_new_version := v_current_version;
-    FOREACH v_event IN ARRAY p_events LOOP
+    v_new_version
+:= v_current_version;
+    FOREACH
+v_event IN ARRAY p_events LOOP
         v_new_version := v_new_version + 1;
 
-        INSERT INTO domain_event (
-            stream_id,
-            event_type,
-            event_version,
-            aggregate_version,
-            event_data,
-            metadata,
-            causation_id,
-            correlation_id
-        ) VALUES (
-            v_stream_id,
-            v_event->>'event_type',
-            (v_event->>'event_version')::INTEGER,
-            v_new_version,
-            v_event->'event_data',
-            v_event->'metadata',
-            (v_event->>'causation_id')::UUID,
-            (v_event->>'correlation_id')::UUID
-        );
-    END LOOP;
+INSERT INTO domain_event (stream_id,
+                          event_type,
+                          event_version,
+                          aggregate_version,
+                          event_data,
+                          metadata,
+                          causation_id,
+                          correlation_id)
+VALUES (v_stream_id,
+        v_event ->>'event_type',
+        (v_event ->>'event_version'):: INTEGER,
+        v_new_version,
+        v_event - > 'event_data',
+        v_event - > 'metadata',
+        (v_event ->>'causation_id')::UUID,
+        (v_event ->>'correlation_id')::UUID);
+END LOOP;
 
     -- Update stream version
-    UPDATE event_stream
-    SET version = v_new_version
-    WHERE stream_id = v_stream_id;
+UPDATE event_stream
+SET version = v_new_version
+WHERE stream_id = v_stream_id;
 
-    RETURN v_stream_id;
+RETURN v_stream_id;
 END;
-$$ LANGUAGE plpgsql;
+$$
+LANGUAGE plpgsql;
 
-COMMENT ON FUNCTION append_events IS 'Atomically append events to an aggregate stream with optimistic locking';
+COMMENT
+ON FUNCTION append_events IS 'Atomically append events to an aggregate stream with optimistic locking';
 ```
 
 ### 4. Spring Boot Configuration
 
 **Database Dependencies:**
+
 ```kotlin
 // build.gradle.kts
 dependencies {
@@ -322,6 +387,7 @@ dependencies {
 ```
 
 **DataSource Configuration:**
+
 ```yaml
 # application.yml
 spring:
@@ -374,6 +440,7 @@ logging:
 ### 5. Vault Integration for Database Credentials
 
 **Store Database Credentials in Vault:**
+
 ```bash
 #!/bin/bash
 # infrastructure/vault/scripts/init-database-secrets.sh
@@ -400,6 +467,7 @@ echo "Database credentials stored in Vault"
 ```
 
 **Update docker-compose.yml:**
+
 ```yaml
 services:
   vault:
@@ -421,6 +489,7 @@ services:
 ### 6. Data Persistence Configuration
 
 **Volume Management:**
+
 ```yaml
 # docker-compose.yml
 volumes:
@@ -434,6 +503,7 @@ volumes:
 ```
 
 **Data Directory Structure:**
+
 ```
 infrastructure/
 └── postgres/
@@ -450,6 +520,7 @@ infrastructure/
 ```
 
 **.gitignore entries:**
+
 ```
 infrastructure/postgres/data/
 infrastructure/postgres/backups/
@@ -458,63 +529,71 @@ infrastructure/postgres/backups/
 ### 7. Database Connection Management
 
 **HikariCP Configuration Bean:**
-```java
-package com.example.cqrs.infrastructure.database.config;
 
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
+```kotlin
+package com.pintailconsultingllc.cqrsspike.infrastructure.database.config
 
-import javax.sql.DataSource;
+import com.zaxxer.hikari.HikariConfig
+import com.zaxxer.hikari.HikariDataSource
+import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.Primary
+import javax.sql.DataSource
 
-@Slf4j
+/**
+ * Database configuration for PostgreSQL with HikariCP connection pooling.
+ *
+ * This configuration retrieves database credentials from Vault via Spring Cloud Vault
+ * and sets up an optimized HikariCP connection pool for the CQRS application.
+ */
 @Configuration
-public class DatabaseConfiguration {
+class DatabaseConfiguration {
 
-    @Value("${spring.datasource.url}")
-    private String jdbcUrl;
+    private val logger = LoggerFactory.getLogger(DatabaseConfiguration::class.java)
 
-    @Value("${spring.datasource.username}")
-    private String username;
+    @Value("\${spring.datasource.url}")
+    private lateinit var jdbcUrl: String
 
-    @Value("${spring.datasource.password}")
-    private String password;
+    @Value("\${spring.datasource.username}")
+    private lateinit var username: String
+
+    @Value("\${spring.datasource.password}")
+    private lateinit var password: String
 
     @Bean
     @Primary
-    public DataSource dataSource() {
-        log.info("Configuring HikariCP DataSource");
-        log.info("Database URL: {}", jdbcUrl);
-        log.info("Database User: {}", username);
+    fun dataSource(): DataSource {
+        logger.info("Configuring HikariCP DataSource")
+        logger.info("Database URL: {}", jdbcUrl)
+        logger.info("Database User: {}", username)
 
-        HikariConfig config = new HikariConfig();
-        config.setJdbcUrl(jdbcUrl);
-        config.setUsername(username);
-        config.setPassword(password);
-        config.setDriverClassName("org.postgresql.Driver");
+        val config = HikariConfig().apply {
+            this.jdbcUrl = this@DatabaseConfiguration.jdbcUrl
+            this.username = this@DatabaseConfiguration.username
+            this.password = this@DatabaseConfiguration.password
+            driverClassName = "org.postgresql.Driver"
 
-        // Pool settings
-        config.setMaximumPoolSize(10);
-        config.setMinimumIdle(5);
-        config.setConnectionTimeout(30000);
-        config.setIdleTimeout(600000);
-        config.setMaxLifetime(1800000);
-        config.setAutoCommit(false);
+            // Pool settings
+            maximumPoolSize = 10
+            minimumIdle = 5
+            connectionTimeout = 30000
+            idleTimeout = 600000
+            maxLifetime = 1800000
+            isAutoCommit = false
 
-        // Performance
-        config.addDataSourceProperty("cachePrepStmts", "true");
-        config.addDataSourceProperty("prepStmtCacheSize", "250");
-        config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
+            // Performance optimizations
+            addDataSourceProperty("cachePrepStmts", "true")
+            addDataSourceProperty("prepStmtCacheSize", "250")
+            addDataSourceProperty("prepStmtCacheSqlLimit", "2048")
 
-        // Connection test
-        config.setConnectionTestQuery("SELECT 1");
+            // Connection test
+            connectionTestQuery = "SELECT 1"
+        }
 
-        log.info("HikariCP configuration complete");
-        return new HikariDataSource(config);
+        logger.info("HikariCP configuration complete")
+        return HikariDataSource(config)
     }
 }
 ```
@@ -524,6 +603,7 @@ public class DatabaseConfiguration {
 ### 1. Container Health Tests
 
 **PostgreSQL Availability:**
+
 ```bash
 # Test database is accessible
 docker exec cqrs-postgres pg_isready -U cqrs_user -d cqrs_db
@@ -534,34 +614,44 @@ docker exec cqrs-postgres pg_isready -U cqrs_user -d cqrs_db
 ### 2. Connection Tests
 
 **JDBC Connection Test:**
-```java
+
+```kotlin
+package com.pintailconsultingllc.cqrsspike.infrastructure.database
+
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import javax.sql.DataSource
+
 @SpringBootTest
-public class DatabaseConnectionTest {
+class DatabaseConnectionTest {
 
     @Autowired
-    private DataSource dataSource;
+    private lateinit var dataSource: DataSource
 
     @Test
-    void shouldConnectToDatabase() throws SQLException {
-        try (Connection conn = dataSource.getConnection()) {
-            assertTrue(conn.isValid(5));
-            assertEquals("cqrs_db", conn.getCatalog());
+    fun `should connect to database`() {
+        dataSource.connection.use { conn ->
+            assertTrue(conn.isValid(5))
+            assertEquals("cqrs_db", conn.catalog)
         }
     }
 
     @Test
-    void shouldHaveRequiredSchemas() throws SQLException {
-        try (Connection conn = dataSource.getConnection();
-             ResultSet rs = conn.getMetaData().getSchemas()) {
+    fun `should have required schemas`() {
+        dataSource.connection.use { conn ->
+            val schemas = mutableSetOf<String>()
 
-            Set<String> schemas = new HashSet<>();
-            while (rs.next()) {
-                schemas.add(rs.getString("TABLE_SCHEM"));
+            conn.metaData.schemas.use { rs ->
+                while (rs.next()) {
+                    schemas.add(rs.getString("TABLE_SCHEM"))
+                }
             }
 
-            assertTrue(schemas.contains("event_store"));
-            assertTrue(schemas.contains("read_model"));
-            assertTrue(schemas.contains("command_model"));
+            assertTrue(schemas.contains("event_store"))
+            assertTrue(schemas.contains("read_model"))
+            assertTrue(schemas.contains("command_model"))
         }
     }
 }
@@ -570,6 +660,7 @@ public class DatabaseConnectionTest {
 ### 3. Data Persistence Tests
 
 **Volume Persistence Test:**
+
 ```bash
 # Write test data
 docker exec cqrs-postgres psql -U cqrs_user -d cqrs_db -c \
@@ -593,39 +684,39 @@ docker exec cqrs-postgres psql -U cqrs_user -d cqrs_db -c "DROP TABLE test;"
    ```
 
 2. **Create PostgreSQL configuration files**
-   - Write postgresql.conf
-   - Write init SQL scripts
+    - Write postgresql.conf
+    - Write init SQL scripts
 
 3. **Update docker-compose.yml**
-   - Add PostgreSQL service
-   - Configure volumes
-   - Set up health checks
+    - Add PostgreSQL service
+    - Configure volumes
+    - Set up health checks
 
 4. **Configure Vault integration**
-   - Create database secrets script
-   - Update Vault initialization
+    - Create database secrets script
+    - Update Vault initialization
 
 5. **Add Spring Boot dependencies**
-   - Update build.gradle.kts
-   - Run Gradle build
+    - Update build.gradle.kts
+    - Run Gradle build
 
 6. **Configure Spring DataSource**
-   - Update application.yml
-   - Configure JPA properties
+    - Update application.yml
+    - Configure JPA properties
 
 7. **Create database configuration classes**
-   - Implement DatabaseConfiguration
-   - Set up HikariCP
+    - Implement DatabaseConfiguration
+    - Set up HikariCP
 
 8. **Test database connectivity**
-   - Start infrastructure
-   - Run connection tests
-   - Verify schemas created
+    - Start infrastructure
+    - Run connection tests
+    - Verify schemas created
 
 9. **Test data persistence**
-   - Insert test data
-   - Restart container
-   - Verify data retained
+    - Insert test data
+    - Restart container
+    - Verify data retained
 
 10. **Update .gitignore**
     - Ignore data directory
@@ -648,26 +739,34 @@ docker exec cqrs-postgres psql -U cqrs_user -d cqrs_db -c "DROP TABLE test;"
 ## Troubleshooting Guide
 
 ### Issue: Container fails to start
+
 **Solution:**
+
 - Check logs: `docker logs cqrs-postgres`
 - Verify port 5432 not in use: `lsof -i :5432`
 - Check volume permissions
 
 ### Issue: Cannot connect from application
+
 **Solution:**
+
 - Verify container running: `docker ps | grep postgres`
 - Test connection: `docker exec cqrs-postgres pg_isready`
 - Check network: `docker network inspect cqrs-network`
 - Verify credentials in Vault
 
 ### Issue: Data not persisting
+
 **Solution:**
+
 - Check volume mount: `docker volume inspect cqrs-postgres-data`
 - Verify PGDATA setting in environment
 - Check filesystem permissions
 
 ### Issue: Schema initialization fails
+
 **Solution:**
+
 - Check init script syntax
 - Review container logs for SQL errors
 - Verify script execution order
