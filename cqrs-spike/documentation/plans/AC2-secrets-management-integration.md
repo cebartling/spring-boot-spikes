@@ -630,7 +630,7 @@ void shouldMaskSecretsInLogs() {
 ## Rollout Steps
 
 1. **Configure Spring Cloud Vault dependencies**
-   - Verify dependencies in pom.xml
+   - Verify dependencies in build.gradle.kts
    - Update Spring Boot version if needed
 
 2. **Create bootstrap.yml configuration**

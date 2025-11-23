@@ -105,17 +105,13 @@ echo "Vault initialization complete"
 
 ### 3. Spring Boot Integration
 
-**Maven Dependencies:**
-```xml
-<!-- pom.xml -->
-<dependency>
-    <groupId>org.springframework.cloud</groupId>
-    <artifactId>spring-cloud-starter-vault-config</artifactId>
-</dependency>
-<dependency>
-    <groupId>org.springframework.cloud</groupId>
-    <artifactId>spring-cloud-vault-config-databases</artifactId>
-</dependency>
+**Gradle Dependencies:**
+```kotlin
+// build.gradle.kts
+dependencies {
+    implementation("org.springframework.cloud:spring-cloud-starter-vault-config")
+    implementation("org.springframework.cloud:spring-cloud-vault-config-databases")
+}
 ```
 
 **Application Configuration:**
@@ -360,8 +356,8 @@ docker exec cqrs-app curl -s \
    - Test script execution
 
 3. **Add Spring dependencies**
-   - Update pom.xml
-   - Run Maven build
+   - Update build.gradle.kts
+   - Run Gradle build
    - Verify dependency resolution
 
 4. **Configure Spring Cloud Vault**

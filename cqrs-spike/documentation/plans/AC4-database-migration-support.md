@@ -63,23 +63,17 @@ R__event_stream_view.sql
 
 ## Technical Implementation
 
-### 1. Maven Dependencies
+### 1. Gradle Dependencies
 
-```xml
-<!-- pom.xml -->
-<dependencies>
-    <!-- Flyway Core -->
-    <dependency>
-        <groupId>org.flywaydb</groupId>
-        <artifactId>flyway-core</artifactId>
-    </dependency>
+```kotlin
+// build.gradle.kts
+dependencies {
+    // Flyway Core
+    implementation("org.flywaydb:flyway-core")
 
-    <!-- Flyway PostgreSQL support -->
-    <dependency>
-        <groupId>org.flywaydb</groupId>
-        <artifactId>flyway-database-postgresql</artifactId>
-    </dependency>
-</dependencies>
+    // Flyway PostgreSQL support
+    implementation("org.flywaydb:flyway-database-postgresql")
+}
 ```
 
 ### 2. Spring Boot Configuration
@@ -618,8 +612,8 @@ void shouldHaveEventStoreTables() throws SQLException {
 ## Rollout Steps
 
 1. **Add Flyway dependencies**
-   - Update pom.xml
-   - Run Maven build
+   - Update build.gradle.kts
+   - Run Gradle build
 
 2. **Configure Flyway in application.yml**
    - Set migration locations

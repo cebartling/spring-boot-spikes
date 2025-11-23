@@ -304,35 +304,21 @@ COMMENT ON FUNCTION append_events IS 'Atomically append events to an aggregate s
 ### 4. Spring Boot Configuration
 
 **Database Dependencies:**
-```xml
-<!-- pom.xml -->
-<dependencies>
-    <!-- PostgreSQL Driver -->
-    <dependency>
-        <groupId>org.postgresql</groupId>
-        <artifactId>postgresql</artifactId>
-        <scope>runtime</scope>
-    </dependency>
+```kotlin
+// build.gradle.kts
+dependencies {
+    // PostgreSQL Driver
+    runtimeOnly("org.postgresql:postgresql")
 
-    <!-- Spring Data JPA -->
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-data-jpa</artifactId>
-    </dependency>
+    // Spring Data JPA
+    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 
-    <!-- HikariCP (included with Spring Boot, but explicit for clarity) -->
-    <dependency>
-        <groupId>com.zaxxer</groupId>
-        <artifactId>HikariCP</artifactId>
-    </dependency>
+    // HikariCP (included with Spring Boot, but explicit for clarity)
+    implementation("com.zaxxer:HikariCP")
 
-    <!-- Hibernate Types for JSONB support -->
-    <dependency>
-        <groupId>io.hypersistence</groupId>
-        <artifactId>hypersistence-utils-hibernate-63</artifactId>
-        <version>3.7.0</version>
-    </dependency>
-</dependencies>
+    // Hibernate Types for JSONB support
+    implementation("io.hypersistence:hypersistence-utils-hibernate-63:3.7.0")
+}
 ```
 
 **DataSource Configuration:**
@@ -620,8 +606,8 @@ docker exec cqrs-postgres psql -U cqrs_user -d cqrs_db -c "DROP TABLE test;"
    - Update Vault initialization
 
 5. **Add Spring Boot dependencies**
-   - Update pom.xml
-   - Run Maven build
+   - Update build.gradle.kts
+   - Run Gradle build
 
 6. **Configure Spring DataSource**
    - Update application.yml

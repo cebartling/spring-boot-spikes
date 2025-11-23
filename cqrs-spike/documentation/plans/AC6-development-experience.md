@@ -280,17 +280,18 @@ tmux attach-session -t $SESSION
 **Docker layer caching optimization (Dockerfile):**
 ```dockerfile
 # Multi-stage build for faster rebuilds
-FROM maven:3.9-eclipse-temurin-21-alpine AS build
+FROM gradle:8-jdk21-alpine AS build
 
 WORKDIR /app
 
-# Copy only pom.xml first (for dependency caching)
-COPY pom.xml .
-RUN mvn dependency:go-offline -B
+# Copy only Gradle files first (for dependency caching)
+COPY build.gradle.kts settings.gradle.kts gradle.properties ./
+COPY gradle ./gradle
+RUN gradle dependencies --no-daemon
 
 # Copy source and build
 COPY src ./src
-RUN mvn package -DskipTests -B
+RUN gradle build -x test --no-daemon
 
 # Runtime stage
 FROM eclipse-temurin:21-jre-alpine
@@ -302,7 +303,7 @@ RUN addgroup -g 1000 appuser && \
     adduser -D -u 1000 -G appuser appuser
 
 # Copy JAR from build stage
-COPY --from=build /app/target/*.jar app.jar
+COPY --from=build /app/build/libs/*.jar app.jar
 
 # Change ownership
 RUN chown -R appuser:appuser /app
@@ -318,12 +319,14 @@ EXPOSE 8080 5005
 ENTRYPOINT ["java", "-jar", "app.jar"]
 ```
 
-**Maven build optimization (.mvn/maven.config):**
-```
--T 1C
--Dmaven.artifact.threads=10
---batch-mode
---no-transfer-progress
+**Gradle build optimization (gradle.properties):**
+```properties
+# gradle.properties
+org.gradle.parallel=true
+org.gradle.caching=true
+org.gradle.daemon=true
+org.gradle.configureondemand=true
+org.gradle.jvmargs=-Xmx2g -XX:MaxMetaspaceSize=512m
 ```
 
 **Spring Boot startup optimization:**

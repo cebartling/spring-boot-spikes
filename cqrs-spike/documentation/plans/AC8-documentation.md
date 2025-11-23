@@ -73,7 +73,7 @@ Before you begin, ensure you have the following installed:
   - [Linux](https://docs.docker.com/desktop/install/linux-install/)
 - **Java 21** or later
   - Recommended: [SDKMAN](https://sdkman.io/) or [Amazon Corretto](https://aws.amazon.com/corretto/)
-- **Maven 3.9+** or use included wrapper (`./mvnw`)
+- **Gradle 8+** or use included wrapper (`./gradlew`)
 - **Git** for version control
 
 **Optional but recommended:**
@@ -323,32 +323,32 @@ java -version
 # Should show version 21.x.x
 ```
 
-### Maven
+### Gradle
 
-Maven 3.9+ is required (or use included wrapper).
+Gradle 8+ is required (or use included wrapper).
 
 **Installation:**
 ```bash
 # macOS
-brew install maven
+brew install gradle
 
 # Linux
-sudo apt install maven  # Debian/Ubuntu
-sudo yum install maven  # RHEL/CentOS
+sudo apt install gradle  # Debian/Ubuntu
+sudo yum install gradle  # RHEL/CentOS
 
 # Windows
-choco install maven
+choco install gradle
 ```
 
-**Or use Maven Wrapper (included):**
+**Or use Gradle Wrapper (included):**
 ```bash
-./mvnw --version
+./gradlew --version
 ```
 
 **Verification:**
 ```bash
-mvn --version
-# Should show version 3.9.x or later
+gradle --version
+# Should show version 8.x or later
 ```
 
 ### Git
@@ -999,23 +999,23 @@ docker image prune
 docker system prune
 ```
 
-## Maven Commands
+## Gradle Commands
 
 ```bash
 # Build (skip tests)
-./mvnw clean package -DskipTests
+./gradlew clean build -x test
 
 # Run tests
-./mvnw test
+./gradlew test
 
 # Run specific test
-./mvnw test -Dtest=MyTest
+./gradlew test --tests MyTest
 
 # Clean
-./mvnw clean
+./gradlew clean
 
 # Run application locally (without Docker)
-./mvnw spring-boot:run -Dspring-boot.run.profiles=local
+./gradlew bootRun --args='--spring.profiles.active=local'
 ```
 
 ## Database Commands

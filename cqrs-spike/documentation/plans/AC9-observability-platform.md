@@ -419,40 +419,23 @@ datasources:
 
 ### 7. Spring Boot Integration
 
-**Maven Dependencies:**
-```xml
-<!-- pom.xml -->
-<dependencies>
-    <!-- Micrometer for metrics -->
-    <dependency>
-        <groupId>io.micrometer</groupId>
-        <artifactId>micrometer-registry-prometheus</artifactId>
-    </dependency>
+**Gradle Dependencies:**
+```kotlin
+// build.gradle.kts
+dependencies {
+    // Micrometer for metrics
+    implementation("io.micrometer:micrometer-registry-prometheus")
 
-    <!-- OpenTelemetry for tracing -->
-    <dependency>
-        <groupId>io.micrometer</groupId>
-        <artifactId>micrometer-tracing-bridge-otel</artifactId>
-    </dependency>
+    // OpenTelemetry for tracing
+    implementation("io.micrometer:micrometer-tracing-bridge-otel")
+    implementation("io.opentelemetry:opentelemetry-exporter-otlp")
 
-    <dependency>
-        <groupId>io.opentelemetry</groupId>
-        <artifactId>opentelemetry-exporter-otlp</artifactId>
-    </dependency>
+    // Logback encoder for structured logging
+    implementation("net.logstash.logback:logstash-logback-encoder:7.4")
 
-    <!-- Logback encoder for structured logging -->
-    <dependency>
-        <groupId>net.logstash.logback</groupId>
-        <artifactId>logstash-logback-encoder</artifactId>
-        <version>7.4</version>
-    </dependency>
-
-    <!-- Spring Boot Actuator for metrics exposure -->
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-actuator</artifactId>
-    </dependency>
-</dependencies>
+    // Spring Boot Actuator for metrics exposure
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
+}
 ```
 
 **Application Configuration:**

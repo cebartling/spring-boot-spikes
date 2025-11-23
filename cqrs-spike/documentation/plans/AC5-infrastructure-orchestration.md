@@ -323,7 +323,7 @@ fi
 
 # Build application
 echo "Building application..."
-./mvnw clean package -DskipTests
+./gradlew clean build -x test
 
 # Start application
 echo "Starting application container..."
@@ -555,10 +555,10 @@ ps: ## Show service status
 	@docker-compose ps
 
 build: ## Build application
-	@./mvnw clean package -DskipTests
+	@./gradlew clean build -x test
 
 rebuild: ## Rebuild and restart application
-	@./mvnw clean package -DskipTests
+	@./gradlew clean build -x test
 	@docker-compose up -d --build app
 
 shell-vault: ## Open shell in Vault container
