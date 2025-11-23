@@ -321,6 +321,59 @@ docker-compose down vault
 - [Vault Best Practices](https://learn.hashicorp.com/tutorials/vault/production-hardening)
 - [Implementation Plan](documentation/plans/AC1-secrets-management.md)
 
+## AC2 Integration Enhancements
+
+The following enhancements were added as part of AC2 - Secrets Management Integration:
+
+### Graceful Failure Handling
+
+The application now includes comprehensive error handling for Vault connectivity issues:
+
+- **VaultConnectionException**: Custom exception for Vault connection failures
+- **VaultFailureHandler**: Automatically detects Vault-related startup failures and provides helpful troubleshooting messages
+
+If the application fails to start due to Vault connectivity, you'll see a clear error message like:
+
+```
+================================================================================
+APPLICATION STARTUP FAILED - VAULT CONNECTION ERROR
+================================================================================
+The application failed to start due to Vault connectivity issues.
+Please ensure:
+  1. Vault service is running: docker ps | grep vault
+  2. Vault is accessible: curl http://localhost:8200/v1/sys/health
+  3. VAULT_TOKEN environment variable is set correctly
+  4. Required secrets exist in Vault
+================================================================================
+```
+
+### Configuration Validation
+
+**VaultConfigurationProperties** provides:
+- Jakarta validation for required configuration properties
+- Token masking in logs to prevent secret exposure
+- Startup logging that confirms Vault configuration
+
+### Enhanced Logging
+
+**logback-spring.xml** configuration:
+- Appropriate log levels for Vault components (INFO by default, DEBUG for SecretService)
+- Reduced noise from Vault lease management
+- Token masking prevents accidental secret exposure in logs
+
+### Testing
+
+Run the test suite to verify Vault integration:
+
+```bash
+./gradlew test
+```
+
+All tests include:
+- Unit tests for SecretService with mocked VaultTemplate
+- Null safety verification
+- Error handling validation
+
 ## Next Steps
 
 After setting up Vault, you may want to:
@@ -329,4 +382,4 @@ After setting up Vault, you may want to:
 2. **Configure Message Queue**: Store RabbitMQ credentials in Vault (AC4)
 3. **Set up Redis**: Store Redis password in Vault (AC5)
 4. **Implement Secret Rotation**: Create a scheduled task to rotate secrets
-5. **Add Integration Tests**: Write tests that verify Vault connectivity
+5. **Add Integration Tests**: Write end-to-end tests that verify Vault connectivity with a running application

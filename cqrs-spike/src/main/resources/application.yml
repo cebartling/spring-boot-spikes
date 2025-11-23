@@ -19,8 +19,18 @@ spring:
 server:
   port: 8080
 
+# Actuator configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
 # Logging configuration
 logging:
   level:
-    com.pintailconsultingllc.cqrsspike: DEBUG
-    org.springframework.cloud.vault: DEBUG
+    com.pintailconsultingllc.cqrsspike: INFO
+    org.springframework.cloud.vault: INFO
