@@ -39,6 +39,35 @@ services:
       - cqrs-network
     restart: "no"
 
+  postgres:
+    image: postgres:18-alpine
+    container_name: cqrs-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cqrs_db}
+      POSTGRES_USER: ${POSTGRES_USER:-cqrs_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local_dev_password}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./infrastructure/postgres/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cqrs_user} -d ${POSTGRES_DB:-cqrs_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - cqrs-network
+    depends_on:
+      vault:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
+    driver: local
+    name: cqrs-postgres-data
+
 networks:
   cqrs-network:
     driver: bridge

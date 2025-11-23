@@ -15,6 +15,38 @@ spring:
       connection-timeout: 5000
       read-timeout: 15000
 
+  # R2DBC Configuration (Reactive Database Access)
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/cqrs_db
+    username: ${database.username:cqrs_user}
+    password: ${database.password:local_dev_password}
+    pool:
+      initial-size: 10
+      max-size: 20
+      max-idle-time: 30m
+      validation-query: SELECT 1
+
+  # JDBC DataSource (for tools/migrations only)
+  datasource:
+    url: ${database.url:jdbc:postgresql://localhost:5432/cqrs_db}
+    username: ${database.username:cqrs_user}
+    password: ${database.password:local_dev_password}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: CqrsHikariPool
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      auto-commit: false
+      connection-test-query: SELECT 1
+
+  # SQL initialization
+  sql:
+    init:
+      mode: never  # Handled by docker-entrypoint-initdb.d
+
 # Application configuration
 server:
   port: 8080
@@ -34,3 +66,5 @@ logging:
   level:
     com.pintailconsultingllc.cqrsspike: INFO
     org.springframework.cloud.vault: INFO
+    org.springframework.r2dbc: DEBUG
+    io.r2dbc.postgresql.QUERY: DEBUG

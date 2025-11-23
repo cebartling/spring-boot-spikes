@@ -41,6 +41,17 @@ dependencies {
     implementation("org.springframework.cloud:spring-cloud-starter-vault-config")
     implementation("org.springframework.cloud:spring-cloud-vault-config-databases")
 
+    // Database - R2DBC PostgreSQL
+    implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
+    implementation("org.postgresql:r2dbc-postgresql")
+    runtimeOnly("org.postgresql:postgresql") // JDBC driver for migrations/tools
+
+    // Connection pooling
+    implementation("com.zaxxer:HikariCP")
+
+    // Hypersistence Utils for JSONB support
+    implementation("io.hypersistence:hypersistence-utils-hibernate-63:3.7.0")
+
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
     testImplementation("org.springframework.boot:spring-boot-starter-webflux-test")

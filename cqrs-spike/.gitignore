@@ -41,3 +41,7 @@ out/
 
 ### Vault ###
 infrastructure/vault/data/
+
+### PostgreSQL ###
+infrastructure/postgres/data/
+infrastructure/postgres/backups/
