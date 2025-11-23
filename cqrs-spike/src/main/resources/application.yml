@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: cqrs-spike
+
+  cloud:
+    vault:
+      enabled: true
+      uri: ${VAULT_URI:http://localhost:8200}
+      token: ${VAULT_TOKEN:dev-root-token}
+      kv:
+        enabled: true
+        backend: secret
+        default-context: cqrs-spike
+      fail-fast: true
+      connection-timeout: 5000
+      read-timeout: 15000
+
+# Application configuration
+server:
+  port: 8080
+
+# Logging configuration
+logging:
+  level:
+    com.pintailconsultingllc.cqrsspike: DEBUG
+    org.springframework.cloud.vault: DEBUG
