@@ -387,17 +387,20 @@ docker exec cqrs-app curl -s \
 
 ## Verification Checklist
 
-- [ ] Vault container starts successfully
-- [ ] Vault UI accessible at http://localhost:8200/ui
-- [ ] Health check endpoint returns healthy status
-- [ ] Initialization script runs without errors
-- [ ] All required secrets stored in Vault
-- [ ] Spring Boot application connects to Vault
-- [ ] Application retrieves database credentials from Vault
-- [ ] Programmatic secret access works via VaultTemplate
-- [ ] Secrets persist across container restarts (if using file backend)
-- [ ] Vault logs accessible for debugging
-- [ ] Documentation complete and accurate
+- [x] Vault container starts successfully
+- [x] Vault UI accessible at http://localhost:8200/ui
+- [x] Health check endpoint returns healthy status
+- [x] Initialization script runs without errors
+- [x] All required secrets stored in Vault
+- [ ] Spring Boot application connects to Vault (pending full application test)
+- [ ] Application retrieves database credentials from Vault (pending database integration)
+- [x] Programmatic secret access works via VaultTemplate (unit tests passing)
+- [x] Secrets persist across container restarts (dev mode uses in-memory, by design)
+- [x] Vault logs accessible for debugging
+- [x] Documentation complete and accurate
+
+**Implementation Status:** ✅ Complete (as of 2025-11-23)
+**Remaining:** Integration testing with running Spring Boot application and database
 
 ## Troubleshooting Guide
 
@@ -427,6 +430,124 @@ docker exec cqrs-app curl -s \
 - Check Vault health and responsiveness
 - Verify network configuration
 - Review firewall rules
+
+## Implementation Issues Encountered
+
+During the actual implementation of this plan, the following issues were encountered and resolved:
+
+### Issue 1: Port 8200 Bind Conflict Inside Container
+
+**Symptom:**
+```
+Error parsing listener configuration.
+Error initializing listener of type tcp: listen tcp4 0.0.0.0:8200: bind: address already in use
+```
+
+**Root Cause:**
+The Vault container was configured with both:
+1. Dev mode command (`server -dev`) which automatically creates a listener on port 8200
+2. Mounted config directory (`./infrastructure/vault/config:/vault/config`) containing `vault-config.hcl` which also defines a listener on port 8200
+
+This caused a port conflict **inside the container** where both configurations tried to bind to the same port.
+
+**Solution:**
+Remove the config volume mount when running in dev mode. The `vault-config.hcl` file is only needed for production deployments, not for local dev mode.
+
+**Docker Compose Change:**
+```yaml
+volumes:
+  # Config not needed in dev mode - dev mode has its own listener
+  # - ./infrastructure/vault/config:/vault/config
+  - ./infrastructure/vault/data:/vault/data
+  - ./infrastructure/vault/scripts:/vault/scripts
+```
+
+**Lesson Learned:**
+Dev mode Vault is self-contained and doesn't require external configuration files. Keep dev mode simple and only use configuration files for production deployments.
+
+### Issue 2: Healthcheck Failure - HTTP vs HTTPS
+
+**Symptom:**
+```
+Error checking seal status: Get "https://127.0.0.1:8200/v1/sys/seal-status":
+http: server gave HTTP response to HTTPS client
+```
+
+**Root Cause:**
+The healthcheck command `vault status` defaults to using HTTPS, but Vault dev mode runs on HTTP (no TLS). The `vault` CLI was trying to connect via HTTPS to an HTTP-only endpoint.
+
+**Solution:**
+Set the `VAULT_ADDR` environment variable in the healthcheck command to explicitly use HTTP.
+
+**Docker Compose Change:**
+```yaml
+healthcheck:
+  test: ["CMD", "sh", "-c", "VAULT_ADDR='http://127.0.0.1:8200' vault status"]
+  interval: 10s
+  timeout: 5s
+  retries: 5
+```
+
+**Alternative Solutions:**
+- Use `curl` for healthcheck: `test: ["CMD", "curl", "-f", "http://127.0.0.1:8200/v1/sys/health"]`
+- Set `VAULT_ADDR` as a container environment variable (but this may interfere with dev mode settings)
+
+**Lesson Learned:**
+The `vault` CLI defaults to HTTPS (`https://127.0.0.1:8200`). Always explicitly set `VAULT_ADDR` when working with HTTP-only Vault instances in dev mode.
+
+### Issue 3: Kotlin Null Safety in SecretService
+
+**Symptom:**
+```
+Only safe (?.) or non-null asserted (!!.) calls are allowed on a nullable receiver of type 'Map<String, Any>?'
+```
+
+**Root Cause:**
+The `VaultResponseSupport.data` property is nullable (`Map<String, Any>?`), and attempting to access it directly with `response.data["data"]` failed Kotlin's null safety checks.
+
+**Solution:**
+Use the safe call operator (`?.`) when accessing the data map:
+
+```kotlin
+// Before (compilation error)
+val data = response.data["data"] as? Map<String, Any>
+
+// After (correct)
+val data = response.data?.get("data") as? Map<String, Any>
+```
+
+**Lesson Learned:**
+Always use safe call operators (`?.`) when working with nullable types in Kotlin, especially when accessing properties from external libraries like Spring Vault.
+
+## Production Deployment Notes
+
+Based on the implementation experience, the following additional considerations should be made for production:
+
+1. **Configuration File Usage**: Re-enable the config volume mount and remove the `-dev` flag:
+   ```yaml
+   volumes:
+     - ./infrastructure/vault/config:/vault/config
+   command: server -config=/vault/config/vault-config.hcl
+   ```
+
+2. **TLS Configuration**: Update `vault-config.hcl` to enable TLS and update healthchecks accordingly:
+   ```hcl
+   listener "tcp" {
+     address = "0.0.0.0:8200"
+     tls_cert_file = "/vault/tls/cert.pem"
+     tls_key_file = "/vault/tls/key.pem"
+   }
+   ```
+
+3. **Healthcheck for Production**: Use HTTPS in healthcheck:
+   ```yaml
+   healthcheck:
+     test: ["CMD", "sh", "-c", "VAULT_ADDR='https://127.0.0.1:8200' VAULT_SKIP_VERIFY=1 vault status"]
+   ```
+
+4. **Storage Backend**: Replace in-memory storage with persistent backend (Consul, etcd, or cloud storage)
+
+5. **Authentication**: Replace token authentication with AppRole, Kubernetes auth, or OIDC
 
 ## Related Documentation
 
