@@ -45,3 +45,6 @@ infrastructure/vault/data/
 ### PostgreSQL ###
 infrastructure/postgres/data/
 infrastructure/postgres/backups/
+
+### Environment ###
+.env

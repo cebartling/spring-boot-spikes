@@ -2,11 +2,13 @@ services:
   vault:
     image: hashicorp/vault:latest
     container_name: cqrs-vault
+    hostname: vault
     ports:
       - "8200:8200"
     environment:
-      VAULT_DEV_ROOT_TOKEN_ID: "dev-root-token"
+      VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_ROOT_TOKEN:-dev-root-token}
       VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
+      VAULT_ADDR: "http://0.0.0.0:8200"
     cap_add:
       - IPC_LOCK
     volumes:
@@ -14,21 +16,32 @@ services:
       # - ./infrastructure/vault/config:/vault/config
       - ./infrastructure/vault/data:/vault/data
       - ./infrastructure/vault/scripts:/vault/scripts
-    command: server -dev -dev-root-token-id="dev-root-token"
+    command: server -dev -dev-root-token-id=${VAULT_ROOT_TOKEN:-dev-root-token}
     healthcheck:
       test: ["CMD", "sh", "-c", "VAULT_ADDR='http://127.0.0.1:8200' vault status"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
     networks:
       - cqrs-network
+    restart: unless-stopped
+    labels:
+      com.example.service: "vault"
+      com.example.description: "Secrets management service"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service,description"
 
   vault-init:
     image: hashicorp/vault:latest
     container_name: cqrs-vault-init
     environment:
       VAULT_ADDR: "http://vault:8200"
-      VAULT_TOKEN: "dev-root-token"
+      VAULT_TOKEN: ${VAULT_ROOT_TOKEN:-dev-root-token}
     volumes:
       - ./infrastructure/vault/scripts:/vault/scripts
     command: /bin/sh /vault/scripts/init-secrets.sh
@@ -38,10 +51,20 @@ services:
     networks:
       - cqrs-network
     restart: "no"
+    labels:
+      com.example.service: "vault-init"
+      com.example.description: "Vault initialization service"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service,description"
 
   postgres:
     image: postgres:18-alpine
     container_name: cqrs-postgres
+    hostname: postgres
     ports:
       - "5432:5432"
     environment:
@@ -54,21 +77,40 @@ services:
       # - ./infrastructure/postgres/init:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cqrs_user} -d ${POSTGRES_DB:-cqrs_db}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
     networks:
       - cqrs-network
     depends_on:
       vault:
         condition: service_healthy
+    restart: unless-stopped
+    labels:
+      com.example.service: "postgres"
+      com.example.description: "PostgreSQL database"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service,description"
 
 volumes:
   postgres-data:
-    driver: local
     name: cqrs-postgres-data
+    driver: local
 
 networks:
   cqrs-network:
+    name: cqrs-network
     driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.0.0/16
+    driver_opts:
+      com.docker.network.bridge.name: br-cqrs
+      com.docker.network.bridge.enable_icc: "true"
+      com.docker.network.bridge.enable_ip_masquerade: "true"

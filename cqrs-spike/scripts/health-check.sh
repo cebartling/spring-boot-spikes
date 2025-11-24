@@ -1,0 +1,60 @@
+#!/bin/bash
+# scripts/health-check.sh
+# Checks health status of all infrastructure services
+
+set -e
+
+echo "========================================="
+echo "Infrastructure Health Check"
+echo "========================================="
+
+check_service() {
+    local service=$1
+    local url=$2
+
+    echo -n "Checking $service... "
+    if curl -sf "$url" > /dev/null 2>&1; then
+        echo "✓ Healthy"
+        return 0
+    else
+        echo "✗ Unhealthy"
+        return 1
+    fi
+}
+
+all_healthy=true
+
+# Check Vault
+if ! check_service "Vault" "http://localhost:8200/v1/sys/health"; then
+    all_healthy=false
+fi
+
+# Check PostgreSQL
+if ! docker exec cqrs-postgres pg_isready -U cqrs_user -d cqrs_db > /dev/null 2>&1; then
+    echo "PostgreSQL... ✗ Unhealthy"
+    all_healthy=false
+else
+    echo "PostgreSQL... ✓ Healthy"
+fi
+
+# Determine docker compose command
+if docker compose version &> /dev/null; then
+    DOCKER_COMPOSE="docker compose"
+else
+    DOCKER_COMPOSE="docker-compose"
+fi
+
+# Check container status
+echo ""
+echo "Container Status:"
+$DOCKER_COMPOSE ps
+
+echo ""
+echo "========================================="
+if [ "$all_healthy" = true ]; then
+    echo "All services healthy ✓"
+    exit 0
+else
+    echo "Some services unhealthy ✗"
+    exit 1
+fi
