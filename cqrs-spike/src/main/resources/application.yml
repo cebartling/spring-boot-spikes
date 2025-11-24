@@ -45,7 +45,29 @@ spring:
   # SQL initialization
   sql:
     init:
-      mode: never  # Handled by docker-entrypoint-initdb.d
+      mode: never  # Handled by Flyway migrations
+
+  # Flyway Database Migrations
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
+    locations: classpath:db/migration
+    schemas: event_store,read_model,command_model
+    default-schema: command_model
+    create-schemas: true
+    validate-on-migrate: true
+    clean-disabled: true
+    out-of-order: false
+    placeholder-replacement: true
+    placeholders:
+      application_user: cqrs_user
+    table: flyway_schema_history
+    sql-migration-prefix: V
+    sql-migration-separator: __
+    sql-migration-suffixes: .sql
+    repeatable-sql-migration-prefix: R
+    clean-on-validation-error: false
 
 # Application configuration
 server:
@@ -68,3 +90,4 @@ logging:
     org.springframework.cloud.vault: INFO
     org.springframework.r2dbc: DEBUG
     io.r2dbc.postgresql.QUERY: DEBUG
+    org.flywaydb: INFO

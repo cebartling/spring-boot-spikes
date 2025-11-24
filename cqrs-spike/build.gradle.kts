@@ -46,6 +46,11 @@ dependencies {
     implementation("org.postgresql:r2dbc-postgresql")
     runtimeOnly("org.postgresql:postgresql") // JDBC driver for migrations/tools
 
+    // Flyway Database Migrations
+    implementation("org.flywaydb:flyway-core")
+    implementation("org.flywaydb:flyway-database-postgresql")
+    implementation("org.springframework.boot:spring-boot-starter-data-jdbc") // Required for Flyway and JDBC DataSource
+
     // Connection pooling
     implementation("com.zaxxer:HikariCP")
 
