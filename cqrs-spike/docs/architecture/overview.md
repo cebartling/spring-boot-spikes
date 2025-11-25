@@ -348,4 +348,5 @@ fun processLargeDataset(): Flux<Result> {
 - [Infrastructure Components](infrastructure-components.md) - Service details
 - [Networking](networking.md) - Network configuration
 - [Security](security.md) - Security model
+- [Error Handling](error-handling.md) - API error handling
 - [CONSTITUTION.md](../../documentation/CONSTITUTION.md) - Coding standards

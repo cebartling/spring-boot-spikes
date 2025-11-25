@@ -18,6 +18,7 @@
 - [Infrastructure Components](architecture/infrastructure-components.md)
 - [Networking](architecture/networking.md)
 - [Security](architecture/security.md)
+- [Error Handling](architecture/error-handling.md)
 
 ## Troubleshooting
 - [Common Issues](troubleshooting/common-issues.md)

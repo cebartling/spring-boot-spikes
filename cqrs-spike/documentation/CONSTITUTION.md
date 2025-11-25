@@ -230,6 +230,23 @@ private fun methodFallback(param: Type, ex: Exception): Mono<Result> {
 - **MUST** log errors with full stack trace
 - **SHOULD** differentiate between client errors (4xx) and server errors (5xx)
 
+### 6.5 Unsupported Media Type Handling
+
+- **MUST** return HTTP 415 (Unsupported Media Type) for invalid Content-Type headers
+- **MUST** return structured JSON error response:
+
+```json
+{
+  "status": 415,
+  "error": "Unsupported Media Type",
+  "message": "Content-Type 'text/plain' is not supported. Supported types: application/json",
+  "path": "/api/products"
+}
+```
+
+- **MUST** handle in global exception handler via `UnsupportedMediaTypeStatusException`
+- **SHOULD** include list of supported media types in error message
+
 ---
 
 ## VII. Testing Standards
