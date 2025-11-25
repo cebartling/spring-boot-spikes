@@ -2,7 +2,8 @@
 # CQRS Spike Infrastructure Management
 
 .PHONY: help start stop restart clean logs logs-errors logs-dashboard health ps build test shell-vault shell-postgres \
-        monitor resources perf test-docs db-query vault-get reset-vault reset-db init-env
+        monitor resources perf test-docs db-query vault-get reset-vault reset-db init-env \
+        db-seed db-seed-standard db-seed-full db-seed-perf db-reset db-reset-data db-scenario
 
 help: ## Show this help message
 	@echo "Available commands:"
@@ -101,3 +102,25 @@ reset-db: ## Reset PostgreSQL database (WARNING: deletes all data)
 
 measure-startup: ## Measure infrastructure startup time
 	@./scripts/measure-startup.sh
+
+# Database Seeding Targets
+db-seed: ## Seed database with minimal scenario
+	@./infrastructure/postgres/seed-data/scripts/seed.sh minimal
+
+db-seed-standard: ## Seed database with standard scenario
+	@./infrastructure/postgres/seed-data/scripts/seed.sh standard
+
+db-seed-full: ## Seed database with full scenario
+	@./infrastructure/postgres/seed-data/scripts/seed.sh full
+
+db-seed-perf: ## Seed database with performance test data
+	@./infrastructure/postgres/seed-data/scripts/seed.sh performance
+
+db-reset: ## Reset database (WARNING: Deletes all data!)
+	@./infrastructure/postgres/seed-data/scripts/reset.sh
+
+db-reset-data: ## Reset data only (preserves schema)
+	@./infrastructure/postgres/seed-data/scripts/reset-data-only.sh
+
+db-scenario: ## Load a specific scenario (interactive)
+	@./infrastructure/postgres/seed-data/scripts/load-scenario.sh

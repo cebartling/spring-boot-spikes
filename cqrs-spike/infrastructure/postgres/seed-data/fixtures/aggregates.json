@@ -1,0 +1,34 @@
+{
+  "description": "Sample aggregate fixtures for programmatic seeding",
+  "aggregates": {
+    "Order": {
+      "states": ["PENDING", "CONFIRMED", "SHIPPED", "DELIVERED", "CANCELLED"],
+      "eventSequences": {
+        "happy_path": ["OrderCreated", "OrderShipped", "OrderDelivered"],
+        "cancelled": ["OrderCreated", "OrderCancelled"],
+        "pending": ["OrderCreated"]
+      }
+    },
+    "Customer": {
+      "states": ["ACTIVE", "INACTIVE", "SUSPENDED"],
+      "eventSequences": {
+        "registered": ["CustomerRegistered"],
+        "with_profile": ["CustomerRegistered", "CustomerProfileUpdated"]
+      }
+    },
+    "Product": {
+      "states": ["DRAFT", "ACTIVE", "DISCONTINUED"],
+      "eventSequences": {
+        "created": ["ProductCreated"],
+        "with_price_change": ["ProductCreated", "ProductPriceUpdated"]
+      }
+    },
+    "Inventory": {
+      "states": ["AVAILABLE", "LOW_STOCK", "OUT_OF_STOCK"],
+      "eventSequences": {
+        "initialized": ["InventoryInitialized", "StockAdded"],
+        "with_reservations": ["InventoryInitialized", "StockAdded", "StockReserved"]
+      }
+    }
+  }
+}

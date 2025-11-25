@@ -1,0 +1,91 @@
+{
+  "description": "Sample event fixtures for programmatic seeding",
+  "events": [
+    {
+      "eventType": "OrderCreated",
+      "version": 1,
+      "template": {
+        "orderId": "{{uuid}}",
+        "customerId": "{{uuid}}",
+        "items": [
+          {
+            "productId": "{{uuid}}",
+            "quantity": "{{integer:1-10}}",
+            "price": "{{decimal:9.99-199.99}}"
+          }
+        ],
+        "totalAmount": "{{sum:items.price*items.quantity}}"
+      }
+    },
+    {
+      "eventType": "OrderShipped",
+      "version": 1,
+      "template": {
+        "orderId": "{{uuid}}",
+        "shippingAddress": {
+          "street": "{{address.street}}",
+          "city": "{{address.city}}",
+          "zip": "{{address.zip}}"
+        },
+        "trackingNumber": "{{alphanumeric:12}}"
+      }
+    },
+    {
+      "eventType": "OrderDelivered",
+      "version": 1,
+      "template": {
+        "orderId": "{{uuid}}",
+        "deliveredAt": "{{timestamp}}",
+        "signedBy": "{{name}}"
+      }
+    },
+    {
+      "eventType": "OrderCancelled",
+      "version": 1,
+      "template": {
+        "orderId": "{{uuid}}",
+        "reason": "{{choice:Customer request|Out of stock|Payment failed|Address invalid}}",
+        "cancelledAt": "{{timestamp}}"
+      }
+    },
+    {
+      "eventType": "CustomerRegistered",
+      "version": 1,
+      "template": {
+        "customerId": "{{uuid}}",
+        "email": "{{email}}",
+        "name": "{{name}}",
+        "registeredAt": "{{timestamp}}"
+      }
+    },
+    {
+      "eventType": "CustomerProfileUpdated",
+      "version": 1,
+      "template": {
+        "customerId": "{{uuid}}",
+        "updatedFields": ["{{choice:phone|address|preferences}}"]
+      }
+    },
+    {
+      "eventType": "ProductCreated",
+      "version": 1,
+      "template": {
+        "productId": "{{uuid}}",
+        "name": "{{product.name}}",
+        "description": "{{product.description}}",
+        "priceCents": "{{integer:999-99999}}",
+        "category": "{{choice:widgets|gadgets|tools|kits}}"
+      }
+    },
+    {
+      "eventType": "ProductPriceUpdated",
+      "version": 1,
+      "template": {
+        "productId": "{{uuid}}",
+        "oldPriceCents": "{{integer:999-99999}}",
+        "newPriceCents": "{{integer:999-99999}}",
+        "reason": "{{choice:sale|promotion|price adjustment}}"
+      }
+    }
+  ]
+}

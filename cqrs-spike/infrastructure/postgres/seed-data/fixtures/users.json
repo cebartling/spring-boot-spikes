@@ -1,0 +1,61 @@
+{
+  "description": "Sample user fixtures for programmatic seeding",
+  "users": [
+    {
+      "userId": "user-001",
+      "username": "johndoe",
+      "email": "john.doe@example.com",
+      "role": "USER",
+      "active": true
+    },
+    {
+      "userId": "user-002",
+      "username": "janesmith",
+      "email": "jane.smith@example.com",
+      "role": "USER",
+      "active": true
+    },
+    {
+      "userId": "user-003",
+      "username": "bobwilson",
+      "email": "bob.wilson@example.com",
+      "role": "USER",
+      "active": true
+    },
+    {
+      "userId": "support-001",
+      "username": "support_agent",
+      "email": "support@example.com",
+      "role": "SUPPORT",
+      "active": true
+    },
+    {
+      "userId": "admin",
+      "username": "admin",
+      "email": "admin@example.com",
+      "role": "ADMIN",
+      "active": true
+    },
+    {
+      "userId": "system",
+      "username": "system",
+      "email": "system@example.com",
+      "role": "SYSTEM",
+      "active": true
+    }
+  ],
+  "roles": {
+    "USER": {
+      "permissions": ["read:own", "write:own"]
+    },
+    "SUPPORT": {
+      "permissions": ["read:all", "write:own", "manage:orders"]
+    },
+    "ADMIN": {
+      "permissions": ["read:all", "write:all", "manage:all"]
+    },
+    "SYSTEM": {
+      "permissions": ["read:all", "write:all", "system:events"]
+    }
+  }
+}
