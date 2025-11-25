@@ -34,7 +34,11 @@ out/
 /.nb-gradle/
 
 ### VS Code ###
-.vscode/
+# Keep project-wide VSCode settings, ignore user-specific ones
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/extensions.json
 
 ### Kotlin ###
 .kotlin
@@ -48,3 +52,6 @@ infrastructure/postgres/backups/
 
 ### Environment ###
 .env
+
+### Docker ###
+docker-compose.override.yml

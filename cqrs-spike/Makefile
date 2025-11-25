@@ -1,7 +1,8 @@
 # Makefile
 # CQRS Spike Infrastructure Management
 
-.PHONY: help start stop restart clean logs health ps build test shell-vault shell-postgres
+.PHONY: help start stop restart clean logs logs-errors logs-dashboard health ps build test shell-vault shell-postgres \
+        monitor resources perf test-docs db-query vault-get reset-vault reset-db init-env
 
 help: ## Show this help message
 	@echo "Available commands:"
@@ -68,3 +69,35 @@ init-env: ## Create .env from .env.example
 	else \
 		echo ".env file already exists"; \
 	fi
+
+logs-errors: ## View error logs only
+	@./scripts/logs.sh errors
+
+logs-dashboard: ## Open multi-pane log dashboard (requires tmux)
+	@./scripts/logs-dashboard.sh
+
+monitor: ## Monitor resource consumption
+	@./scripts/monitor-resources.sh
+
+resources: monitor ## Alias for monitor
+
+perf: ## Run performance tests
+	@./scripts/test-performance.sh
+
+test-docs: ## Test documentation accuracy
+	@./scripts/test-documentation.sh
+
+db-query: ## Run a database query (usage: make db-query QUERY="SELECT 1")
+	@./scripts/db-query.sh "$(QUERY)"
+
+vault-get: ## Get a Vault secret (usage: make vault-get PATH="secret/cqrs-spike/database")
+	@./scripts/vault-get.sh "$(PATH)"
+
+reset-vault: ## Reset Vault service
+	@./scripts/reset-service.sh vault
+
+reset-db: ## Reset PostgreSQL database (WARNING: deletes all data)
+	@./scripts/reset-service.sh postgres
+
+measure-startup: ## Measure infrastructure startup time
+	@./scripts/measure-startup.sh

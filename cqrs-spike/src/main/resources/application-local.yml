@@ -1,0 +1,46 @@
+# Local Development Profile Overrides
+# This file is loaded when -Dspring.profiles.active=local is set
+
+spring:
+  devtools:
+    restart:
+      enabled: true
+    livereload:
+      enabled: true
+
+  # R2DBC with detailed logging
+  r2dbc:
+    pool:
+      initial-size: 5
+      max-size: 10
+
+# Management endpoints - expose all for local debugging
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+    env:
+      show-values: always
+
+# Verbose logging for local development
+logging:
+  level:
+    root: INFO
+    com.example.cqrs: DEBUG
+    org.springframework.cloud.vault: DEBUG
+    org.springframework.r2dbc: DEBUG
+    io.r2dbc.postgresql: DEBUG
+    io.r2dbc.postgresql.QUERY: TRACE
+    io.r2dbc.postgresql.PARAM: TRACE
+    org.flywaydb: DEBUG
+    org.springframework.web.reactive: DEBUG
+    org.springframework.boot.autoconfigure: DEBUG
+    reactor.netty: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %5p [%t] %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} %5p [%t] %logger{36} - %msg%n"

@@ -1,0 +1,60 @@
+# Docker Compose Override Example
+# Copy this file to docker-compose.override.yml to apply resource limits
+#
+# This is useful for:
+# - Resource-constrained development environments
+# - Ensuring consistent resource allocation
+# - Preventing services from consuming excessive resources
+#
+# Usage:
+#   cp docker-compose.override.yml.example docker-compose.override.yml
+#   make start
+
+version: '3.9'
+
+services:
+  vault:
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+  postgres:
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    # Optional: Reduce shared buffers for lower memory usage
+    # command: >
+    #   postgres
+    #   -c shared_buffers=128MB
+    #   -c max_connections=50
+
+  # Uncomment if you have an app service in docker-compose.yml
+  # app:
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: '2.0'
+  #         memory: 1024M
+  #       reservations:
+  #         cpus: '1.0'
+  #         memory: 512M
+  #   environment:
+  #     # JVM tuning for constrained memory
+  #     JAVA_TOOL_OPTIONS: >-
+  #       -Xms256m
+  #       -Xmx768m
+  #       -XX:+UseG1GC
+  #       -XX:MaxGCPauseMillis=200
+  #       -XX:+UseStringDeduplication
+  #       -XX:+UseContainerSupport
+  #       -XX:MaxRAMPercentage=75.0

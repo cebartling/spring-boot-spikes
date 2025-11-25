@@ -2,6 +2,12 @@ spring:
   application:
     name: cqrs-spike
 
+  # Main application settings
+  main:
+    lazy-initialization: false
+    register-shutdown-hook: true
+    banner-mode: console
+
   cloud:
     vault:
       enabled: true
@@ -25,6 +31,9 @@ spring:
       max-size: 20
       max-idle-time: 30m
       validation-query: SELECT 1
+    properties:
+      preparedStatementCacheQueries: 250
+      statementTimeout: 30000
 
   # JDBC DataSource (for tools/migrations only)
   datasource:
