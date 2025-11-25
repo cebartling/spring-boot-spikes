@@ -109,12 +109,8 @@ services:
       - "3200:3200"   # Tempo query frontend
       - "4317:4317"   # OTLP gRPC receiver
       - "4318:4318"   # OTLP HTTP receiver
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3200/ready"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+    # Note: Tempo uses a distroless image with no shell or HTTP client tools.
+    # Health check disabled; rely on container running status and restart policy.
     networks:
       - cqrs-network
     restart: unless-stopped
@@ -139,11 +135,11 @@ services:
     ports:
       - "3100:3100"
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3100/ready"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+      test: ["CMD", "/usr/bin/loki", "-config.file=/etc/loki/local-config.yaml", "-verify-config"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
     networks:
       - cqrs-network
     restart: unless-stopped
@@ -166,10 +162,10 @@ services:
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9080/ready"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      test: ["CMD", "/usr/bin/promtail", "-config.file=/etc/promtail/config.yaml", "-check-syntax"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
       start_period: 15s
     networks:
       - cqrs-network
@@ -251,7 +247,7 @@ services:
       loki:
         condition: service_healthy
       tempo:
-        condition: service_healthy
+        condition: service_started
     restart: unless-stopped
     labels:
       com.example.service: "grafana"

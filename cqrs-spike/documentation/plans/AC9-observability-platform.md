@@ -89,12 +89,8 @@ services:
       - "3200:3200"   # Tempo query frontend
       - "4317:4317"   # OTLP gRPC receiver
       - "4318:4318"   # OTLP HTTP receiver
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3200/ready"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+    # Note: Tempo uses a distroless image with no shell or HTTP client tools.
+    # Health check disabled; rely on container running status and restart policy.
     networks:
       - cqrs-network
     restart: unless-stopped
@@ -113,11 +109,11 @@ services:
     ports:
       - "3100:3100"
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3100/ready"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+      test: ["CMD", "/usr/bin/loki", "-config.file=/etc/loki/local-config.yaml", "-verify-config"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
     networks:
       - cqrs-network
     restart: unless-stopped
@@ -134,10 +130,10 @@ services:
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9080/ready"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      test: ["CMD", "/usr/bin/promtail", "-config.file=/etc/promtail/config.yaml", "-check-syntax"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
       start_period: 15s
     networks:
       - cqrs-network
@@ -207,7 +203,7 @@ services:
       loki:
         condition: service_healthy
       tempo:
-        condition: service_healthy
+        condition: service_started
     restart: unless-stopped
     labels:
       com.example.service: "grafana"
@@ -226,22 +222,25 @@ volumes:
 
 ### 1.1 Health Check Configuration
 
-All observability services include health checks to ensure proper startup ordering and service availability monitoring.
+Most observability services include health checks to ensure proper startup ordering and service availability monitoring.
 
-| Service | Health Endpoint | Interval | Timeout | Retries | Start Period |
-|---------|-----------------|----------|---------|---------|--------------|
-| **Tempo** | `http://localhost:3200/ready` | 10s | 5s | 5 | 30s |
-| **Loki** | `http://localhost:3100/ready` | 10s | 5s | 5 | 30s |
-| **Promtail** | `http://localhost:9080/ready` | 10s | 5s | 5 | 15s |
-| **Prometheus** | `http://localhost:9090/-/healthy` | 10s | 5s | 5 | 30s |
-| **Grafana** | `http://localhost:3000/api/health` | 10s | 5s | 5 | 30s |
+| Service | Health Check Method | Interval | Timeout | Retries | Start Period |
+|---------|---------------------|----------|---------|---------|--------------|
+| **Tempo** | None (distroless image) | - | - | - | - |
+| **Loki** | `-verify-config` flag | 30s | 10s | 3 | 45s |
+| **Promtail** | `-check-syntax` flag | 30s | 10s | 3 | 15s |
+| **Prometheus** | `wget` to `/-/healthy` | 10s | 5s | 5 | 30s |
+| **Grafana** | `wget` to `/api/health` | 10s | 5s | 5 | 30s |
 
 **Key Points:**
-- All health checks use `wget` (available in Alpine-based images) with `--spider` for lightweight HTTP checks
+- **Tempo** uses a distroless image with no shell or HTTP client tools; health check disabled, relies on container running status and restart policy
+- **Loki** uses its built-in `-verify-config` flag for health checks (distroless image)
+- **Promtail** uses its built-in `-check-syntax` flag for health checks (no wget/curl available)
+- Prometheus and Grafana use `wget` (available in Alpine-based images) with `--spider` for lightweight HTTP checks
 - Prometheus requires `--web.enable-lifecycle` flag for the `/-/healthy` endpoint
-- Service dependencies use `condition: service_healthy` to ensure proper startup ordering:
+- Service dependencies use `condition: service_healthy` or `condition: service_started`:
   - Promtail waits for Loki to be healthy before starting
-  - Grafana waits for Prometheus, Loki, and Tempo to all be healthy
+  - Grafana waits for Prometheus and Loki to be healthy, and Tempo to be started
 - Start periods allow services time to initialize before health checks begin failing
 
 ### 2. Tempo Configuration
@@ -970,14 +969,14 @@ fi
 ## Verification Checklist
 
 ### Health Checks
-- [x] Tempo health check configured (`/ready` endpoint)
-- [x] Loki health check configured (`/ready` endpoint)
-- [x] Promtail health check configured (`/ready` endpoint)
-- [x] Prometheus health check configured (`/-/healthy` endpoint)
-- [x] Grafana health check configured (`/api/health` endpoint)
-- [x] Service dependencies use `condition: service_healthy`
+- [x] Tempo: No health check (distroless image); uses `condition: service_started`
+- [x] Loki health check configured (`-verify-config` flag)
+- [x] Promtail health check configured (`-check-syntax` flag)
+- [x] Prometheus health check configured (`/-/healthy` endpoint via wget)
+- [x] Grafana health check configured (`/api/health` endpoint via wget)
+- [x] Service dependencies properly configured
 - [x] Promtail depends on healthy Loki
-- [x] Grafana depends on healthy Prometheus, Loki, and Tempo
+- [x] Grafana depends on healthy Prometheus and Loki, and started Tempo
 
 ### Service Availability
 - [ ] Tempo running and accessible
@@ -1037,21 +1036,21 @@ fi
 ### Issue: Health checks failing
 **Solution:**
 - Check if service is still starting (allow time for `start_period`)
-- Verify the health endpoint is responding: `docker exec <container> wget -qO- http://localhost:<port>/<endpoint>`
 - Check container logs for startup errors: `docker logs <container>`
-- Verify `wget` is available in the container image
+- For Alpine-based images: Verify `wget` is available
+- For distroless images (Tempo, Loki): These have limited health check options
 - For Prometheus, ensure `--web.enable-lifecycle` flag is set
 
 **Health check verification commands:**
 ```bash
-# Tempo
-docker exec cqrs-tempo wget -qO- http://localhost:3200/ready
+# Tempo (no in-container health check - verify from host)
+curl -sf http://localhost:3200/ready
 
-# Loki
-docker exec cqrs-loki wget -qO- http://localhost:3100/ready
+# Loki (verify config is valid)
+docker exec cqrs-loki /usr/bin/loki -config.file=/etc/loki/local-config.yaml -verify-config
 
-# Promtail
-docker exec cqrs-promtail wget -qO- http://localhost:9080/ready
+# Promtail (verify config syntax is valid)
+docker exec cqrs-promtail /usr/bin/promtail -config.file=/etc/promtail/config.yaml -check-syntax
 
 # Prometheus
 docker exec cqrs-prometheus wget -qO- http://localhost:9090/-/healthy
@@ -1060,12 +1059,19 @@ docker exec cqrs-prometheus wget -qO- http://localhost:9090/-/healthy
 docker exec cqrs-grafana wget -qO- http://localhost:3000/api/health
 ```
 
+**Note on images without wget/curl:**
+- Tempo and Loki use distroless images with no shell (`/bin/sh`) or HTTP client tools (`wget`, `curl`)
+- Promtail has a Debian-based image but no wget/curl installed
+- Tempo has no health check configured; relies on container running status
+- Loki uses its built-in `-verify-config` flag for health checks
+- Promtail uses its built-in `-check-syntax` flag for health checks
+
 ### Issue: Service dependency startup failures
 **Solution:**
 - If a service fails to start due to unhealthy dependencies, check the dependent service first
 - Use `docker-compose ps` to view health status of all services
 - Increase `start_period` if services need more time to initialize
-- Check that dependent services have correct health check endpoints
+- For services depending on Tempo, use `condition: service_started` instead of `service_healthy`
 
 ## Performance Optimization
 
