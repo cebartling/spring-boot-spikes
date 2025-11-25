@@ -3,7 +3,8 @@
 
 .PHONY: help start stop restart clean logs logs-errors logs-dashboard health ps build test shell-vault shell-postgres \
         monitor resources perf test-docs db-query vault-get reset-vault reset-db init-env \
-        db-seed db-seed-standard db-seed-full db-seed-perf db-reset db-reset-data db-scenario
+        db-seed db-seed-standard db-seed-full db-seed-perf db-reset db-reset-data db-scenario \
+        obs-start obs-stop obs-logs obs-health obs-grafana obs-query-logs obs-view-trace
 
 help: ## Show this help message
 	@echo "Available commands:"
@@ -124,3 +125,29 @@ db-reset-data: ## Reset data only (preserves schema)
 
 db-scenario: ## Load a specific scenario (interactive)
 	@./infrastructure/postgres/seed-data/scripts/load-scenario.sh
+
+# Observability Platform Targets
+obs-start: ## Start observability platform (Grafana, Prometheus, Loki, Tempo)
+	@./scripts/start-observability.sh
+
+obs-stop: ## Stop observability platform
+	@./scripts/stop-observability.sh
+
+obs-logs: ## View observability platform logs
+	@if docker compose version > /dev/null 2>&1; then \
+		docker compose logs -f tempo loki promtail prometheus grafana; \
+	else \
+		docker-compose logs -f tempo loki promtail prometheus grafana; \
+	fi
+
+obs-health: ## Check observability platform health
+	@./scripts/obs-health.sh
+
+obs-grafana: ## Open Grafana in browser
+	@open http://localhost:3000
+
+obs-query-logs: ## Query logs (usage: make obs-query-logs QUERY='{service="app"}')
+	@./scripts/query-logs.sh '$(QUERY)'
+
+obs-view-trace: ## View trace in Grafana (usage: make obs-view-trace TRACE_ID=abc123)
+	@./scripts/view-traces.sh '$(TRACE_ID)'

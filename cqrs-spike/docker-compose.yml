@@ -97,10 +97,149 @@ services:
         max-file: "3"
         labels: "service,description"
 
+  # Distributed Tracing
+  tempo:
+    image: grafana/tempo:latest
+    container_name: cqrs-tempo
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./infrastructure/observability/tempo/tempo.yaml:/etc/tempo.yaml:ro
+      - tempo-data:/var/tempo
+    ports:
+      - "3200:3200"   # Tempo query frontend
+      - "4317:4317"   # OTLP gRPC receiver
+      - "4318:4318"   # OTLP HTTP receiver
+    networks:
+      - cqrs-network
+    restart: unless-stopped
+    labels:
+      com.example.service: "tempo"
+      com.example.description: "Distributed tracing backend"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service,description"
+
+  # Log Aggregation
+  loki:
+    image: grafana/loki:latest
+    container_name: cqrs-loki
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./infrastructure/observability/loki/loki.yaml:/etc/loki/local-config.yaml:ro
+      - loki-data:/loki
+    ports:
+      - "3100:3100"
+    networks:
+      - cqrs-network
+    restart: unless-stopped
+    labels:
+      com.example.service: "loki"
+      com.example.description: "Log aggregation system"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service,description"
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: cqrs-promtail
+    command: -config.file=/etc/promtail/config.yaml
+    volumes:
+      - ./infrastructure/observability/promtail/promtail.yaml:/etc/promtail/config.yaml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - cqrs-network
+    depends_on:
+      - loki
+    restart: unless-stopped
+    labels:
+      com.example.service: "promtail"
+      com.example.description: "Log collector"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service,description"
+
+  # Metrics Collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: cqrs-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=7d'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+    volumes:
+      - ./infrastructure/observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - cqrs-network
+    restart: unless-stopped
+    labels:
+      com.example.service: "prometheus"
+      com.example.description: "Metrics collection system"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service,description"
+
+  # Unified Observability UI
+  grafana:
+    image: grafana/grafana:latest
+    container_name: cqrs-grafana
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+      - GF_FEATURE_TOGGLES_ENABLE=traceqlEditor
+    volumes:
+      - ./infrastructure/observability/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./infrastructure/observability/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    networks:
+      - cqrs-network
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+    restart: unless-stopped
+    labels:
+      com.example.service: "grafana"
+      com.example.description: "Observability visualization platform"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service,description"
+
 volumes:
   postgres-data:
     name: cqrs-postgres-data
     driver: local
+  tempo-data:
+    name: cqrs-tempo-data
+  loki-data:
+    name: cqrs-loki-data
+  prometheus-data:
+    name: cqrs-prometheus-data
+  grafana-data:
+    name: cqrs-grafana-data
 
 networks:
   cqrs-network:

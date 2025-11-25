@@ -57,6 +57,16 @@ dependencies {
     // Hypersistence Utils for JSONB support
     implementation("io.hypersistence:hypersistence-utils-hibernate-63:3.7.0")
 
+    // Observability - Metrics
+    implementation("io.micrometer:micrometer-registry-prometheus")
+
+    // Observability - Tracing (OpenTelemetry)
+    implementation("io.micrometer:micrometer-tracing-bridge-otel")
+    implementation("io.opentelemetry:opentelemetry-exporter-otlp")
+
+    // Observability - Structured Logging
+    implementation("net.logstash.logback:logstash-logback-encoder:8.0")
+
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
     testImplementation("org.springframework.boot:spring-boot-starter-webflux-test")
