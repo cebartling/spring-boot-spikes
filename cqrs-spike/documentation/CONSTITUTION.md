@@ -430,9 +430,33 @@ docker-compose --profile app up -d --build
 ### 10.5 Git Workflow
 
 - **MUST** commit to feature branches, merge via PR
+- **MUST** use [Conventional Commits](https://www.conventionalcommits.org/) format for commit messages
+- **MUST** use type prefixes: `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`, `perf:`, `ci:`
 - **MUST** write meaningful commit messages (imperative mood)
 - **SHOULD** squash commits before merging to main
 - **SHOULD** reference issue numbers in commit messages
+- **SHOULD** include scope when relevant (e.g., `feat(auth):`, `fix(api):`)
+
+#### Conventional Commit Format
+
+```
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+**Examples:**
+```bash
+feat: add user authentication endpoint
+fix(api): handle null response from external service
+docs: update API documentation for v2 endpoints
+refactor(service): extract validation logic to separate class
+test: add unit tests for CartService
+chore: update Gradle dependencies
+perf(db): optimize product query with index hint
+```
 
 ---
 
