@@ -1,6 +1,6 @@
 # Multi-stage build for faster rebuilds and smaller images
 # Stage 1: Build stage
-FROM gradle:8-jdk21-alpine AS build
+FROM gradle:9-jdk-21-and-24-alpine AS build
 
 WORKDIR /app
 
@@ -18,7 +18,7 @@ COPY src ./src
 RUN gradle build -x test --no-daemon
 
 # Stage 2: Runtime stage
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:24-alpine-3.22
 
 WORKDIR /app
 
