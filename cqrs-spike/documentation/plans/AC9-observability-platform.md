@@ -89,6 +89,12 @@ services:
       - "3200:3200"   # Tempo query frontend
       - "4317:4317"   # OTLP gRPC receiver
       - "4318:4318"   # OTLP HTTP receiver
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3200/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - cqrs-network
     restart: unless-stopped
@@ -106,6 +112,12 @@ services:
       - loki-data:/loki
     ports:
       - "3100:3100"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3100/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - cqrs-network
     restart: unless-stopped
@@ -121,10 +133,17 @@ services:
       - ./infrastructure/observability/promtail/promtail.yaml:/etc/promtail/config.yaml:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9080/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     networks:
       - cqrs-network
     depends_on:
-      - loki
+      loki:
+        condition: service_healthy
     restart: unless-stopped
     labels:
       com.example.service: "promtail"
@@ -140,11 +159,18 @@ services:
       - '--storage.tsdb.retention.time=7d'
       - '--web.console.libraries=/etc/prometheus/console_libraries'
       - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
     volumes:
       - ./infrastructure/observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus-data:/prometheus
     ports:
       - "9090:9090"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - cqrs-network
     restart: unless-stopped
@@ -167,12 +193,21 @@ services:
       - grafana-data:/var/lib/grafana
     ports:
       - "3000:3000"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - cqrs-network
     depends_on:
-      - prometheus
-      - loki
-      - tempo
+      prometheus:
+        condition: service_healthy
+      loki:
+        condition: service_healthy
+      tempo:
+        condition: service_healthy
     restart: unless-stopped
     labels:
       com.example.service: "grafana"
@@ -188,6 +223,26 @@ volumes:
   grafana-data:
     name: cqrs-grafana-data
 ```
+
+### 1.1 Health Check Configuration
+
+All observability services include health checks to ensure proper startup ordering and service availability monitoring.
+
+| Service | Health Endpoint | Interval | Timeout | Retries | Start Period |
+|---------|-----------------|----------|---------|---------|--------------|
+| **Tempo** | `http://localhost:3200/ready` | 10s | 5s | 5 | 30s |
+| **Loki** | `http://localhost:3100/ready` | 10s | 5s | 5 | 30s |
+| **Promtail** | `http://localhost:9080/ready` | 10s | 5s | 5 | 15s |
+| **Prometheus** | `http://localhost:9090/-/healthy` | 10s | 5s | 5 | 30s |
+| **Grafana** | `http://localhost:3000/api/health` | 10s | 5s | 5 | 30s |
+
+**Key Points:**
+- All health checks use `wget` (available in Alpine-based images) with `--spider` for lightweight HTTP checks
+- Prometheus requires `--web.enable-lifecycle` flag for the `/-/healthy` endpoint
+- Service dependencies use `condition: service_healthy` to ensure proper startup ordering:
+  - Promtail waits for Loki to be healthy before starting
+  - Grafana waits for Prometheus, Loki, and Tempo to all be healthy
+- Start periods allow services time to initialize before health checks begin failing
 
 ### 2. Tempo Configuration
 
@@ -914,11 +969,24 @@ fi
 
 ## Verification Checklist
 
+### Health Checks
+- [x] Tempo health check configured (`/ready` endpoint)
+- [x] Loki health check configured (`/ready` endpoint)
+- [x] Promtail health check configured (`/ready` endpoint)
+- [x] Prometheus health check configured (`/-/healthy` endpoint)
+- [x] Grafana health check configured (`/api/health` endpoint)
+- [x] Service dependencies use `condition: service_healthy`
+- [x] Promtail depends on healthy Loki
+- [x] Grafana depends on healthy Prometheus, Loki, and Tempo
+
+### Service Availability
 - [ ] Tempo running and accessible
 - [ ] Loki running and collecting logs
 - [ ] Promtail scraping container logs
 - [ ] Prometheus scraping application metrics
 - [ ] Grafana accessible and datasources configured
+
+### Application Integration
 - [ ] Application exports traces to Tempo
 - [ ] Application logs appear in Loki
 - [ ] Application metrics available in Prometheus
@@ -965,6 +1033,39 @@ fi
 - Decrease trace sampling rate
 - Reduce log retention period
 - Apply Docker resource limits
+
+### Issue: Health checks failing
+**Solution:**
+- Check if service is still starting (allow time for `start_period`)
+- Verify the health endpoint is responding: `docker exec <container> wget -qO- http://localhost:<port>/<endpoint>`
+- Check container logs for startup errors: `docker logs <container>`
+- Verify `wget` is available in the container image
+- For Prometheus, ensure `--web.enable-lifecycle` flag is set
+
+**Health check verification commands:**
+```bash
+# Tempo
+docker exec cqrs-tempo wget -qO- http://localhost:3200/ready
+
+# Loki
+docker exec cqrs-loki wget -qO- http://localhost:3100/ready
+
+# Promtail
+docker exec cqrs-promtail wget -qO- http://localhost:9080/ready
+
+# Prometheus
+docker exec cqrs-prometheus wget -qO- http://localhost:9090/-/healthy
+
+# Grafana
+docker exec cqrs-grafana wget -qO- http://localhost:3000/api/health
+```
+
+### Issue: Service dependency startup failures
+**Solution:**
+- If a service fails to start due to unhealthy dependencies, check the dependent service first
+- Use `docker-compose ps` to view health status of all services
+- Increase `start_period` if services need more time to initialize
+- Check that dependent services have correct health check endpoints
 
 ## Performance Optimization
 
