@@ -3,6 +3,7 @@ package com.pintailconsultingllc.cqrsspike.infrastructure.eventstore
 import io.r2dbc.postgresql.codec.Json
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.Primary
 import org.springframework.core.convert.converter.Converter
 import org.springframework.data.convert.ReadingConverter
 import org.springframework.data.convert.WritingConverter
@@ -16,7 +17,8 @@ import org.springframework.data.r2dbc.dialect.PostgresDialect
 class EventStoreR2dbcConfig {
 
     @Bean
-    fun eventStoreR2dbcCustomConversions(): R2dbcCustomConversions {
+    @Primary
+    fun r2dbcCustomConversions(): R2dbcCustomConversions {
         val converters = listOf(
             JsonToStringConverter(),
             StringToJsonConverter()
