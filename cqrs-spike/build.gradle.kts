@@ -74,6 +74,14 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
     testImplementation("org.mockito:mockito-core")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
+    testImplementation("io.projectreactor:reactor-test")
+
+    // Testcontainers for integration testing
+    testImplementation("org.testcontainers:testcontainers:1.20.4")
+    testImplementation("org.testcontainers:junit-jupiter:1.20.4")
+    testImplementation("org.testcontainers:postgresql:1.20.4")
+    testImplementation("org.testcontainers:r2dbc:1.20.4")
+
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
