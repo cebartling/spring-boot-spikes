@@ -46,6 +46,7 @@ CREATE TABLE domain_event (
 CREATE INDEX idx_domain_event_stream ON domain_event(stream_id, aggregate_version);
 CREATE INDEX idx_domain_event_type ON domain_event(event_type);
 CREATE INDEX idx_domain_event_occurred ON domain_event(occurred_at DESC);
+CREATE INDEX idx_domain_event_type_time ON domain_event(event_type, occurred_at);
 CREATE INDEX idx_domain_event_correlation ON domain_event(correlation_id) WHERE correlation_id IS NOT NULL;
 CREATE INDEX idx_domain_event_causation ON domain_event(causation_id) WHERE causation_id IS NOT NULL;
 
