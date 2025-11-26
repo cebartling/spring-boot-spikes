@@ -406,4 +406,140 @@ class ProductEventStoreRepositoryIntegrationTest {
                 .verifyComplete()
         }
     }
+
+    @Nested
+    @DisplayName("Optimistic Concurrency Control")
+    inner class OptimisticConcurrencyControl {
+
+        @Test
+        @DisplayName("should throw EventStoreConcurrencyException when expected version does not match")
+        fun shouldThrowConcurrencyExceptionWhenVersionMismatch() {
+            val productId = UUID.randomUUID()
+
+            // First, save an initial event at version 1
+            val initialEvent = ProductCreated(
+                productId = productId,
+                version = 1,
+                sku = "CONC-${productId.toString().take(8)}",
+                name = "Test Product",
+                description = null,
+                priceCents = 1000
+            )
+
+            // Save the initial event
+            StepVerifier.create(eventStoreRepository.saveEvents(listOf(initialEvent)))
+                .verifyComplete()
+
+            // Verify stream is at version 1
+            StepVerifier.create(eventStoreRepository.getStreamVersion(productId))
+                .expectNext(1)
+                .verifyComplete()
+
+            // Attempt to save an event with version 2 but expecting version 0 (stale)
+            // This simulates another process having already saved an event
+            val conflictingEvent = ProductPriceChanged(
+                productId = productId,
+                version = 1, // This implies expectedVersion = 0, but stream is already at version 1
+                newPriceCents = 1500,
+                previousPriceCents = 1000,
+                changePercentage = 50.0
+            )
+
+            StepVerifier.create(eventStoreRepository.saveEvents(listOf(conflictingEvent)))
+                .expectErrorMatches { error ->
+                    error is EventStoreConcurrencyException &&
+                    error.aggregateId == productId &&
+                    error.expectedVersion == 0
+                }
+                .verify()
+        }
+
+        @Test
+        @DisplayName("should succeed when expected version matches current stream version")
+        fun shouldSucceedWhenVersionMatches() {
+            val productId = UUID.randomUUID()
+
+            // Save initial event at version 1
+            val initialEvent = ProductCreated(
+                productId = productId,
+                version = 1,
+                sku = "MATCH-${productId.toString().take(8)}",
+                name = "Test Product",
+                description = null,
+                priceCents = 1000
+            )
+
+            StepVerifier.create(eventStoreRepository.saveEvents(listOf(initialEvent)))
+                .verifyComplete()
+
+            // Save second event at version 2, expecting version 1
+            val secondEvent = ProductPriceChanged(
+                productId = productId,
+                version = 2, // This implies expectedVersion = 1, which matches
+                newPriceCents = 1500,
+                previousPriceCents = 1000,
+                changePercentage = 50.0
+            )
+
+            StepVerifier.create(eventStoreRepository.saveEvents(listOf(secondEvent)))
+                .verifyComplete()
+
+            // Verify both events are saved
+            StepVerifier.create(eventStoreRepository.findEventsByAggregateId(productId))
+                .expectNextCount(2)
+                .verifyComplete()
+
+            // Verify stream is at version 2
+            StepVerifier.create(eventStoreRepository.getStreamVersion(productId))
+                .expectNext(2)
+                .verifyComplete()
+        }
+
+        @Test
+        @DisplayName("should detect concurrent modification with multiple events batch")
+        fun shouldDetectConcurrencyWithMultipleEventsBatch() {
+            val productId = UUID.randomUUID()
+
+            // Save initial event
+            val initialEvent = ProductCreated(
+                productId = productId,
+                version = 1,
+                sku = "BATCH-${productId.toString().take(8)}",
+                name = "Test Product",
+                description = null,
+                priceCents = 1000
+            )
+
+            StepVerifier.create(eventStoreRepository.saveEvents(listOf(initialEvent)))
+                .verifyComplete()
+
+            // Attempt to save multiple events starting from wrong version
+            val conflictingBatch = listOf(
+                ProductPriceChanged(
+                    productId = productId,
+                    version = 1, // expectedVersion = 0, but stream is at 1
+                    newPriceCents = 1500,
+                    previousPriceCents = 1000,
+                    changePercentage = 50.0
+                ),
+                ProductActivated(
+                    productId = productId,
+                    version = 2,
+                    previousStatus = ProductStatus.DRAFT
+                )
+            )
+
+            StepVerifier.create(eventStoreRepository.saveEvents(conflictingBatch))
+                .expectErrorMatches { error ->
+                    error is EventStoreConcurrencyException &&
+                    error.aggregateId == productId
+                }
+                .verify()
+
+            // Verify no events from the conflicting batch were saved (atomicity)
+            StepVerifier.create(eventStoreRepository.findEventsByAggregateId(productId))
+                .expectNextCount(1) // Only the initial event
+                .verifyComplete()
+        }
+    }
 }
