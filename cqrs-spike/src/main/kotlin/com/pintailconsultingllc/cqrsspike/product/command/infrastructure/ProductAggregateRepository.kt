@@ -106,7 +106,7 @@ class ProductAggregateRepository(
     fun findBySku(sku: String): Mono<ProductAggregate> {
         return repository.findBySku(sku.uppercase())
             .switchIfEmpty(Mono.defer {
-                Mono.error(ProductNotFoundException(sku))
+                Mono.error(IllegalArgumentException("Product not found for SKU: $sku"))
             })
             .flatMap { entity -> reconstitute(entity) }
     }
