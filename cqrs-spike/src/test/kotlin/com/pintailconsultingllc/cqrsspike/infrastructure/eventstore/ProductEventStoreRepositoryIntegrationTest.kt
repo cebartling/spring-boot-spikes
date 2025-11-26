@@ -15,6 +15,7 @@ import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import reactor.test.StepVerifier
+import java.time.OffsetDateTime
 import java.util.UUID
 
 /**
@@ -735,6 +736,208 @@ class ProductEventStoreRepositoryIntegrationTest {
                     foundEvent is ProductCreated &&
                     foundEvent.productId == productId &&
                     foundEvent.name == "No Metadata Product"
+                }
+                .verifyComplete()
+        }
+    }
+
+    @Nested
+    @DisplayName("Find Events By Type And Time Range")
+    inner class FindEventsByTypeAndTimeRangeTests {
+
+        @Test
+        @DisplayName("should find events within time range")
+        fun shouldFindEventsWithinTimeRange() {
+            val productId = UUID.randomUUID()
+            val beforeSave = OffsetDateTime.now()
+
+            val event = ProductCreated(
+                productId = productId,
+                version = 1,
+                sku = "TIME-${productId.toString().take(8)}",
+                name = "Time Range Test Product",
+                description = null,
+                priceCents = 1999
+            )
+
+            // Save the event
+            StepVerifier.create(eventStoreRepository.saveEvents(listOf(event)))
+                .verifyComplete()
+
+            val afterSave = OffsetDateTime.now().plusSeconds(1)
+
+            // Query for ProductCreated events within the time range
+            StepVerifier.create(
+                eventStoreRepository.findEventsByTypeAndTimeRange(
+                    eventType = "ProductCreated",
+                    startTime = beforeSave,
+                    endTime = afterSave
+                )
+            )
+                .expectNextMatches { foundEvent ->
+                    foundEvent is ProductCreated &&
+                    foundEvent.productId == productId &&
+                    foundEvent.sku == event.sku
+                }
+                .verifyComplete()
+        }
+
+        @Test
+        @DisplayName("should return empty when no events match time range")
+        fun shouldReturnEmptyWhenNoEventsMatchTimeRange() {
+            val productId = UUID.randomUUID()
+
+            val event = ProductCreated(
+                productId = productId,
+                version = 1,
+                sku = "PAST-${productId.toString().take(8)}",
+                name = "Past Event Product",
+                description = null,
+                priceCents = 999
+            )
+
+            // Save the event
+            StepVerifier.create(eventStoreRepository.saveEvents(listOf(event)))
+                .verifyComplete()
+
+            // Query for a time range in the future (no events should match)
+            val futureStart = OffsetDateTime.now().plusHours(1)
+            val futureEnd = OffsetDateTime.now().plusHours(2)
+
+            StepVerifier.create(
+                eventStoreRepository.findEventsByTypeAndTimeRange(
+                    eventType = "ProductCreated",
+                    startTime = futureStart,
+                    endTime = futureEnd
+                )
+            )
+                .verifyComplete()
+        }
+
+        @Test
+        @DisplayName("should return empty when event type does not match")
+        fun shouldReturnEmptyWhenEventTypeDoesNotMatch() {
+            val productId = UUID.randomUUID()
+            val beforeSave = OffsetDateTime.now()
+
+            val event = ProductCreated(
+                productId = productId,
+                version = 1,
+                sku = "TYPE-${productId.toString().take(8)}",
+                name = "Type Mismatch Test",
+                description = null,
+                priceCents = 500
+            )
+
+            StepVerifier.create(eventStoreRepository.saveEvents(listOf(event)))
+                .verifyComplete()
+
+            val afterSave = OffsetDateTime.now().plusSeconds(1)
+
+            // Query for a different event type
+            StepVerifier.create(
+                eventStoreRepository.findEventsByTypeAndTimeRange(
+                    eventType = "ProductPriceChanged",
+                    startTime = beforeSave,
+                    endTime = afterSave
+                )
+            )
+                .verifyComplete()
+        }
+
+        @Test
+        @DisplayName("should find multiple events of same type within time range")
+        fun shouldFindMultipleEventsOfSameTypeWithinTimeRange() {
+            val productId1 = UUID.randomUUID()
+            val productId2 = UUID.randomUUID()
+            val beforeSave = OffsetDateTime.now()
+
+            val event1 = ProductCreated(
+                productId = productId1,
+                version = 1,
+                sku = "MULTI1-${productId1.toString().take(8)}",
+                name = "Multi Time Range 1",
+                description = null,
+                priceCents = 1000
+            )
+
+            val event2 = ProductCreated(
+                productId = productId2,
+                version = 1,
+                sku = "MULTI2-${productId2.toString().take(8)}",
+                name = "Multi Time Range 2",
+                description = null,
+                priceCents = 2000
+            )
+
+            // Save events for different aggregates
+            StepVerifier.create(
+                eventStoreRepository.saveEvents(listOf(event1))
+                    .then(eventStoreRepository.saveEvents(listOf(event2)))
+            )
+                .verifyComplete()
+
+            val afterSave = OffsetDateTime.now().plusSeconds(1)
+
+            // Query should return both ProductCreated events
+            StepVerifier.create(
+                eventStoreRepository.findEventsByTypeAndTimeRange(
+                    eventType = "ProductCreated",
+                    startTime = beforeSave,
+                    endTime = afterSave
+                )
+            )
+                .expectNextMatches { it is ProductCreated }
+                .expectNextMatches { it is ProductCreated }
+                .verifyComplete()
+        }
+
+        @Test
+        @DisplayName("should filter by event type when multiple types exist in time range")
+        fun shouldFilterByEventTypeWhenMultipleTypesExist() {
+            val productId = UUID.randomUUID()
+            val beforeSave = OffsetDateTime.now()
+
+            val events = listOf(
+                ProductCreated(
+                    productId = productId,
+                    version = 1,
+                    sku = "FILTER-${productId.toString().take(8)}",
+                    name = "Filter Test Product",
+                    description = null,
+                    priceCents = 1000
+                ),
+                ProductPriceChanged(
+                    productId = productId,
+                    version = 2,
+                    newPriceCents = 1500,
+                    previousPriceCents = 1000,
+                    changePercentage = 50.0
+                ),
+                ProductActivated(
+                    productId = productId,
+                    version = 3,
+                    previousStatus = ProductStatus.DRAFT
+                )
+            )
+
+            StepVerifier.create(eventStoreRepository.saveEvents(events))
+                .verifyComplete()
+
+            val afterSave = OffsetDateTime.now().plusSeconds(1)
+
+            // Query only for ProductPriceChanged events
+            StepVerifier.create(
+                eventStoreRepository.findEventsByTypeAndTimeRange(
+                    eventType = "ProductPriceChanged",
+                    startTime = beforeSave,
+                    endTime = afterSave
+                )
+            )
+                .expectNextMatches { event ->
+                    event is ProductPriceChanged &&
+                    event.productId == productId &&
+                    event.newPriceCents == 1500
                 }
                 .verifyComplete()
         }
