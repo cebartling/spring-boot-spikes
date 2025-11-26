@@ -50,6 +50,10 @@ CREATE INDEX idx_domain_event_type_time ON domain_event(event_type, occurred_at)
 CREATE INDEX idx_domain_event_correlation ON domain_event(correlation_id) WHERE correlation_id IS NOT NULL;
 CREATE INDEX idx_domain_event_causation ON domain_event(causation_id) WHERE causation_id IS NOT NULL;
 
+-- GIN indexes for JSONB columns (matches production schema)
+CREATE INDEX idx_domain_event_data ON domain_event USING GIN(event_data);
+CREATE INDEX idx_domain_event_metadata ON domain_event USING GIN(metadata);
+
 -- Trigger function to update event_stream.updated_at
 CREATE OR REPLACE FUNCTION update_stream_timestamp()
 RETURNS TRIGGER AS $$
