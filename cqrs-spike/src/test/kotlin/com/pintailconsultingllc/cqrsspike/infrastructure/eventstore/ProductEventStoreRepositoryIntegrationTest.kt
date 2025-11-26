@@ -542,4 +542,201 @@ class ProductEventStoreRepositoryIntegrationTest {
                 .verifyComplete()
         }
     }
+
+    @Nested
+    @DisplayName("Event Metadata")
+    inner class EventMetadataTests {
+
+        @Test
+        @DisplayName("should save events with metadata")
+        fun shouldSaveEventsWithMetadata() {
+            val productId = UUID.randomUUID()
+            val correlationId = UUID.randomUUID()
+            val causationId = UUID.randomUUID()
+            val userId = "test-user@example.com"
+
+            val event = ProductCreated(
+                productId = productId,
+                version = 1,
+                sku = "META-${productId.toString().take(8)}",
+                name = "Metadata Test Product",
+                description = "Testing metadata persistence",
+                priceCents = 2999
+            )
+
+            val metadata = EventMetadata(
+                correlationId = correlationId,
+                causationId = causationId,
+                userId = userId
+            )
+
+            StepVerifier.create(eventStoreRepository.saveEvents(listOf(event), metadata))
+                .verifyComplete()
+
+            // Verify event was saved
+            StepVerifier.create(eventStoreRepository.findEventsByAggregateId(productId))
+                .expectNextCount(1)
+                .verifyComplete()
+        }
+
+        @Test
+        @DisplayName("should find events by correlation ID")
+        fun shouldFindEventsByCorrelationId() {
+            val productId = UUID.randomUUID()
+            val correlationId = UUID.randomUUID()
+            val causationId = UUID.randomUUID()
+
+            val event = ProductCreated(
+                productId = productId,
+                version = 1,
+                sku = "CORR-${productId.toString().take(8)}",
+                name = "Correlation Test Product",
+                description = null,
+                priceCents = 1999
+            )
+
+            val metadata = EventMetadata(
+                correlationId = correlationId,
+                causationId = causationId,
+                userId = "correlation-test-user"
+            )
+
+            StepVerifier.create(
+                eventStoreRepository.saveEvents(listOf(event), metadata)
+                    .thenMany(eventStoreRepository.findEventsByCorrelationId(correlationId))
+            )
+                .expectNextMatches { foundEvent ->
+                    foundEvent is ProductCreated &&
+                    foundEvent.productId == productId &&
+                    foundEvent.sku == event.sku
+                }
+                .verifyComplete()
+        }
+
+        @Test
+        @DisplayName("should find multiple events with same correlation ID")
+        fun shouldFindMultipleEventsWithSameCorrelationId() {
+            val productId = UUID.randomUUID()
+            val correlationId = UUID.randomUUID()
+
+            val events = listOf(
+                ProductCreated(
+                    productId = productId,
+                    version = 1,
+                    sku = "MULTI-CORR-${productId.toString().take(8)}",
+                    name = "Multi Correlation Test",
+                    description = null,
+                    priceCents = 1000
+                ),
+                ProductPriceChanged(
+                    productId = productId,
+                    version = 2,
+                    newPriceCents = 1500,
+                    previousPriceCents = 1000,
+                    changePercentage = 50.0
+                )
+            )
+
+            val metadata = EventMetadata(
+                correlationId = correlationId,
+                causationId = UUID.randomUUID(),
+                userId = "multi-event-user"
+            )
+
+            StepVerifier.create(
+                eventStoreRepository.saveEvents(events, metadata)
+                    .thenMany(eventStoreRepository.findEventsByCorrelationId(correlationId))
+            )
+                .expectNextCount(2)
+                .verifyComplete()
+        }
+
+        @Test
+        @DisplayName("should return empty when correlation ID not found")
+        fun shouldReturnEmptyWhenCorrelationIdNotFound() {
+            val nonExistentCorrelationId = UUID.randomUUID()
+
+            StepVerifier.create(eventStoreRepository.findEventsByCorrelationId(nonExistentCorrelationId))
+                .verifyComplete()
+        }
+
+        @Test
+        @DisplayName("should isolate events by different correlation IDs")
+        fun shouldIsolateEventsByDifferentCorrelationIds() {
+            val productId1 = UUID.randomUUID()
+            val productId2 = UUID.randomUUID()
+            val correlationId1 = UUID.randomUUID()
+            val correlationId2 = UUID.randomUUID()
+
+            val event1 = ProductCreated(
+                productId = productId1,
+                version = 1,
+                sku = "ISO1-${productId1.toString().take(8)}",
+                name = "Isolation Test 1",
+                description = null,
+                priceCents = 1000
+            )
+
+            val event2 = ProductCreated(
+                productId = productId2,
+                version = 1,
+                sku = "ISO2-${productId2.toString().take(8)}",
+                name = "Isolation Test 2",
+                description = null,
+                priceCents = 2000
+            )
+
+            val metadata1 = EventMetadata(correlationId = correlationId1)
+            val metadata2 = EventMetadata(correlationId = correlationId2)
+
+            // Save events with different correlation IDs
+            StepVerifier.create(
+                eventStoreRepository.saveEvents(listOf(event1), metadata1)
+                    .then(eventStoreRepository.saveEvents(listOf(event2), metadata2))
+            )
+                .verifyComplete()
+
+            // Verify correlation ID 1 only returns event 1
+            StepVerifier.create(eventStoreRepository.findEventsByCorrelationId(correlationId1))
+                .expectNextMatches { event ->
+                    event is ProductCreated && event.productId == productId1
+                }
+                .verifyComplete()
+
+            // Verify correlation ID 2 only returns event 2
+            StepVerifier.create(eventStoreRepository.findEventsByCorrelationId(correlationId2))
+                .expectNextMatches { event ->
+                    event is ProductCreated && event.productId == productId2
+                }
+                .verifyComplete()
+        }
+
+        @Test
+        @DisplayName("should save events without metadata")
+        fun shouldSaveEventsWithoutMetadata() {
+            val productId = UUID.randomUUID()
+
+            val event = ProductCreated(
+                productId = productId,
+                version = 1,
+                sku = "NO-META-${productId.toString().take(8)}",
+                name = "No Metadata Product",
+                description = null,
+                priceCents = 500
+            )
+
+            // Save without metadata (null)
+            StepVerifier.create(eventStoreRepository.saveEvents(listOf(event), null))
+                .verifyComplete()
+
+            // Verify event was saved correctly
+            StepVerifier.create(eventStoreRepository.findEventsByAggregateId(productId))
+                .expectNextMatches { foundEvent ->
+                    foundEvent is ProductCreated &&
+                    foundEvent.productId == productId &&
+                    foundEvent.name == "No Metadata Product"
+                }
+                .verifyComplete()
+        }
+    }
 }
