@@ -71,7 +71,7 @@ class ProductEventStoreRepository(
         }
 
         val productId = events.first().productId
-        val expectedVersion = (events.first().version - 1).toInt()
+        val expectedVersion = events.first().version - 1
 
         // Verify all events belong to the same aggregate
         require(events.all { it.productId == productId }) {
@@ -106,11 +106,11 @@ class ProductEventStoreRepository(
      */
     override fun findEventsByAggregateIdFromVersion(
         aggregateId: UUID,
-        fromVersion: Int
+        fromVersion: Long
     ): Flux<ProductEvent> {
         return eventStreamRepository.findByAggregateTypeAndAggregateId(AGGREGATE_TYPE, aggregateId)
             .flatMapMany { stream ->
-                domainEventRepository.findByStreamIdAndVersionGreaterThan(stream.streamId, fromVersion)
+                domainEventRepository.findByStreamIdAndVersionGreaterThan(stream.streamId, fromVersion.toInt())
             }
             .map { entity -> deserializeEvent(entity) }
     }
@@ -138,10 +138,10 @@ class ProductEventStoreRepository(
     /**
      * Gets the current version of an aggregate's event stream.
      */
-    override fun getStreamVersion(aggregateId: UUID): Mono<Int> {
+    override fun getStreamVersion(aggregateId: UUID): Mono<Long> {
         return eventStreamRepository.findByAggregateTypeAndAggregateId(AGGREGATE_TYPE, aggregateId)
-            .map { it.version }
-            .defaultIfEmpty(0)
+            .map { it.version.toLong() }
+            .defaultIfEmpty(0L)
     }
 
     /**
@@ -155,7 +155,7 @@ class ProductEventStoreRepository(
 
     private fun appendEventsUsingStoredProcedure(
         aggregateId: UUID,
-        expectedVersion: Int,
+        expectedVersion: Long,
         events: List<ProductEvent>,
         metadata: EventMetadata?
     ): Mono<Void> {
@@ -177,7 +177,7 @@ class ProductEventStoreRepository(
         return databaseClient.sql(sql)
             .bind("aggregateType", AGGREGATE_TYPE)
             .bind("aggregateId", aggregateId)
-            .bind("expectedVersion", expectedVersion)
+            .bind("expectedVersion", expectedVersion.toInt())
             .bind("events", eventsJsonArray)
             .fetch()
             .rowsUpdated()

@@ -261,7 +261,7 @@ class ProductEventStoreRepositoryIntegrationTest {
                 eventStoreRepository.saveEvents(listOf(event))
                     .then(eventStoreRepository.getStreamVersion(productId))
             )
-                .expectNext(1)
+                .expectNext(1L)
                 .verifyComplete()
         }
 
@@ -271,7 +271,7 @@ class ProductEventStoreRepositoryIntegrationTest {
             val nonExistentId = UUID.randomUUID()
 
             StepVerifier.create(eventStoreRepository.getStreamVersion(nonExistentId))
-                .expectNext(0)
+                .expectNext(0L)
                 .verifyComplete()
         }
 
@@ -306,7 +306,7 @@ class ProductEventStoreRepositoryIntegrationTest {
                 eventStoreRepository.saveEvents(events)
                     .then(eventStoreRepository.getStreamVersion(productId))
             )
-                .expectNext(3)
+                .expectNext(3L)
                 .verifyComplete()
         }
     }
@@ -380,7 +380,7 @@ class ProductEventStoreRepositoryIntegrationTest {
 
             StepVerifier.create(
                 eventStoreRepository.saveEvents(events)
-                    .thenMany(eventStoreRepository.findEventsByAggregateIdFromVersion(productId, 1))
+                    .thenMany(eventStoreRepository.findEventsByAggregateIdFromVersion(productId, 1L))
             )
                 .expectNextMatches { it.version == 2L && it is ProductPriceChanged }
                 .expectNextMatches { it.version == 3L && it is ProductActivated }
@@ -402,7 +402,7 @@ class ProductEventStoreRepositoryIntegrationTest {
 
             StepVerifier.create(
                 eventStoreRepository.saveEvents(listOf(event))
-                    .thenMany(eventStoreRepository.findEventsByAggregateIdFromVersion(productId, 10))
+                    .thenMany(eventStoreRepository.findEventsByAggregateIdFromVersion(productId, 10L))
             )
                 .verifyComplete()
         }
@@ -433,7 +433,7 @@ class ProductEventStoreRepositoryIntegrationTest {
 
             // Verify stream is at version 1
             StepVerifier.create(eventStoreRepository.getStreamVersion(productId))
-                .expectNext(1)
+                .expectNext(1L)
                 .verifyComplete()
 
             // Attempt to save an event with version 2 but expecting version 0 (stale)
@@ -450,7 +450,7 @@ class ProductEventStoreRepositoryIntegrationTest {
                 .expectErrorMatches { error ->
                     error is EventStoreVersionConflictException &&
                     error.aggregateId == productId &&
-                    error.expectedVersion == 0
+                    error.expectedVersion == 0L
                 }
                 .verify()
         }
@@ -492,7 +492,7 @@ class ProductEventStoreRepositoryIntegrationTest {
 
             // Verify stream is at version 2
             StepVerifier.create(eventStoreRepository.getStreamVersion(productId))
-                .expectNext(2)
+                .expectNext(2L)
                 .verifyComplete()
         }
 

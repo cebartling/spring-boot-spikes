@@ -24,8 +24,8 @@ class EventStreamNotFoundException(
 class EventStoreVersionConflictException(
     val aggregateType: String,
     val aggregateId: UUID,
-    val expectedVersion: Int,
-    val actualVersion: Int
+    val expectedVersion: Long,
+    val actualVersion: Long
 ) : EventStoreException(
     "Version conflict for $aggregateType/$aggregateId: expected $expectedVersion, actual $actualVersion"
 )

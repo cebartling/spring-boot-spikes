@@ -39,7 +39,7 @@ interface ExtendedEventStoreRepository : EventStoreRepository {
      */
     fun findEventsByAggregateIdFromVersion(
         aggregateId: UUID,
-        fromVersion: Int
+        fromVersion: Long
     ): Flux<ProductEvent>
 
     /**
@@ -59,7 +59,7 @@ interface ExtendedEventStoreRepository : EventStoreRepository {
     /**
      * Gets the current version of an aggregate's event stream.
      */
-    fun getStreamVersion(aggregateId: UUID): Mono<Int>
+    fun getStreamVersion(aggregateId: UUID): Mono<Long>
 
     /**
      * Checks if an event stream exists.
