@@ -53,7 +53,6 @@ class ProductEventStoreRepository(
      * @param events List of events to save (must all belong to the same aggregate)
      * @return Mono<Void> that completes when events are persisted
      */
-    @Transactional
     override fun saveEvents(events: List<ProductEvent>): Mono<Void> {
         return saveEvents(events, null)
     }
