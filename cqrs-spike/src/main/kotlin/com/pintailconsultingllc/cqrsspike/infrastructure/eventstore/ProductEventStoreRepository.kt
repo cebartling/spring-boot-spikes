@@ -26,7 +26,7 @@ class ProductEventStoreRepository(
     private val domainEventRepository: DomainEventR2dbcRepository,
     private val eventSerializer: EventSerializer,
     private val eventDeserializer: EventDeserializer
-) : EventStoreRepository {
+) : EventStoreRepository, ExtendedEventStoreRepository {
 
     private val logger = LoggerFactory.getLogger(ProductEventStoreRepository::class.java)
 
