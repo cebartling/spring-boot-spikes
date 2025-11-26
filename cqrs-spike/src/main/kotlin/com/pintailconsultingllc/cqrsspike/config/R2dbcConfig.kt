@@ -21,7 +21,4 @@ import org.springframework.data.r2dbc.repository.config.EnableR2dbcRepositories
         "com.pintailconsultingllc.cqrsspike.product.command.infrastructure"
     ]
 )
-@EnableJdbcRepositories(
-    basePackages = ["com.pintailconsultingllc.cqrsspike.jdbc.nonexistent"]
-)
 class R2dbcConfig
