@@ -1,5 +1,8 @@
 package com.pintailconsultingllc.cqrsspike.infrastructure.eventstore
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.pintailconsultingllc.cqrsspike.product.command.infrastructure.EventStoreRepository
 import com.pintailconsultingllc.cqrsspike.product.command.infrastructure.ExtendedEventStoreRepository
 import com.pintailconsultingllc.cqrsspike.product.event.ProductEvent
@@ -31,6 +34,7 @@ class ProductEventStoreRepository(
 ) : EventStoreRepository, ExtendedEventStoreRepository {
 
     private val logger = LoggerFactory.getLogger(ProductEventStoreRepository::class.java)
+    private val objectMapper: ObjectMapper = jacksonObjectMapper().registerModule(JavaTimeModule())
 
     companion object {
         const val AGGREGATE_TYPE = "Product"
@@ -156,22 +160,18 @@ class ProductEventStoreRepository(
         events: List<ProductEvent>,
         metadata: EventMetadata?
     ): Mono<Void> {
-        val eventsJsonArray = events.map { event ->
-            buildEventJsonObject(event, metadata)
-        }
+        // Build JSON objects for each event using Jackson (safe serialization)
+        val eventsJsonArray: Array<io.r2dbc.postgresql.codec.Json> = events.map { event ->
+            io.r2dbc.postgresql.codec.Json.of(buildEventJsonObject(event, metadata))
+        }.toTypedArray()
 
-        val eventsArrayString = eventsJsonArray.joinToString(
-            separator = ",",
-            prefix = "ARRAY[",
-            postfix = "]::JSONB[]"
-        ) { "'$it'::JSONB" }
-
+        // Use parameterized query with proper array binding to prevent SQL injection
         val sql = """
             SELECT event_store.append_events(
                 :aggregateType,
                 :aggregateId,
                 :expectedVersion,
-                $eventsArrayString
+                :events
             )
         """.trimIndent()
 
@@ -179,6 +179,7 @@ class ProductEventStoreRepository(
             .bind("aggregateType", AGGREGATE_TYPE)
             .bind("aggregateId", aggregateId)
             .bind("expectedVersion", expectedVersion)
+            .bind("events", eventsJsonArray)
             .fetch()
             .rowsUpdated()
             .then()
@@ -195,44 +196,32 @@ class ProductEventStoreRepository(
             }
     }
 
+    /**
+     * Builds a JSON object for the event using Jackson ObjectMapper.
+     * This is safe from injection as Jackson handles all escaping properly.
+     */
     private fun buildEventJsonObject(event: ProductEvent, metadata: EventMetadata?): String {
         val eventData = eventSerializer.serialize(event)
         val eventType = eventSerializer.getEventTypeName(event)
         val eventVersion = eventSerializer.getEventVersion(event)
-
-        // Escape the JSON string for embedding in SQL
-        val escapedEventData = eventData
-            .replace("\\", "\\\\")
-            .replace("'", "''")
-
-        // Build metadata fields if present
         val metadataJson = metadata?.let { eventSerializer.serializeMetadata(it) }
-        val escapedMetadata = metadataJson
-            ?.replace("\\", "\\\\")
-            ?.replace("'", "''")
 
-        // Build JSON object with all fields expected by append_events stored procedure
-        val jsonParts = mutableListOf(
-            """"event_type":"$eventType"""",
-            """"event_version":$eventVersion""",
-            """"event_data":$escapedEventData"""
-        )
+        // Use a map and Jackson for safe JSON construction
+        val eventObject = buildMap {
+            put("event_type", eventType)
+            put("event_version", eventVersion)
+            // Parse event_data back to object to avoid double-encoding
+            put("event_data", objectMapper.readTree(eventData))
 
-        // Add optional metadata fields
-        if (escapedMetadata != null) {
-            jsonParts.add(""""metadata":$escapedMetadata""")
-        }
-        metadata?.causationId?.let {
-            jsonParts.add(""""causation_id":"$it"""")
-        }
-        metadata?.correlationId?.let {
-            jsonParts.add(""""correlation_id":"$it"""")
-        }
-        metadata?.userId?.let {
-            jsonParts.add(""""user_id":"$it"""")
+            if (metadataJson != null) {
+                put("metadata", objectMapper.readTree(metadataJson))
+            }
+            metadata?.causationId?.let { put("causation_id", it.toString()) }
+            metadata?.correlationId?.let { put("correlation_id", it.toString()) }
+            metadata?.userId?.let { put("user_id", it) }
         }
 
-        return "{${jsonParts.joinToString(",")}}"
+        return objectMapper.writeValueAsString(eventObject)
     }
 
     private fun deserializeEvent(entity: DomainEventEntity): ProductEvent {
