@@ -15,6 +15,7 @@ import org.springframework.data.r2dbc.repository.config.EnableR2dbcRepositories
  * migrations to work.
  */
 @Configuration
+@EnableJdbcRepositories(basePackages = [])
 @EnableR2dbcRepositories(
     basePackages = [
         "com.pintailconsultingllc.cqrsspike.infrastructure.eventstore",
