@@ -1,0 +1,205 @@
+package com.pintailconsultingllc.cqrsspike.infrastructure.eventstore
+
+import com.pintailconsultingllc.cqrsspike.product.command.infrastructure.EventStoreRepository
+import com.pintailconsultingllc.cqrsspike.product.event.ProductEvent
+import org.slf4j.LoggerFactory
+import org.springframework.context.annotation.Primary
+import org.springframework.r2dbc.core.DatabaseClient
+import org.springframework.stereotype.Repository
+import org.springframework.transaction.annotation.Transactional
+import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
+import java.time.OffsetDateTime
+import java.util.UUID
+
+/**
+ * Production implementation of EventStoreRepository using R2DBC and PostgreSQL.
+ *
+ * Uses the append_events stored procedure for atomic event appending with
+ * optimistic concurrency control.
+ */
+@Repository
+@Primary
+class ProductEventStoreRepository(
+    private val databaseClient: DatabaseClient,
+    private val eventStreamRepository: EventStreamR2dbcRepository,
+    private val domainEventRepository: DomainEventR2dbcRepository,
+    private val eventSerializer: EventSerializer,
+    private val eventDeserializer: EventDeserializer
+) : EventStoreRepository {
+
+    private val logger = LoggerFactory.getLogger(ProductEventStoreRepository::class.java)
+
+    companion object {
+        const val AGGREGATE_TYPE = "Product"
+    }
+
+    /**
+     * Saves events to the event store using the append_events function.
+     *
+     * @param events List of events to save (must all belong to the same aggregate)
+     * @return Mono<Void> that completes when events are persisted
+     */
+    @Transactional
+    override fun saveEvents(events: List<ProductEvent>): Mono<Void> {
+        if (events.isEmpty()) {
+            return Mono.empty()
+        }
+
+        val productId = events.first().productId
+        val expectedVersion = (events.first().version - 1).toInt()
+
+        // Verify all events belong to the same aggregate
+        require(events.all { it.productId == productId }) {
+            "All events must belong to the same aggregate"
+        }
+
+        return appendEventsUsingStoredProcedure(productId, expectedVersion, events)
+            .doOnSuccess {
+                logger.info("Saved ${events.size} events for Product $productId")
+            }
+            .doOnError { error ->
+                logger.error("Failed to save events for Product $productId", error)
+            }
+    }
+
+    /**
+     * Finds all events for a given aggregate ID in version order.
+     */
+    override fun findEventsByAggregateId(aggregateId: UUID): Flux<ProductEvent> {
+        return eventStreamRepository.findByAggregateTypeAndAggregateId(AGGREGATE_TYPE, aggregateId)
+            .flatMapMany { stream ->
+                domainEventRepository.findByStreamIdOrderByAggregateVersion(stream.streamId)
+            }
+            .map { entity -> deserializeEvent(entity) }
+            .doOnComplete {
+                logger.debug("Loaded events for Product $aggregateId")
+            }
+    }
+
+    /**
+     * Finds events starting from a specific version (for partial replay).
+     */
+    fun findEventsByAggregateIdFromVersion(
+        aggregateId: UUID,
+        fromVersion: Int
+    ): Flux<ProductEvent> {
+        return eventStreamRepository.findByAggregateTypeAndAggregateId(AGGREGATE_TYPE, aggregateId)
+            .flatMapMany { stream ->
+                domainEventRepository.findByStreamIdAndVersionGreaterThan(stream.streamId, fromVersion)
+            }
+            .map { entity -> deserializeEvent(entity) }
+    }
+
+    /**
+     * Finds events by type within a time range.
+     */
+    fun findEventsByTypeAndTimeRange(
+        eventType: String,
+        startTime: OffsetDateTime,
+        endTime: OffsetDateTime
+    ): Flux<ProductEvent> {
+        return domainEventRepository.findByEventTypeAndTimeRange(eventType, startTime, endTime)
+            .map { entity -> deserializeEvent(entity) }
+    }
+
+    /**
+     * Finds events by correlation ID (for distributed tracing).
+     */
+    fun findEventsByCorrelationId(correlationId: UUID): Flux<ProductEvent> {
+        return domainEventRepository.findByCorrelationId(correlationId)
+            .map { entity -> deserializeEvent(entity) }
+    }
+
+    /**
+     * Gets the current version of an aggregate's event stream.
+     */
+    fun getStreamVersion(aggregateId: UUID): Mono<Int> {
+        return eventStreamRepository.findByAggregateTypeAndAggregateId(AGGREGATE_TYPE, aggregateId)
+            .map { it.version }
+            .defaultIfEmpty(0)
+    }
+
+    /**
+     * Checks if an event stream exists for an aggregate.
+     */
+    fun streamExists(aggregateId: UUID): Mono<Boolean> {
+        return eventStreamRepository.existsByAggregateTypeAndAggregateId(AGGREGATE_TYPE, aggregateId)
+    }
+
+    // Private helper methods
+
+    private fun appendEventsUsingStoredProcedure(
+        aggregateId: UUID,
+        expectedVersion: Int,
+        events: List<ProductEvent>
+    ): Mono<Void> {
+        val eventsJsonArray = events.map { event ->
+            buildEventJsonObject(event)
+        }
+
+        val eventsArrayString = eventsJsonArray.joinToString(
+            separator = ",",
+            prefix = "ARRAY[",
+            postfix = "]::JSONB[]"
+        ) { "'$it'::JSONB" }
+
+        val sql = """
+            SELECT event_store.append_events(
+                :aggregateType,
+                :aggregateId,
+                :expectedVersion,
+                $eventsArrayString
+            )
+        """.trimIndent()
+
+        return databaseClient.sql(sql)
+            .bind("aggregateType", AGGREGATE_TYPE)
+            .bind("aggregateId", aggregateId)
+            .bind("expectedVersion", expectedVersion)
+            .fetch()
+            .rowsUpdated()
+            .then()
+            .onErrorMap { error ->
+                if (error.message?.contains("Concurrency conflict") == true) {
+                    EventStoreConcurrencyException(
+                        aggregateId = aggregateId,
+                        expectedVersion = expectedVersion,
+                        message = "Concurrent modification detected for Product $aggregateId"
+                    )
+                } else {
+                    error
+                }
+            }
+    }
+
+    private fun buildEventJsonObject(event: ProductEvent): String {
+        val eventData = eventSerializer.serialize(event)
+        val eventType = eventSerializer.getEventTypeName(event)
+        val eventVersion = eventSerializer.getEventVersion(event)
+
+        // Escape the JSON string for embedding in SQL
+        val escapedEventData = eventData
+            .replace("\\", "\\\\")
+            .replace("'", "''")
+
+        return """{"event_type":"$eventType","event_version":$eventVersion,"event_data":$escapedEventData}"""
+    }
+
+    private fun deserializeEvent(entity: DomainEventEntity): ProductEvent {
+        return eventDeserializer.deserialize(
+            eventType = entity.eventType,
+            eventVersion = entity.eventVersion,
+            json = entity.eventData
+        )
+    }
+}
+
+/**
+ * Exception thrown when concurrent modification is detected.
+ */
+class EventStoreConcurrencyException(
+    val aggregateId: UUID,
+    val expectedVersion: Int,
+    message: String
+) : RuntimeException(message)
