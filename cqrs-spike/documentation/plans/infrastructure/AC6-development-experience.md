@@ -1,6 +1,6 @@
 # Implementation Plan: AC6 - Development Experience
 
-**Feature:** [Local Development Services Infrastructure](../features/001-feature-infrastructure.md)
+**Feature:** [Local Development Services Infrastructure](../../features/001-feature-infrastructure.md)
 
 **Acceptance Criteria:** AC6 - Development Experience
 

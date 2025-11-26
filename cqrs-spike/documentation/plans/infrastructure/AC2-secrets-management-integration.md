@@ -1,6 +1,6 @@
 # Implementation Plan: AC2 - Secrets Management Integration
 
-**Feature:** [Local Development Services Infrastructure](../features/001-feature-infrastructure.md)
+**Feature:** [Local Development Services Infrastructure](../../features/001-feature-infrastructure.md)
 
 **Acceptance Criteria:** AC2 - Secrets Management Integration
 

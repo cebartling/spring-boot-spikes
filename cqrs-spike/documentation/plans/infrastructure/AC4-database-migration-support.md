@@ -1,6 +1,6 @@
 # Implementation Plan: AC4 - Database Migration Support
 
-**Feature:** [Local Development Services Infrastructure](../features/001-feature-infrastructure.md)
+**Feature:** [Local Development Services Infrastructure](../../features/001-feature-infrastructure.md)
 
 **Acceptance Criteria:** AC4 - Database Migration Support
 

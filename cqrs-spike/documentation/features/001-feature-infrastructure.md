@@ -19,7 +19,7 @@ As a development team, we need a comprehensive local development infrastructure 
 
 ### AC1: Secrets Management
 
-**Implementation Plan:** [AC1 - Secrets Management](../plans/AC1-secrets-management.md)
+**Implementation Plan:** [AC1 - Secrets Management](../plans/infrastructure/AC1-secrets-management.md)
 
 - A secrets management service (e.g., HashiCorp Vault, AWS Secrets Manager Local) is available when infrastructure starts
 - The service is accessible via a well-defined endpoint
@@ -30,7 +30,7 @@ As a development team, we need a comprehensive local development infrastructure 
 
 ### AC2: Secrets Management Integration
 
-**Implementation Plan:** [AC2 - Secrets Management Integration](../plans/AC2-secrets-management-integration.md)
+**Implementation Plan:** [AC2 - Secrets Management Integration](../plans/infrastructure/AC2-secrets-management-integration.md)
 
 - The Spring Boot application successfully retrieves required secrets from the secrets service on startup
 - The application fails gracefully if secrets are unavailable
@@ -39,7 +39,7 @@ As a development team, we need a comprehensive local development infrastructure 
 
 ### AC3: Relational Database
 
-**Implementation Plan:** [AC3 - Relational Database](../plans/AC3-relational-database.md)
+**Implementation Plan:** [AC3 - Relational Database](../plans/infrastructure/AC3-relational-database.md)
 
 - A relational database (PostgreSQL or MySQL) is available when infrastructure starts
 - The database is accessible on a standard port
@@ -49,7 +49,7 @@ As a development team, we need a comprehensive local development infrastructure 
 
 ### AC4: Database Migration Support
 
-**Implementation Plan:** [AC4 - Database Migration Support](../plans/AC4-database-migration-support.md)
+**Implementation Plan:** [AC4 - Database Migration Support](../plans/infrastructure/AC4-database-migration-support.md)
 
 - A migration tool (e.g., Flyway, Liquibase) is configured
 - Migrations run automatically on application startup
@@ -59,7 +59,7 @@ As a development team, we need a comprehensive local development infrastructure 
 
 ### AC5: Infrastructure Orchestration
 
-**Implementation Plan:** [AC5 - Infrastructure Orchestration](../plans/AC5-infrastructure-orchestration.md)
+**Implementation Plan:** [AC5 - Infrastructure Orchestration](../plans/infrastructure/AC5-infrastructure-orchestration.md)
 
 - All services start in the correct dependency order
 - Health checks verify all services are ready before the application starts
@@ -69,7 +69,7 @@ As a development team, we need a comprehensive local development infrastructure 
 
 ### AC6: Development Experience
 
-**Implementation Plan:** [AC6 - Development Experience](../plans/AC6-development-experience.md)
+**Implementation Plan:** [AC6 - Development Experience](../plans/infrastructure/AC6-development-experience.md)
 
 - Connection details for all services are clearly documented
 - Environment variables or configuration files are provided for local setup
@@ -79,7 +79,7 @@ As a development team, we need a comprehensive local development infrastructure 
 
 ### AC7: Data Seeding and Reset
 
-**Implementation Plan:** [AC7 - Data Seeding and Reset](../plans/AC7-data-seeding-reset.md)
+**Implementation Plan:** [AC7 - Data Seeding and Reset](../plans/infrastructure/AC7-data-seeding-reset.md)
 
 - Seed data scripts are available for the database
 - Developers can reset the database to a clean state with a simple command
@@ -87,7 +87,7 @@ As a development team, we need a comprehensive local development infrastructure 
 
 ### AC8: Documentation
 
-**Implementation Plan:** [AC8 - Documentation](../plans/AC8-documentation.md)
+**Implementation Plan:** [AC8 - Documentation](../plans/infrastructure/AC8-documentation.md)
 
 - README documentation explains all prerequisites
 - Documentation provides step-by-step setup instructions
@@ -97,7 +97,7 @@ As a development team, we need a comprehensive local development infrastructure 
 
 ### AC9: Observability Platform
 
-**Implementation Plan:** [AC9 - Observability Platform](../plans/AC9-observability-platform.md)
+**Implementation Plan:** [AC9 - Observability Platform](../plans/infrastructure/AC9-observability-platform.md)
 
 - A distributed tracing system is available for tracking requests across services
 - Trace data is collected from the Spring Boot application automatically

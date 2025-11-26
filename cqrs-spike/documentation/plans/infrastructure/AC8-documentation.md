@@ -1,6 +1,6 @@
 # Implementation Plan: AC8 - Documentation
 
-**Feature:** [Local Development Services Infrastructure](../features/001-feature-infrastructure.md)
+**Feature:** [Local Development Services Infrastructure](../../features/001-feature-infrastructure.md)
 
 **Acceptance Criteria:** AC8 - Documentation
 

@@ -1,6 +1,6 @@
 # Implementation Plan: AC5 - Infrastructure Orchestration
 
-**Feature:** [Local Development Services Infrastructure](../features/001-feature-infrastructure.md)
+**Feature:** [Local Development Services Infrastructure](../../features/001-feature-infrastructure.md)
 
 **Acceptance Criteria:** AC5 - Infrastructure Orchestration
 
@@ -43,7 +43,7 @@ services:
       - ./infrastructure/vault/policies:/vault/policies:ro
     command: server -dev -dev-root-token-id=${VAULT_ROOT_TOKEN:-dev-root-token}
     healthcheck:
-      test: ["CMD", "vault", "status"]
+      test: [ "CMD", "vault", "status" ]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -73,7 +73,7 @@ services:
       - ./infrastructure/postgres/config/postgresql.conf:/etc/postgresql/postgresql.conf:ro
     command: postgres -c config_file=/etc/postgresql/postgresql.conf
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cqrs_user} -d ${POSTGRES_DB:-cqrs_db}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cqrs_user} -d ${POSTGRES_DB:-cqrs_db}" ]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -113,7 +113,7 @@ services:
   # Spring Boot Application
   app:
     build:
-      context: .
+      context: ..
       dockerfile: Dockerfile
     container_name: cqrs-app
     hostname: app
@@ -134,7 +134,7 @@ services:
       - ./target:/app/target
       - ~/.m2:/root/.m2:ro
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/actuator/health" ]
       interval: 10s
       timeout: 5s
       retries: 10

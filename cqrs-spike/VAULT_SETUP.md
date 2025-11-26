@@ -319,7 +319,7 @@ docker-compose down vault
 - [HashiCorp Vault Documentation](https://www.vaultproject.io/docs)
 - [Spring Cloud Vault Reference](https://docs.spring.io/spring-cloud-vault/docs/current/reference/html/)
 - [Vault Best Practices](https://learn.hashicorp.com/tutorials/vault/production-hardening)
-- [Implementation Plan](documentation/plans/AC1-secrets-management.md)
+- [Implementation Plan](documentation/plans/infrastructure/AC1-secrets-management.md)
 
 ## AC2 Integration Enhancements
 

@@ -1,6 +1,6 @@
 # Implementation Plan: AC7 - Data Seeding and Reset
 
-**Feature:** [Local Development Services Infrastructure](../features/001-feature-infrastructure.md)
+**Feature:** [Local Development Services Infrastructure](../../features/001-feature-infrastructure.md)
 
 **Acceptance Criteria:** AC7 - Data Seeding and Reset
 

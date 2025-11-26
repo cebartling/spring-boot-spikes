@@ -1,6 +1,6 @@
 # Implementation Plan: AC9 - Observability Platform
 
-**Feature:** [Local Development Services Infrastructure](../features/001-feature-infrastructure.md)
+**Feature:** [Local Development Services Infrastructure](../../features/001-feature-infrastructure.md)
 
 **Acceptance Criteria:** AC9 - Observability Platform
 
