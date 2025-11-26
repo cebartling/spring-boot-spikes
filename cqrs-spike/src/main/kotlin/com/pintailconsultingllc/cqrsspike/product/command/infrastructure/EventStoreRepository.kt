@@ -1,5 +1,6 @@
 package com.pintailconsultingllc.cqrsspike.product.command.infrastructure
 
+import com.pintailconsultingllc.cqrsspike.infrastructure.eventstore.EventMetadata
 import com.pintailconsultingllc.cqrsspike.product.event.ProductEvent
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
@@ -11,9 +12,17 @@ import java.util.UUID
  */
 interface EventStoreRepository {
     /**
-     * Saves events to the event store.
+     * Saves events to the event store without metadata.
      */
     fun saveEvents(events: List<ProductEvent>): Mono<Void>
+
+    /**
+     * Saves events to the event store with metadata for tracing and auditing.
+     *
+     * @param events List of events to save
+     * @param metadata Optional metadata including causationId, correlationId, and userId
+     */
+    fun saveEvents(events: List<ProductEvent>, metadata: EventMetadata?): Mono<Void>
 
     /**
      * Finds all events for a given aggregate ID.

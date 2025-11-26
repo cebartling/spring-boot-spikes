@@ -1,6 +1,7 @@
 package com.pintailconsultingllc.cqrsspike.infrastructure.eventstore
 
 import com.pintailconsultingllc.cqrsspike.product.command.infrastructure.EventStoreRepository
+import com.pintailconsultingllc.cqrsspike.product.command.infrastructure.ExtendedEventStoreRepository
 import com.pintailconsultingllc.cqrsspike.product.event.ProductEvent
 import io.r2dbc.spi.R2dbcException
 import org.slf4j.LoggerFactory
@@ -43,13 +44,25 @@ class ProductEventStoreRepository(
     }
 
     /**
-     * Saves events to the event store using the append_events function.
+     * Saves events to the event store without metadata.
      *
      * @param events List of events to save (must all belong to the same aggregate)
      * @return Mono<Void> that completes when events are persisted
      */
     @Transactional
     override fun saveEvents(events: List<ProductEvent>): Mono<Void> {
+        return saveEvents(events, null)
+    }
+
+    /**
+     * Saves events to the event store with metadata for tracing and auditing.
+     *
+     * @param events List of events to save (must all belong to the same aggregate)
+     * @param metadata Optional metadata including causationId, correlationId, and userId
+     * @return Mono<Void> that completes when events are persisted
+     */
+    @Transactional
+    override fun saveEvents(events: List<ProductEvent>, metadata: EventMetadata?): Mono<Void> {
         if (events.isEmpty()) {
             return Mono.empty()
         }
@@ -62,7 +75,7 @@ class ProductEventStoreRepository(
             "All events must belong to the same aggregate"
         }
 
-        return appendEventsUsingStoredProcedure(productId, expectedVersion, events)
+        return appendEventsUsingStoredProcedure(productId, expectedVersion, events, metadata)
             .doOnSuccess {
                 logger.info("Saved ${events.size} events for Product $productId")
             }
@@ -88,7 +101,7 @@ class ProductEventStoreRepository(
     /**
      * Finds events starting from a specific version (for partial replay).
      */
-    fun findEventsByAggregateIdFromVersion(
+    override fun findEventsByAggregateIdFromVersion(
         aggregateId: UUID,
         fromVersion: Int
     ): Flux<ProductEvent> {
@@ -102,7 +115,7 @@ class ProductEventStoreRepository(
     /**
      * Finds events by type within a time range.
      */
-    fun findEventsByTypeAndTimeRange(
+    override fun findEventsByTypeAndTimeRange(
         eventType: String,
         startTime: OffsetDateTime,
         endTime: OffsetDateTime
@@ -114,7 +127,7 @@ class ProductEventStoreRepository(
     /**
      * Finds events by correlation ID (for distributed tracing).
      */
-    fun findEventsByCorrelationId(correlationId: UUID): Flux<ProductEvent> {
+    override fun findEventsByCorrelationId(correlationId: UUID): Flux<ProductEvent> {
         return domainEventRepository.findByCorrelationId(correlationId)
             .map { entity -> deserializeEvent(entity) }
     }
@@ -122,7 +135,7 @@ class ProductEventStoreRepository(
     /**
      * Gets the current version of an aggregate's event stream.
      */
-    fun getStreamVersion(aggregateId: UUID): Mono<Int> {
+    override fun getStreamVersion(aggregateId: UUID): Mono<Int> {
         return eventStreamRepository.findByAggregateTypeAndAggregateId(AGGREGATE_TYPE, aggregateId)
             .map { it.version }
             .defaultIfEmpty(0)
@@ -131,7 +144,7 @@ class ProductEventStoreRepository(
     /**
      * Checks if an event stream exists for an aggregate.
      */
-    fun streamExists(aggregateId: UUID): Mono<Boolean> {
+    override fun streamExists(aggregateId: UUID): Mono<Boolean> {
         return eventStreamRepository.existsByAggregateTypeAndAggregateId(AGGREGATE_TYPE, aggregateId)
     }
 
@@ -140,10 +153,11 @@ class ProductEventStoreRepository(
     private fun appendEventsUsingStoredProcedure(
         aggregateId: UUID,
         expectedVersion: Int,
-        events: List<ProductEvent>
+        events: List<ProductEvent>,
+        metadata: EventMetadata?
     ): Mono<Void> {
         val eventsJsonArray = events.map { event ->
-            buildEventJsonObject(event)
+            buildEventJsonObject(event, metadata)
         }
 
         val eventsArrayString = eventsJsonArray.joinToString(
@@ -181,7 +195,7 @@ class ProductEventStoreRepository(
             }
     }
 
-    private fun buildEventJsonObject(event: ProductEvent): String {
+    private fun buildEventJsonObject(event: ProductEvent, metadata: EventMetadata?): String {
         val eventData = eventSerializer.serialize(event)
         val eventType = eventSerializer.getEventTypeName(event)
         val eventVersion = eventSerializer.getEventVersion(event)
@@ -191,7 +205,34 @@ class ProductEventStoreRepository(
             .replace("\\", "\\\\")
             .replace("'", "''")
 
-        return """{"event_type":"$eventType","event_version":$eventVersion,"event_data":$escapedEventData}"""
+        // Build metadata fields if present
+        val metadataJson = metadata?.let { eventSerializer.serializeMetadata(it) }
+        val escapedMetadata = metadataJson
+            ?.replace("\\", "\\\\")
+            ?.replace("'", "''")
+
+        // Build JSON object with all fields expected by append_events stored procedure
+        val jsonParts = mutableListOf(
+            """"event_type":"$eventType"""",
+            """"event_version":$eventVersion""",
+            """"event_data":$escapedEventData"""
+        )
+
+        // Add optional metadata fields
+        if (escapedMetadata != null) {
+            jsonParts.add(""""metadata":$escapedMetadata""")
+        }
+        metadata?.causationId?.let {
+            jsonParts.add(""""causation_id":"$it"""")
+        }
+        metadata?.correlationId?.let {
+            jsonParts.add(""""correlation_id":"$it"""")
+        }
+        metadata?.userId?.let {
+            jsonParts.add(""""user_id":"$it"""")
+        }
+
+        return "{${jsonParts.joinToString(",")}}"
     }
 
     private fun deserializeEvent(entity: DomainEventEntity): ProductEvent {
