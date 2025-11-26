@@ -128,6 +128,38 @@ class ProductEventStoreRepositoryIntegrationTest {
             StepVerifier.create(eventStoreRepository.saveEvents(emptyList()))
                 .verifyComplete()
         }
+
+        @Test
+        @DisplayName("should reject events from different aggregates")
+        fun shouldRejectEventsFromDifferentAggregates() {
+            val productId1 = UUID.randomUUID()
+            val productId2 = UUID.randomUUID()
+
+            val mixedEvents = listOf(
+                ProductCreated(
+                    productId = productId1,
+                    version = 1,
+                    sku = "MIX1-${productId1.toString().take(8)}",
+                    name = "Product 1",
+                    description = null,
+                    priceCents = 1000
+                ),
+                ProductPriceChanged(
+                    productId = productId2, // Different aggregate!
+                    version = 2,
+                    newPriceCents = 1500,
+                    previousPriceCents = 1000,
+                    changePercentage = 50.0
+                )
+            )
+
+            StepVerifier.create(eventStoreRepository.saveEvents(mixedEvents))
+                .expectErrorMatches { error ->
+                    error is IllegalArgumentException &&
+                    error.message == "All events must belong to the same aggregate"
+                }
+                .verify()
+        }
     }
 
     @Nested
