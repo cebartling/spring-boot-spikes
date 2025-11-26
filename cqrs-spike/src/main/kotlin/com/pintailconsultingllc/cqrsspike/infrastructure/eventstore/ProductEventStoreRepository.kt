@@ -2,6 +2,7 @@ package com.pintailconsultingllc.cqrsspike.infrastructure.eventstore
 
 import com.pintailconsultingllc.cqrsspike.product.command.infrastructure.EventStoreRepository
 import com.pintailconsultingllc.cqrsspike.product.event.ProductEvent
+import io.r2dbc.spi.R2dbcException
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Primary
 import org.springframework.r2dbc.core.DatabaseClient
@@ -32,6 +33,13 @@ class ProductEventStoreRepository(
 
     companion object {
         const val AGGREGATE_TYPE = "Product"
+
+        /**
+         * PostgreSQL SQL state for serialization_failure.
+         * This is set by the append_events stored procedure when a concurrency conflict is detected.
+         * Using the SQL state is more robust than matching error message text.
+         */
+        const val SQLSTATE_SERIALIZATION_FAILURE = "40001"
     }
 
     /**
@@ -161,7 +169,7 @@ class ProductEventStoreRepository(
             .rowsUpdated()
             .then()
             .onErrorMap { error ->
-                if (error.message?.contains("Concurrency conflict") == true) {
+                if (isSerializationFailure(error)) {
                     EventStoreConcurrencyException(
                         aggregateId = aggregateId,
                         expectedVersion = expectedVersion,
@@ -192,6 +200,23 @@ class ProductEventStoreRepository(
             eventVersion = entity.eventVersion,
             json = entity.eventData
         )
+    }
+
+    /**
+     * Checks if the error is a PostgreSQL serialization_failure.
+     * This checks the SQL state code (40001) which is language-independent
+     * and more robust than matching error message text.
+     */
+    private fun isSerializationFailure(error: Throwable): Boolean {
+        // Check the error and its cause chain for R2dbcException with serialization_failure SQL state
+        var current: Throwable? = error
+        while (current != null) {
+            if (current is R2dbcException && current.sqlState == SQLSTATE_SERIALIZATION_FAILURE) {
+                return true
+            }
+            current = current.cause
+        }
+        return false
     }
 }
 
