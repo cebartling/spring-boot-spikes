@@ -184,11 +184,14 @@ class ProductEventStoreRepository(
             .then()
             .onErrorMap { error ->
                 if (isSerializationFailure(error)) {
+                    // Note: actualVersion is an approximation. The real version could be higher
+                    // if multiple events were saved concurrently. Querying the actual version
+                    // would require an additional database call in the error path.
                     EventStoreVersionConflictException(
                         aggregateType = AGGREGATE_TYPE,
                         aggregateId = aggregateId,
                         expectedVersion = expectedVersion,
-                        actualVersion = expectedVersion + 1 // Conflict means stream advanced
+                        actualVersion = expectedVersion + 1
                     )
                 } else {
                     error
