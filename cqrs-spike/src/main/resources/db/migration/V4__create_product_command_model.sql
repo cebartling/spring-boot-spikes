@@ -36,6 +36,9 @@ CREATE INDEX idx_product_version
     ON product(id, version);
 
 -- Index for active products
+CREATE INDEX idx_product_active
+    ON product(id)
+    WHERE status = 'ACTIVE' AND deleted_at IS NULL;
 
 -- Add comments for documentation
 COMMENT ON TABLE product IS 'Product aggregate for command model - stores current product state';
