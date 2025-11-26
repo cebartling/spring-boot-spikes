@@ -447,7 +447,7 @@ class ProductEventStoreRepositoryIntegrationTest {
 
             StepVerifier.create(eventStoreRepository.saveEvents(listOf(conflictingEvent)))
                 .expectErrorMatches { error ->
-                    error is EventStoreConcurrencyException &&
+                    error is EventStoreVersionConflictException &&
                     error.aggregateId == productId &&
                     error.expectedVersion == 0
                 }
@@ -531,7 +531,7 @@ class ProductEventStoreRepositoryIntegrationTest {
 
             StepVerifier.create(eventStoreRepository.saveEvents(conflictingBatch))
                 .expectErrorMatches { error ->
-                    error is EventStoreConcurrencyException &&
+                    error is EventStoreVersionConflictException &&
                     error.aggregateId == productId
                 }
                 .verify()

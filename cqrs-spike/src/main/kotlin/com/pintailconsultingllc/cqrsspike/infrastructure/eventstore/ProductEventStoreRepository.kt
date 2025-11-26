@@ -185,10 +185,11 @@ class ProductEventStoreRepository(
             .then()
             .onErrorMap { error ->
                 if (isSerializationFailure(error)) {
-                    EventStoreConcurrencyException(
+                    EventStoreVersionConflictException(
+                        aggregateType = AGGREGATE_TYPE,
                         aggregateId = aggregateId,
                         expectedVersion = expectedVersion,
-                        message = "Concurrent modification detected for Product $aggregateId"
+                        actualVersion = expectedVersion + 1 // Conflict means stream advanced
                     )
                 } else {
                     error
@@ -249,12 +250,3 @@ class ProductEventStoreRepository(
         return false
     }
 }
-
-/**
- * Exception thrown when concurrent modification is detected.
- */
-class EventStoreConcurrencyException(
-    val aggregateId: UUID,
-    val expectedVersion: Int,
-    message: String
-) : RuntimeException(message)
