@@ -9,7 +9,6 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 import java.time.OffsetDateTime
-import java.util.Optional
 import java.util.UUID
 
 /**
@@ -30,9 +29,9 @@ class IdempotencyService(
      * Checks if a command with the given idempotency key has already been processed.
      *
      * @param idempotencyKey The unique key for the command
-     * @return Mono<Optional<CommandSuccess>> - The previous result if found, empty otherwise
+     * @return Mono<CommandSuccess> - Emits the previous result if found, or empty Mono otherwise
      */
-    fun checkIdempotency(idempotencyKey: String?): Mono<CommandSuccess?> {
+    fun checkIdempotency(idempotencyKey: String?): Mono<CommandSuccess> {
         if (idempotencyKey == null) {
             return Mono.empty()
         }
