@@ -118,3 +118,65 @@ logging:
     org.springframework.r2dbc: DEBUG
     io.r2dbc.postgresql.QUERY: DEBUG
     org.flywaydb: INFO
+
+# Product Command Handler Configuration
+product:
+  command:
+    idempotency:
+      ttl-hours: 24  # Time-to-live for idempotency records
+
+# Resilience4j Configuration
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 30s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+        recordExceptions:
+          - java.io.IOException
+          - java.net.SocketTimeoutException
+          - org.springframework.dao.DataAccessException
+        ignoreExceptions:
+          - com.pintailconsultingllc.cqrsspike.product.command.validation.CommandValidationException
+          - com.pintailconsultingllc.cqrsspike.product.command.exception.ProductNotFoundException
+          - com.pintailconsultingllc.cqrsspike.product.command.exception.ProductInvariantViolationException
+    instances:
+      productCommands:
+        baseConfig: default
+
+  retry:
+    configs:
+      default:
+        maxAttempts: 3
+        waitDuration: 500ms
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+        retryExceptions:
+          - java.io.IOException
+          - java.net.SocketTimeoutException
+          - org.springframework.dao.TransientDataAccessException
+        ignoreExceptions:
+          - com.pintailconsultingllc.cqrsspike.product.command.validation.CommandValidationException
+          - com.pintailconsultingllc.cqrsspike.product.command.exception.ProductNotFoundException
+          - com.pintailconsultingllc.cqrsspike.product.command.exception.ProductInvariantViolationException
+    instances:
+      productCommands:
+        baseConfig: default
+
+  ratelimiter:
+    configs:
+      default:
+        limitForPeriod: 100
+        limitRefreshPeriod: 1s
+        timeoutDuration: 5s
+        registerHealthIndicator: true
+        eventConsumerBufferSize: 100
+    instances:
+      productCommands:
+        baseConfig: default
