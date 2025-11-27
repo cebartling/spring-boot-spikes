@@ -84,7 +84,7 @@ class ProductCommandHandlerTest {
             )
 
             whenever(idempotencyService.checkIdempotency(anyOrNull()))
-                .thenReturn(Mono.just(Optional.empty()))
+                .thenReturn(Mono.just(null))
 
             whenever(aggregateRepository.save(any()))
                 .thenAnswer { invocation ->
