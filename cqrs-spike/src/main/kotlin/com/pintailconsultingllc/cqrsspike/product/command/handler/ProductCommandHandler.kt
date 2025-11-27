@@ -398,37 +398,37 @@ class ProductCommandHandler(
     }
 
     @Suppress("unused")
-    private fun rateLimitFallbackChangePrice(command: ChangePriceCommand, ex: Exception): Mono<CommandResult> {
+    private fun rateLimitFallbackChangePrice(command: ChangePriceCommand, ex: Throwable): Mono<CommandResult> {
         logger.warn("Rate limit exceeded for ChangePriceCommand", ex)
         return Mono.error(CommandRateLimitException("Too many requests. Please try again later."))
     }
 
     @Suppress("unused")
-    private fun rateLimitFallbackActivate(command: ActivateProductCommand, ex: Exception): Mono<CommandResult> {
+    private fun rateLimitFallbackActivate(command: ActivateProductCommand, ex: Throwable): Mono<CommandResult> {
         logger.warn("Rate limit exceeded for ActivateProductCommand", ex)
         return Mono.error(CommandRateLimitException("Too many requests. Please try again later."))
     }
 
     @Suppress("unused")
-    private fun rateLimitFallbackDiscontinue(command: DiscontinueProductCommand, ex: Exception): Mono<CommandResult> {
+    private fun rateLimitFallbackDiscontinue(command: DiscontinueProductCommand, ex: Throwable): Mono<CommandResult> {
         logger.warn("Rate limit exceeded for DiscontinueProductCommand", ex)
         return Mono.error(CommandRateLimitException("Too many requests. Please try again later."))
     }
 
     @Suppress("unused")
-    private fun rateLimitFallbackDelete(command: DeleteProductCommand, ex: Exception): Mono<CommandResult> {
+    private fun rateLimitFallbackDelete(command: DeleteProductCommand, ex: Throwable): Mono<CommandResult> {
         logger.warn("Rate limit exceeded for DeleteProductCommand", ex)
         return Mono.error(CommandRateLimitException("Too many requests. Please try again later."))
     }
 
     @Suppress("unused")
-    private fun retryFallbackCreate(command: CreateProductCommand, ex: Exception): Mono<CommandResult> {
+    private fun retryFallbackCreate(command: CreateProductCommand, ex: Throwable): Mono<CommandResult> {
         logger.error("Retry exhausted for CreateProductCommand", ex)
         return Mono.error(ex)
     }
 
     @Suppress("unused")
-    private fun retryFallbackUpdate(command: UpdateProductCommand, ex: Exception): Mono<CommandResult> {
+    private fun retryFallbackUpdate(command: UpdateProductCommand, ex: Throwable): Mono<CommandResult> {
         logger.error("Retry exhausted for UpdateProductCommand", ex)
         return Mono.error(ex)
     }
