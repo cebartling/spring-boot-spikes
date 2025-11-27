@@ -33,7 +33,6 @@ import org.mockito.kotlin.whenever
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
 import java.time.OffsetDateTime
-import java.util.Optional
 import java.util.UUID
 
 @ExtendWith(MockitoExtension::class)
@@ -84,7 +83,7 @@ class ProductCommandHandlerTest {
             )
 
             whenever(idempotencyService.checkIdempotency(anyOrNull()))
-                .thenReturn(Mono.just(null))
+                .thenReturn(Mono.empty())
 
             whenever(aggregateRepository.save(any()))
                 .thenAnswer { invocation ->
@@ -116,7 +115,7 @@ class ProductCommandHandlerTest {
             )
 
             whenever(idempotencyService.checkIdempotency(anyOrNull()))
-                .thenReturn(Mono.just(Optional.empty()))
+                .thenReturn(Mono.empty())
 
             StepVerifier.create(handler.handle(command))
                 .expectError(CommandValidationException::class.java)
@@ -134,7 +133,7 @@ class ProductCommandHandlerTest {
             )
 
             whenever(idempotencyService.checkIdempotency(anyOrNull()))
-                .thenReturn(Mono.just(Optional.empty()))
+                .thenReturn(Mono.empty())
 
             StepVerifier.create(handler.handle(command))
                 .expectError(CommandValidationException::class.java)
@@ -162,7 +161,7 @@ class ProductCommandHandlerTest {
             )
 
             whenever(idempotencyService.checkIdempotency(idempotencyKey))
-                .thenReturn(Mono.just(Optional.of(cachedResult)))
+                .thenReturn(Mono.just(cachedResult))
 
             StepVerifier.create(handler.handle(command))
                 .expectNextMatches { result ->
@@ -197,7 +196,7 @@ class ProductCommandHandlerTest {
             )
 
             whenever(idempotencyService.checkIdempotency(anyOrNull()))
-                .thenReturn(Mono.just(Optional.empty()))
+                .thenReturn(Mono.empty())
 
             whenever(aggregateRepository.findById(productId))
                 .thenReturn(Mono.just(aggregate))
@@ -230,7 +229,7 @@ class ProductCommandHandlerTest {
             )
 
             whenever(idempotencyService.checkIdempotency(anyOrNull()))
-                .thenReturn(Mono.just(Optional.empty()))
+                .thenReturn(Mono.empty())
 
             whenever(aggregateRepository.findById(productId))
                 .thenReturn(Mono.error(ProductNotFoundException(productId)))
@@ -251,7 +250,7 @@ class ProductCommandHandlerTest {
             )
 
             whenever(idempotencyService.checkIdempotency(anyOrNull()))
-                .thenReturn(Mono.just(Optional.empty()))
+                .thenReturn(Mono.empty())
 
             StepVerifier.create(handler.handle(command))
                 .expectError(CommandValidationException::class.java)
@@ -281,7 +280,7 @@ class ProductCommandHandlerTest {
             )
 
             whenever(idempotencyService.checkIdempotency(anyOrNull()))
-                .thenReturn(Mono.just(Optional.empty()))
+                .thenReturn(Mono.empty())
 
             whenever(aggregateRepository.findById(productId))
                 .thenReturn(Mono.just(aggregate))
@@ -311,7 +310,7 @@ class ProductCommandHandlerTest {
             )
 
             whenever(idempotencyService.checkIdempotency(anyOrNull()))
-                .thenReturn(Mono.just(Optional.empty()))
+                .thenReturn(Mono.empty())
 
             StepVerifier.create(handler.handle(command))
                 .expectError(CommandValidationException::class.java)
@@ -340,7 +339,7 @@ class ProductCommandHandlerTest {
             )
 
             whenever(idempotencyService.checkIdempotency(anyOrNull()))
-                .thenReturn(Mono.just(Optional.empty()))
+                .thenReturn(Mono.empty())
 
             whenever(aggregateRepository.findById(productId))
                 .thenReturn(Mono.just(aggregate))
@@ -370,7 +369,7 @@ class ProductCommandHandlerTest {
             )
 
             whenever(idempotencyService.checkIdempotency(anyOrNull()))
-                .thenReturn(Mono.just(Optional.empty()))
+                .thenReturn(Mono.empty())
 
             StepVerifier.create(handler.handle(command))
                 .expectError(CommandValidationException::class.java)
@@ -400,7 +399,7 @@ class ProductCommandHandlerTest {
             )
 
             whenever(idempotencyService.checkIdempotency(anyOrNull()))
-                .thenReturn(Mono.just(Optional.empty()))
+                .thenReturn(Mono.empty())
 
             whenever(aggregateRepository.findById(productId))
                 .thenReturn(Mono.just(aggregate))
@@ -438,7 +437,7 @@ class ProductCommandHandlerTest {
             )
 
             whenever(idempotencyService.checkIdempotency(anyOrNull()))
-                .thenReturn(Mono.just(Optional.empty()))
+                .thenReturn(Mono.empty())
 
             whenever(aggregateRepository.findById(productId))
                 .thenReturn(Mono.just(aggregate))
@@ -481,7 +480,7 @@ class ProductCommandHandlerTest {
             )
 
             whenever(idempotencyService.checkIdempotency(anyOrNull()))
-                .thenReturn(Mono.just(Optional.empty()))
+                .thenReturn(Mono.empty())
 
             whenever(aggregateRepository.findById(productId))
                 .thenReturn(Mono.just(aggregate))
@@ -519,7 +518,7 @@ class ProductCommandHandlerTest {
             )
 
             whenever(idempotencyService.checkIdempotency(anyOrNull()))
-                .thenReturn(Mono.just(Optional.empty()))
+                .thenReturn(Mono.empty())
 
             whenever(aggregateRepository.findById(productId))
                 .thenReturn(Mono.just(aggregate))
@@ -550,7 +549,7 @@ class ProductCommandHandlerTest {
             )
 
             whenever(idempotencyService.checkIdempotency(anyOrNull()))
-                .thenReturn(Mono.just(Optional.empty()))
+                .thenReturn(Mono.empty())
 
             whenever(aggregateRepository.findById(productId))
                 .thenReturn(Mono.error(ProductNotFoundException(productId)))

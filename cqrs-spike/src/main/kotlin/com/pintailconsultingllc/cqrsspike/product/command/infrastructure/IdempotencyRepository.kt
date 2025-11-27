@@ -1,5 +1,6 @@
 package com.pintailconsultingllc.cqrsspike.product.command.infrastructure
 
+import org.springframework.data.r2dbc.repository.Modifying
 import org.springframework.data.r2dbc.repository.Query
 import org.springframework.data.repository.reactive.ReactiveCrudRepository
 import org.springframework.stereotype.Repository
@@ -21,5 +22,14 @@ interface IdempotencyRepository : ReactiveCrudRepository<ProcessedCommandEntity,
     """)
     fun findByIdempotencyKey(key: String): Mono<ProcessedCommandEntity>
 
-    // Cleanup logic for expired entries should be implemented in a custom repository using R2dbcEntityTemplate or DatabaseClient.
+    /**
+     * Delete expired idempotency records.
+     * Returns the count of deleted records.
+     */
+    @Modifying
+    @Query("""
+        DELETE FROM command_model.processed_command
+        WHERE expires_at < :cutoffTime
+    """)
+    fun deleteExpiredBefore(cutoffTime: OffsetDateTime): Mono<Long>
 }
