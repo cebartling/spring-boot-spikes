@@ -228,6 +228,7 @@ class ProductCommandHandler(
 
     private fun checkIdempotency(idempotencyKey: String?): Mono<Optional<CommandSuccess>> {
         return idempotencyService.checkIdempotency(idempotencyKey)
+            .map { Optional.ofNullable(it) }
     }
 
     private fun recordIdempotency(
