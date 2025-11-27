@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Mono
+import java.util.Optional
 
 /**
  * Command handler for Product aggregate.
@@ -69,8 +70,9 @@ class ProductCommandHandler(
         logger.info("Handling CreateProductCommand: sku=${command.sku}")
 
         return checkIdempotency(command.idempotencyKey)
-            .flatMap { existingResult ->
-                if (existingResult != null) {
+            .flatMap { existingResultOpt ->
+                if (existingResultOpt.isPresent) {
+                    val existingResult = existingResultOpt.get()
                     logger.info("Idempotent request detected: key=${command.idempotencyKey}")
                     Mono.just(CommandAlreadyProcessed(
                         productId = existingResult.productId,
@@ -97,8 +99,9 @@ class ProductCommandHandler(
         logger.info("Handling UpdateProductCommand: productId=${command.productId}")
 
         return checkIdempotency(command.idempotencyKey)
-            .flatMap { existingResult ->
-                if (existingResult != null) {
+            .flatMap { existingResultOpt ->
+                if (existingResultOpt.isPresent) {
+                    val existingResult = existingResultOpt.get()
                     Mono.just(CommandAlreadyProcessed(
                         productId = existingResult.productId,
                         idempotencyKey = command.idempotencyKey!!
@@ -124,8 +127,9 @@ class ProductCommandHandler(
         logger.info("Handling ChangePriceCommand: productId=${command.productId}")
 
         return checkIdempotency(command.idempotencyKey)
-            .flatMap { existingResult ->
-                if (existingResult != null) {
+            .flatMap { existingResultOpt ->
+                if (existingResultOpt.isPresent) {
+                    val existingResult = existingResultOpt.get()
                     Mono.just(CommandAlreadyProcessed(
                         productId = existingResult.productId,
                         idempotencyKey = command.idempotencyKey!!
@@ -151,8 +155,9 @@ class ProductCommandHandler(
         logger.info("Handling ActivateProductCommand: productId=${command.productId}")
 
         return checkIdempotency(command.idempotencyKey)
-            .flatMap { existingResult ->
-                if (existingResult != null) {
+            .flatMap { existingResultOpt ->
+                if (existingResultOpt.isPresent) {
+                    val existingResult = existingResultOpt.get()
                     Mono.just(CommandAlreadyProcessed(
                         productId = existingResult.productId,
                         idempotencyKey = command.idempotencyKey!!
@@ -178,8 +183,9 @@ class ProductCommandHandler(
         logger.info("Handling DiscontinueProductCommand: productId=${command.productId}")
 
         return checkIdempotency(command.idempotencyKey)
-            .flatMap { existingResult ->
-                if (existingResult != null) {
+            .flatMap { existingResultOpt ->
+                if (existingResultOpt.isPresent) {
+                    val existingResult = existingResultOpt.get()
                     Mono.just(CommandAlreadyProcessed(
                         productId = existingResult.productId,
                         idempotencyKey = command.idempotencyKey!!
@@ -205,8 +211,9 @@ class ProductCommandHandler(
         logger.info("Handling DeleteProductCommand: productId=${command.productId}")
 
         return checkIdempotency(command.idempotencyKey)
-            .flatMap { existingResult ->
-                if (existingResult != null) {
+            .flatMap { existingResultOpt ->
+                if (existingResultOpt.isPresent) {
+                    val existingResult = existingResultOpt.get()
                     Mono.just(CommandAlreadyProcessed(
                         productId = existingResult.productId,
                         idempotencyKey = command.idempotencyKey!!
@@ -219,7 +226,7 @@ class ProductCommandHandler(
 
     // Private helper methods
 
-    private fun checkIdempotency(idempotencyKey: String?): Mono<CommandSuccess?> {
+    private fun checkIdempotency(idempotencyKey: String?): Mono<Optional<CommandSuccess>> {
         return idempotencyService.checkIdempotency(idempotencyKey)
     }
 

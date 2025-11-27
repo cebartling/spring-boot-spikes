@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 import java.time.OffsetDateTime
+import java.util.Optional
 import java.util.UUID
 
 /**
@@ -29,30 +30,30 @@ class IdempotencyService(
      * Checks if a command with the given idempotency key has already been processed.
      *
      * @param idempotencyKey The unique key for the command
-     * @return Mono<CommandSuccess?> - The previous result if found, null otherwise
+     * @return Mono<Optional<CommandSuccess>> - The previous result if found, empty otherwise
      */
-    fun checkIdempotency(idempotencyKey: String?): Mono<CommandSuccess?> {
+    fun checkIdempotency(idempotencyKey: String?): Mono<Optional<CommandSuccess>> {
         if (idempotencyKey == null) {
-            return Mono.just(null)
+            return Mono.just(Optional.empty())
         }
 
         return repository.findByIdempotencyKey(idempotencyKey)
             .map { entity ->
                 try {
-                    objectMapper.readValue(entity.resultData, CommandSuccess::class.java)
+                    Optional.of(objectMapper.readValue(entity.resultData, CommandSuccess::class.java))
                 } catch (e: Exception) {
                     logger.warn("Failed to deserialize result for key $idempotencyKey", e)
-                    CommandSuccess(
+                    Optional.of(CommandSuccess(
                         productId = entity.productId,
                         version = 0,
                         timestamp = entity.processedAt
-                    )
+                    ))
                 }
             }
-            .defaultIfEmpty(null as CommandSuccess?)
+            .defaultIfEmpty(Optional.empty())
             .onErrorResume { error ->
                 logger.error("Error checking idempotency for key $idempotencyKey", error)
-                Mono.just(null)
+                Mono.just(Optional.empty())
             }
     }
 

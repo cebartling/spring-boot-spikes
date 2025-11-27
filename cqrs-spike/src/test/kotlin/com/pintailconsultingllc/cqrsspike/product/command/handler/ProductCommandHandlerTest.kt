@@ -27,11 +27,13 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
 import java.time.OffsetDateTime
+import java.util.Optional
 import java.util.UUID
 
 @ExtendWith(MockitoExtension::class)
@@ -81,8 +83,8 @@ class ProductCommandHandlerTest {
                 priceCents = VALID_PRICE
             )
 
-            whenever(idempotencyService.checkIdempotency(any()))
-                .thenReturn(Mono.just(null as CommandSuccess?))
+            whenever(idempotencyService.checkIdempotency(anyOrNull()))
+                .thenReturn(Mono.just(Optional.empty()))
 
             whenever(aggregateRepository.save(any()))
                 .thenAnswer { invocation ->
@@ -90,7 +92,7 @@ class ProductCommandHandlerTest {
                     Mono.just(aggregate)
                 }
 
-            whenever(idempotencyService.recordProcessedCommand(any(), any(), any(), any()))
+            whenever(idempotencyService.recordProcessedCommand(anyOrNull(), any(), any(), any()))
                 .thenReturn(Mono.empty())
 
             StepVerifier.create(handler.handle(command))
@@ -113,8 +115,8 @@ class ProductCommandHandlerTest {
                 priceCents = VALID_PRICE
             )
 
-            whenever(idempotencyService.checkIdempotency(any()))
-                .thenReturn(Mono.just(null as CommandSuccess?))
+            whenever(idempotencyService.checkIdempotency(anyOrNull()))
+                .thenReturn(Mono.just(Optional.empty()))
 
             StepVerifier.create(handler.handle(command))
                 .expectError(CommandValidationException::class.java)
@@ -131,8 +133,8 @@ class ProductCommandHandlerTest {
                 priceCents = 0
             )
 
-            whenever(idempotencyService.checkIdempotency(any()))
-                .thenReturn(Mono.just(null as CommandSuccess?))
+            whenever(idempotencyService.checkIdempotency(anyOrNull()))
+                .thenReturn(Mono.just(Optional.empty()))
 
             StepVerifier.create(handler.handle(command))
                 .expectError(CommandValidationException::class.java)
@@ -160,7 +162,7 @@ class ProductCommandHandlerTest {
             )
 
             whenever(idempotencyService.checkIdempotency(idempotencyKey))
-                .thenReturn(Mono.just(cachedResult))
+                .thenReturn(Mono.just(Optional.of(cachedResult)))
 
             StepVerifier.create(handler.handle(command))
                 .expectNextMatches { result ->
@@ -179,13 +181,13 @@ class ProductCommandHandlerTest {
         @Test
         @DisplayName("should update product successfully")
         fun shouldUpdateProductSuccessfully() {
-            val productId = UUID.randomUUID()
             val aggregate = ProductAggregate.create(
                 sku = VALID_SKU,
                 name = VALID_NAME,
                 description = VALID_DESCRIPTION,
                 priceCents = VALID_PRICE
             )
+            val productId = aggregate.id
 
             val command = UpdateProductCommand(
                 productId = productId,
@@ -194,8 +196,8 @@ class ProductCommandHandlerTest {
                 description = "Updated description"
             )
 
-            whenever(idempotencyService.checkIdempotency(any()))
-                .thenReturn(Mono.just(null as CommandSuccess?))
+            whenever(idempotencyService.checkIdempotency(anyOrNull()))
+                .thenReturn(Mono.just(Optional.empty()))
 
             whenever(aggregateRepository.findById(productId))
                 .thenReturn(Mono.just(aggregate))
@@ -205,7 +207,7 @@ class ProductCommandHandlerTest {
                     Mono.just(invocation.getArgument<ProductAggregate>(0))
                 }
 
-            whenever(idempotencyService.recordProcessedCommand(any(), any(), any(), any()))
+            whenever(idempotencyService.recordProcessedCommand(anyOrNull(), any(), any(), any()))
                 .thenReturn(Mono.empty())
 
             StepVerifier.create(handler.handle(command))
@@ -227,8 +229,8 @@ class ProductCommandHandlerTest {
                 description = null
             )
 
-            whenever(idempotencyService.checkIdempotency(any()))
-                .thenReturn(Mono.just(null as CommandSuccess?))
+            whenever(idempotencyService.checkIdempotency(anyOrNull()))
+                .thenReturn(Mono.just(Optional.empty()))
 
             whenever(aggregateRepository.findById(productId))
                 .thenReturn(Mono.error(ProductNotFoundException(productId)))
@@ -248,8 +250,8 @@ class ProductCommandHandlerTest {
                 description = null
             )
 
-            whenever(idempotencyService.checkIdempotency(any()))
-                .thenReturn(Mono.just(null as CommandSuccess?))
+            whenever(idempotencyService.checkIdempotency(anyOrNull()))
+                .thenReturn(Mono.just(Optional.empty()))
 
             StepVerifier.create(handler.handle(command))
                 .expectError(CommandValidationException::class.java)
@@ -264,13 +266,13 @@ class ProductCommandHandlerTest {
         @Test
         @DisplayName("should change price successfully")
         fun shouldChangePriceSuccessfully() {
-            val productId = UUID.randomUUID()
             val aggregate = ProductAggregate.create(
                 sku = VALID_SKU,
                 name = VALID_NAME,
                 description = null,
                 priceCents = VALID_PRICE
             )
+            val productId = aggregate.id
 
             val command = ChangePriceCommand(
                 productId = productId,
@@ -278,8 +280,8 @@ class ProductCommandHandlerTest {
                 newPriceCents = 2999
             )
 
-            whenever(idempotencyService.checkIdempotency(any()))
-                .thenReturn(Mono.just(null as CommandSuccess?))
+            whenever(idempotencyService.checkIdempotency(anyOrNull()))
+                .thenReturn(Mono.just(Optional.empty()))
 
             whenever(aggregateRepository.findById(productId))
                 .thenReturn(Mono.just(aggregate))
@@ -289,7 +291,7 @@ class ProductCommandHandlerTest {
                     Mono.just(invocation.getArgument<ProductAggregate>(0))
                 }
 
-            whenever(idempotencyService.recordProcessedCommand(any(), any(), any(), any()))
+            whenever(idempotencyService.recordProcessedCommand(anyOrNull(), any(), any(), any()))
                 .thenReturn(Mono.empty())
 
             StepVerifier.create(handler.handle(command))
@@ -308,8 +310,8 @@ class ProductCommandHandlerTest {
                 newPriceCents = 0
             )
 
-            whenever(idempotencyService.checkIdempotency(any()))
-                .thenReturn(Mono.just(null as CommandSuccess?))
+            whenever(idempotencyService.checkIdempotency(anyOrNull()))
+                .thenReturn(Mono.just(Optional.empty()))
 
             StepVerifier.create(handler.handle(command))
                 .expectError(CommandValidationException::class.java)
@@ -324,21 +326,21 @@ class ProductCommandHandlerTest {
         @Test
         @DisplayName("should activate product successfully")
         fun shouldActivateProductSuccessfully() {
-            val productId = UUID.randomUUID()
             val aggregate = ProductAggregate.create(
                 sku = VALID_SKU,
                 name = VALID_NAME,
                 description = null,
                 priceCents = VALID_PRICE
             )
+            val productId = aggregate.id
 
             val command = ActivateProductCommand(
                 productId = productId,
                 expectedVersion = 1L
             )
 
-            whenever(idempotencyService.checkIdempotency(any()))
-                .thenReturn(Mono.just(null as CommandSuccess?))
+            whenever(idempotencyService.checkIdempotency(anyOrNull()))
+                .thenReturn(Mono.just(Optional.empty()))
 
             whenever(aggregateRepository.findById(productId))
                 .thenReturn(Mono.just(aggregate))
@@ -348,7 +350,7 @@ class ProductCommandHandlerTest {
                     Mono.just(invocation.getArgument<ProductAggregate>(0))
                 }
 
-            whenever(idempotencyService.recordProcessedCommand(any(), any(), any(), any()))
+            whenever(idempotencyService.recordProcessedCommand(anyOrNull(), any(), any(), any()))
                 .thenReturn(Mono.empty())
 
             StepVerifier.create(handler.handle(command))
@@ -367,8 +369,8 @@ class ProductCommandHandlerTest {
                 expectedVersion = 0L
             )
 
-            whenever(idempotencyService.checkIdempotency(any()))
-                .thenReturn(Mono.just(null as CommandSuccess?))
+            whenever(idempotencyService.checkIdempotency(anyOrNull()))
+                .thenReturn(Mono.just(Optional.empty()))
 
             StepVerifier.create(handler.handle(command))
                 .expectError(CommandValidationException::class.java)
@@ -383,13 +385,13 @@ class ProductCommandHandlerTest {
         @Test
         @DisplayName("should discontinue product successfully")
         fun shouldDiscontinueProductSuccessfully() {
-            val productId = UUID.randomUUID()
             val aggregate = ProductAggregate.create(
                 sku = VALID_SKU,
                 name = VALID_NAME,
                 description = null,
                 priceCents = VALID_PRICE
             )
+            val productId = aggregate.id
 
             val command = DiscontinueProductCommand(
                 productId = productId,
@@ -397,8 +399,8 @@ class ProductCommandHandlerTest {
                 reason = "No longer manufactured"
             )
 
-            whenever(idempotencyService.checkIdempotency(any()))
-                .thenReturn(Mono.just(null as CommandSuccess?))
+            whenever(idempotencyService.checkIdempotency(anyOrNull()))
+                .thenReturn(Mono.just(Optional.empty()))
 
             whenever(aggregateRepository.findById(productId))
                 .thenReturn(Mono.just(aggregate))
@@ -408,7 +410,7 @@ class ProductCommandHandlerTest {
                     Mono.just(invocation.getArgument<ProductAggregate>(0))
                 }
 
-            whenever(idempotencyService.recordProcessedCommand(any(), any(), any(), any()))
+            whenever(idempotencyService.recordProcessedCommand(anyOrNull(), any(), any(), any()))
                 .thenReturn(Mono.empty())
 
             StepVerifier.create(handler.handle(command))
@@ -421,13 +423,13 @@ class ProductCommandHandlerTest {
         @Test
         @DisplayName("should discontinue product without reason")
         fun shouldDiscontinueProductWithoutReason() {
-            val productId = UUID.randomUUID()
             val aggregate = ProductAggregate.create(
                 sku = VALID_SKU,
                 name = VALID_NAME,
                 description = null,
                 priceCents = VALID_PRICE
             )
+            val productId = aggregate.id
 
             val command = DiscontinueProductCommand(
                 productId = productId,
@@ -435,8 +437,8 @@ class ProductCommandHandlerTest {
                 reason = null
             )
 
-            whenever(idempotencyService.checkIdempotency(any()))
-                .thenReturn(Mono.just(null as CommandSuccess?))
+            whenever(idempotencyService.checkIdempotency(anyOrNull()))
+                .thenReturn(Mono.just(Optional.empty()))
 
             whenever(aggregateRepository.findById(productId))
                 .thenReturn(Mono.just(aggregate))
@@ -446,7 +448,7 @@ class ProductCommandHandlerTest {
                     Mono.just(invocation.getArgument<ProductAggregate>(0))
                 }
 
-            whenever(idempotencyService.recordProcessedCommand(any(), any(), any(), any()))
+            whenever(idempotencyService.recordProcessedCommand(anyOrNull(), any(), any(), any()))
                 .thenReturn(Mono.empty())
 
             StepVerifier.create(handler.handle(command))
@@ -464,13 +466,13 @@ class ProductCommandHandlerTest {
         @Test
         @DisplayName("should delete product successfully")
         fun shouldDeleteProductSuccessfully() {
-            val productId = UUID.randomUUID()
             val aggregate = ProductAggregate.create(
                 sku = VALID_SKU,
                 name = VALID_NAME,
                 description = null,
                 priceCents = VALID_PRICE
             )
+            val productId = aggregate.id
 
             val command = DeleteProductCommand(
                 productId = productId,
@@ -478,8 +480,8 @@ class ProductCommandHandlerTest {
                 deletedBy = "admin@example.com"
             )
 
-            whenever(idempotencyService.checkIdempotency(any()))
-                .thenReturn(Mono.just(null as CommandSuccess?))
+            whenever(idempotencyService.checkIdempotency(anyOrNull()))
+                .thenReturn(Mono.just(Optional.empty()))
 
             whenever(aggregateRepository.findById(productId))
                 .thenReturn(Mono.just(aggregate))
@@ -489,7 +491,7 @@ class ProductCommandHandlerTest {
                     Mono.just(invocation.getArgument<ProductAggregate>(0))
                 }
 
-            whenever(idempotencyService.recordProcessedCommand(any(), any(), any(), any()))
+            whenever(idempotencyService.recordProcessedCommand(anyOrNull(), any(), any(), any()))
                 .thenReturn(Mono.empty())
 
             StepVerifier.create(handler.handle(command))
@@ -502,13 +504,13 @@ class ProductCommandHandlerTest {
         @Test
         @DisplayName("should delete product without deletedBy")
         fun shouldDeleteProductWithoutDeletedBy() {
-            val productId = UUID.randomUUID()
             val aggregate = ProductAggregate.create(
                 sku = VALID_SKU,
                 name = VALID_NAME,
                 description = null,
                 priceCents = VALID_PRICE
             )
+            val productId = aggregate.id
 
             val command = DeleteProductCommand(
                 productId = productId,
@@ -516,8 +518,8 @@ class ProductCommandHandlerTest {
                 deletedBy = null
             )
 
-            whenever(idempotencyService.checkIdempotency(any()))
-                .thenReturn(Mono.just(null as CommandSuccess?))
+            whenever(idempotencyService.checkIdempotency(anyOrNull()))
+                .thenReturn(Mono.just(Optional.empty()))
 
             whenever(aggregateRepository.findById(productId))
                 .thenReturn(Mono.just(aggregate))
@@ -527,7 +529,7 @@ class ProductCommandHandlerTest {
                     Mono.just(invocation.getArgument<ProductAggregate>(0))
                 }
 
-            whenever(idempotencyService.recordProcessedCommand(any(), any(), any(), any()))
+            whenever(idempotencyService.recordProcessedCommand(anyOrNull(), any(), any(), any()))
                 .thenReturn(Mono.empty())
 
             StepVerifier.create(handler.handle(command))
@@ -547,8 +549,8 @@ class ProductCommandHandlerTest {
                 deletedBy = null
             )
 
-            whenever(idempotencyService.checkIdempotency(any()))
-                .thenReturn(Mono.just(null as CommandSuccess?))
+            whenever(idempotencyService.checkIdempotency(anyOrNull()))
+                .thenReturn(Mono.just(Optional.empty()))
 
             whenever(aggregateRepository.findById(productId))
                 .thenReturn(Mono.error(ProductNotFoundException(productId)))
