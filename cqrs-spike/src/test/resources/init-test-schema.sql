@@ -176,3 +176,29 @@ CREATE INDEX idx_product_status
 -- Index for version-based queries (optimistic locking)
 CREATE INDEX idx_product_version
     ON product(id, version);
+
+-- ============================================================================
+-- Idempotency Table for Command Handlers
+-- ============================================================================
+
+-- Idempotency tracking table for command handlers
+CREATE TABLE processed_command (
+    idempotency_key VARCHAR(255) PRIMARY KEY,
+    command_type VARCHAR(100) NOT NULL,
+    product_id UUID NOT NULL,
+    result_data TEXT,
+    processed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expires_at TIMESTAMPTZ NOT NULL
+);
+
+-- Index for cleanup queries (finding expired entries)
+CREATE INDEX idx_processed_command_expires_at
+    ON processed_command(expires_at);
+
+-- Index for product-specific queries
+CREATE INDEX idx_processed_command_product_id
+    ON processed_command(product_id);
+
+-- Index for command type queries (useful for monitoring)
+CREATE INDEX idx_processed_command_type
+    ON processed_command(command_type);
