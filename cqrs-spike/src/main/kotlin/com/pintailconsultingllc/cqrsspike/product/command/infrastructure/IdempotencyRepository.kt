@@ -21,9 +21,5 @@ interface IdempotencyRepository : ReactiveCrudRepository<ProcessedCommandEntity,
     """)
     fun findByIdempotencyKey(key: String): Mono<ProcessedCommandEntity>
 
-    /**
-     * Delete expired entries (for cleanup job).
-     */
-    @Query("DELETE FROM command_model.processed_command WHERE expires_at < :cutoff")
-    fun deleteExpiredBefore(cutoff: OffsetDateTime): Mono<Long>
+    // Cleanup logic for expired entries should be implemented in a custom repository using R2dbcEntityTemplate or DatabaseClient.
 }
