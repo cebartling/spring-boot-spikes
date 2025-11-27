@@ -32,28 +32,27 @@ class IdempotencyService(
      * @param idempotencyKey The unique key for the command
      * @return Mono<Optional<CommandSuccess>> - The previous result if found, empty otherwise
      */
-    fun checkIdempotency(idempotencyKey: String?): Mono<Optional<CommandSuccess>> {
+    fun checkIdempotency(idempotencyKey: String?): Mono<CommandSuccess?> {
         if (idempotencyKey == null) {
-            return Mono.just(Optional.empty())
+            return Mono.empty()
         }
 
         return repository.findByIdempotencyKey(idempotencyKey)
             .map { entity ->
                 try {
-                    Optional.of(objectMapper.readValue(entity.resultData, CommandSuccess::class.java))
+                    objectMapper.readValue(entity.resultData, CommandSuccess::class.java)
                 } catch (e: Exception) {
                     logger.warn("Failed to deserialize result for key $idempotencyKey", e)
-                    Optional.of(CommandSuccess(
+                    CommandSuccess(
                         productId = entity.productId,
                         version = 0,
                         timestamp = entity.processedAt
-                    ))
+                    )
                 }
             }
-            .defaultIfEmpty(Optional.empty())
             .onErrorResume { error ->
                 logger.error("Error checking idempotency for key $idempotencyKey", error)
-                Mono.just(Optional.empty())
+                Mono.empty()
             }
     }
 
