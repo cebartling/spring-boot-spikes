@@ -88,13 +88,17 @@ interface DomainEventR2dbcRepository : ReactiveCrudRepository<DomainEventEntity,
     /**
      * Find all events after a specific event ID for incremental processing.
      * Events are ordered by their occurrence time and event ID for consistent projection.
+     * Uses a CTE to execute the position lookup once for better performance.
      */
     @Query("""
-        SELECT * FROM event_store.domain_event
-        WHERE (occurred_at, event_id) > (
-            SELECT occurred_at, event_id FROM event_store.domain_event WHERE event_id = :afterEventId
+        WITH position AS (
+            SELECT occurred_at, event_id
+            FROM event_store.domain_event
+            WHERE event_id = :afterEventId
         )
-        ORDER BY occurred_at ASC, event_id ASC
+        SELECT de.* FROM event_store.domain_event de, position p
+        WHERE (de.occurred_at, de.event_id) > (p.occurred_at, p.event_id)
+        ORDER BY de.occurred_at ASC, de.event_id ASC
         LIMIT :limit
     """)
     fun findEventsAfterEventId(
@@ -127,12 +131,16 @@ interface DomainEventR2dbcRepository : ReactiveCrudRepository<DomainEventEntity,
 
     /**
      * Count events after a specific event ID for lag calculation.
+     * Uses a CTE to execute the position lookup once for better performance.
      */
     @Query("""
-        SELECT COUNT(*) FROM event_store.domain_event
-        WHERE (occurred_at, event_id) > (
-            SELECT occurred_at, event_id FROM event_store.domain_event WHERE event_id = :afterEventId
+        WITH position AS (
+            SELECT occurred_at, event_id
+            FROM event_store.domain_event
+            WHERE event_id = :afterEventId
         )
+        SELECT COUNT(*) FROM event_store.domain_event de, position p
+        WHERE (de.occurred_at, de.event_id) > (p.occurred_at, p.event_id)
     """)
     fun countEventsAfterEventId(afterEventId: UUID): Mono<Long>
 
