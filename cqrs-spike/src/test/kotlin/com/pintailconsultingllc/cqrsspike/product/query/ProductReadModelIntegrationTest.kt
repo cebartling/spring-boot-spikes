@@ -521,18 +521,23 @@ class ProductReadModelIntegrationTest {
             name = "Product ${status.name}",
             description = "Product with status ${status.name}",
             priceCents = 1999,
-            status = if (status == ProductStatus.DRAFT) ProductStatus.DRAFT else ProductStatus.DRAFT
+            status = ProductStatus.DRAFT
         )
         projector.processEvent(createEvent, UUID.randomUUID(), 1L).block()
 
-        // If not DRAFT, we need to activate/discontinue
-        if (status == ProductStatus.ACTIVE) {
-            val activateEvent = ProductActivated(
-                productId = productId,
-                version = 2,
-                previousStatus = ProductStatus.DRAFT
-            )
-            projector.processEvent(activateEvent, UUID.randomUUID(), 2L).block()
+        // Transition to requested status if needed
+        when (status) {
+            ProductStatus.ACTIVE -> {
+                val activateEvent = ProductActivated(
+                    productId = productId,
+                    version = 2,
+                    previousStatus = ProductStatus.DRAFT
+                )
+                projector.processEvent(activateEvent, UUID.randomUUID(), 2L).block()
+            }
+            // Add other status transitions here if needed, e.g. DISCONTINUED
+            // ProductStatus.DISCONTINUED -> { ... }
+            // else -> do nothing (already DRAFT)
         }
 
         return productId
