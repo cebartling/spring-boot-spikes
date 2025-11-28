@@ -32,10 +32,10 @@ Think hard about the acceptance criteria.
 
 ```
 Using @documentation/features/002-feature-product-catalog.md,
-create an implementation plan for AC2: Product Event Store.
+create an implementation plan for AC5: Event Projections.
 Think hard about the implementation plan in detail with steps and sub-steps.
 Feel free to include Mermaid.js diagrams or Markdown tables if they help clarify the plan.
-Save the implementation plan in @documentation/plans/product-catalog/AC2-product-event-store.md.
+Save the implementation plan in @documentation/plans/product-catalog/AC5-event-projections.md.
 ```
 
 
