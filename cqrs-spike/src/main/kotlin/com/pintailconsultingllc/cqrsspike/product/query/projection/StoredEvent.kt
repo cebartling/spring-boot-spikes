@@ -13,7 +13,7 @@ data class StoredEvent(
     val streamId: UUID,
     val eventType: String,
     val aggregateVersion: Long,
-    val globalSequence: Long,
+    val globalSequence: Long?,
     val occurredAt: OffsetDateTime,
     val event: ProductEvent
 )

@@ -167,7 +167,7 @@ class ProjectionOrchestrator(
         return productProjector.processEvent(
             event = storedEvent.event,
             eventId = storedEvent.eventId,
-            aggregateVersion = storedEvent.aggregateVersion
+            eventSequence = storedEvent.globalSequence ?: 0L
         )
             .retryWhen(
                 Retry.backoff(config.maxRetries.toLong(), config.retryDelay)
