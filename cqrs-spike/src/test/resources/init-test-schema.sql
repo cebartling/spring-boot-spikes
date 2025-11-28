@@ -202,3 +202,58 @@ CREATE INDEX idx_processed_command_product_id
 -- Index for command type queries (useful for monitoring)
 CREATE INDEX idx_processed_command_type
     ON processed_command(command_type);
+
+-- ============================================================================
+-- Read Model Schema (for AC4)
+-- ============================================================================
+
+CREATE SCHEMA IF NOT EXISTS read_model;
+
+SET search_path TO read_model, public;
+
+-- Product Read Model Table
+CREATE TABLE product (
+    id UUID PRIMARY KEY,
+    sku VARCHAR(50) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    price_cents INTEGER NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL,
+    version BIGINT NOT NULL DEFAULT 1,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    price_display VARCHAR(20),
+    search_text TEXT,
+    last_event_id UUID,
+    CONSTRAINT chk_rm_price_positive CHECK (price_cents > 0),
+    CONSTRAINT chk_rm_status_valid CHECK (status IN ('DRAFT', 'ACTIVE', 'DISCONTINUED'))
+);
+
+-- Indexes for common query patterns
+CREATE INDEX idx_rm_product_status ON product(status) WHERE NOT is_deleted;
+CREATE UNIQUE INDEX idx_rm_product_sku ON product(sku) WHERE NOT is_deleted;
+CREATE INDEX idx_rm_product_name ON product(name) WHERE NOT is_deleted;
+CREATE INDEX idx_rm_product_price ON product(price_cents) WHERE NOT is_deleted;
+CREATE INDEX idx_rm_product_created_at ON product(created_at DESC) WHERE NOT is_deleted;
+CREATE INDEX idx_rm_product_updated_at ON product(updated_at DESC) WHERE NOT is_deleted;
+
+-- Full-text search index
+CREATE INDEX idx_rm_product_search
+    ON product USING gin(to_tsvector('english', coalesce(name, '') || ' ' || coalesce(description, '')))
+    WHERE NOT is_deleted;
+
+-- Cursor-based pagination support
+CREATE INDEX idx_rm_product_cursor_created ON product(created_at, id) WHERE NOT is_deleted;
+CREATE INDEX idx_rm_product_cursor_name ON product(name, id) WHERE NOT is_deleted;
+CREATE INDEX idx_rm_product_cursor_price ON product(price_cents, id) WHERE NOT is_deleted;
+
+-- Projection Position Tracking Table
+CREATE TABLE projection_position (
+    projection_name VARCHAR(100) PRIMARY KEY,
+    last_event_id UUID,
+    last_event_sequence BIGINT,
+    last_processed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    events_processed BIGINT NOT NULL DEFAULT 0,
+    CONSTRAINT chk_projection_name_format CHECK (projection_name ~ '^[a-zA-Z0-9_-]+$')
+);
