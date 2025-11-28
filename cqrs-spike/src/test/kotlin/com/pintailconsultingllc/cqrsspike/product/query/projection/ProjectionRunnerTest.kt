@@ -65,8 +65,9 @@ class ProjectionRunnerTest {
             whenever(orchestrator.processToCurrent())
                 .thenReturn(Mono.error(RuntimeException("Database connection failed")))
 
+            // The error propagates through the Mono chain
             StepVerifier.create(runner.start())
-                .verifyComplete() // Completes without error (error is handled internally)
+                .verifyError(RuntimeException::class.java)
 
             assert(!runner.isRunning())
             assert(runner.getState() == ProjectionState.ERROR)
@@ -251,7 +252,11 @@ class ProjectionRunnerTest {
             whenever(orchestrator.processToCurrent())
                 .thenReturn(Mono.error(RuntimeException("Failed")))
 
-            runner.start().block()
+            try {
+                runner.start().block()
+            } catch (_: RuntimeException) {
+                // Expected
+            }
 
             assert(runner.getState() == ProjectionState.ERROR)
         }

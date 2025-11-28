@@ -37,9 +37,9 @@ class ProjectionOrchestrator(
      * @return Flux of processed event IDs
      */
     fun processEventBatch(): Flux<UUID> {
-        return getLastProcessedEventId()
-            .flatMapMany { lastEventId ->
-                eventQueryService.findEventsAfterEventId(lastEventId, config.batchSize)
+        return productProjector.getProjectionPosition()
+            .flatMapMany { position ->
+                eventQueryService.findEventsAfterEventId(position.lastEventId, config.batchSize)
             }
             .concatMap { storedEvent ->
                 processEventWithRetry(storedEvent)
@@ -162,11 +162,6 @@ class ProjectionOrchestrator(
     }
 
     // Private helper methods
-
-    private fun getLastProcessedEventId(): Mono<UUID?> {
-        return productProjector.getProjectionPosition()
-            .map { it.lastEventId }
-    }
 
     private fun processEventWithRetry(storedEvent: StoredEvent): Mono<UUID> {
         return productProjector.processEvent(
