@@ -13,6 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
+import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
@@ -225,10 +226,12 @@ class ProductQueryServiceTest {
             whenever(repository.countAllNotDeleted())
                 .thenReturn(Mono.just(0L))
 
-            // Size over max should be capped at 100 (the requested size stored in response)
             StepVerifier.create(queryService.findAllPaginated(0, 200))
                 .expectNextMatches { page -> page.size == 100 && page.content.isEmpty() }
                 .verifyComplete()
+
+            // Verify the repository was called with the capped limit of 100, not 200
+            verify(repository).findAllPaginated(100, 0)
         }
 
         @Test
