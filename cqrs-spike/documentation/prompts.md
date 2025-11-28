@@ -36,6 +36,10 @@ create an implementation plan for AC5: Event Projections.
 Think hard about the implementation plan in detail with steps and sub-steps.
 Feel free to include Mermaid.js diagrams or Markdown tables if they help clarify the plan.
 Save the implementation plan in @documentation/plans/product-catalog/AC5-event-projections.md.
+Create a feature branch for the changes.
+Name the feature branch using the implementation plan name.
+When complete create a pull request to merge the feature branch into the main branch.
+The pull request should include a description of the changes made.
 ```
 
 
