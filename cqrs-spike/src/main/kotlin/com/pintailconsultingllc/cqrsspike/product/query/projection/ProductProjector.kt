@@ -66,7 +66,7 @@ class ProductProjector(
             is ProductDeleted -> handleProductDeleted(event, eventId)
         }.flatMap { _ ->
             updateProjectionPosition(eventId, eventSequence)
-        }.doOnSuccess { _: Void? ->
+        }.doOnSuccess {
             logger.debug(
                 "Successfully processed event: type={}, productId={}",
                 event::class.simpleName, event.productId
