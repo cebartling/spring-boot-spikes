@@ -42,9 +42,8 @@ data class ProductReadModel(
     @Column("updated_at")
     val updatedAt: OffsetDateTime,
 
-    @Version
     @Column("version")
-    val version: Long,
+    val aggregateVersion: Long,
 
     @Column("is_deleted")
     val isDeleted: Boolean = false,
