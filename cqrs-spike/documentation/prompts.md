@@ -53,7 +53,14 @@ The pull request should include a description of the changes made and reference 
 
 ```
 Regarding @src/main/kotlin/com/pintailconsultingllc/cqrsspike/infrastructure/eventstore/ProductEventStoreRepository.kt:
+```
 
+## Cleaning Up After Executing an Implementation Plan
 
-
+```
+Create a fix branch from the main branch.
+Clean up failing unit tests.
+Disable any integration tests that are currently failing. The Flyway migration tests should definitely be disabled.
+Implement fixes on the fix branch, committing after each fix.
+Once all fixes are implemented and tested, create a pull request to merge the fix branch into the main branch.
 ```
