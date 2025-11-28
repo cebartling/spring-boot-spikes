@@ -38,7 +38,7 @@ class ProductQueryServiceTest {
         status = "ACTIVE",
         createdAt = OffsetDateTime.now(),
         updatedAt = OffsetDateTime.now(),
-        version = 1,
+        aggregateVersion = 1,
         isDeleted = false,
         priceDisplay = "$19.99",
         searchText = "Test Product A test product description"

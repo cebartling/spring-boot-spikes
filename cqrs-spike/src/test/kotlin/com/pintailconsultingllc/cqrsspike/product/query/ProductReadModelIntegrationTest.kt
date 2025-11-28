@@ -535,9 +535,12 @@ class ProductReadModelIntegrationTest {
                 )
                 projector.processEvent(activateEvent, UUID.randomUUID(), 2L).block()
             }
-            // Add other status transitions here if needed, e.g. DISCONTINUED
-            // ProductStatus.DISCONTINUED -> { ... }
-            // else -> do nothing (already DRAFT)
+            ProductStatus.DRAFT -> {
+                // Already DRAFT from creation, no action needed
+            }
+            ProductStatus.DISCONTINUED -> {
+                // Not used in current tests, but handle for completeness
+            }
         }
 
         return productId

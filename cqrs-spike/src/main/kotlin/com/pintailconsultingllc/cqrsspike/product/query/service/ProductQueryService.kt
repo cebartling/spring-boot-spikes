@@ -45,14 +45,12 @@ class ProductQueryService(
     fun findById(id: UUID): Mono<ProductResponse> {
         logger.debug("Finding product by id: {}", id)
         return repository.findByIdNotDeleted(id)
+            .doOnNext { logger.debug("Found product: id={}, sku={}", id, it.sku) }
             .map { ProductResponse.from(it) }
-            .doOnSuccess { productResponse ->
-                if (productResponse != null) {
-                    logger.debug("Found product: id={}, sku={}", id, productResponse.sku)
-                } else {
-                    logger.debug("Product not found: id={}", id)
-                }
-            }
+            .switchIfEmpty(Mono.defer {
+                logger.debug("Product not found: id={}", id)
+                Mono.empty()
+            })
     }
 
     /**

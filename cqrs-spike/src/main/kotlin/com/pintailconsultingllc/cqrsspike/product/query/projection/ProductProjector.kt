@@ -93,7 +93,7 @@ class ProductProjector(
             status = event.status.name,
             createdAt = event.occurredAt,
             updatedAt = event.occurredAt,
-            version = event.version,
+            aggregateVersion = event.version,
             isDeleted = false,
             priceDisplay = formatPrice(event.priceCents),
             searchText = buildSearchText(event.name, event.description),
@@ -114,7 +114,7 @@ class ProductProjector(
         return readModelRepository.findById(event.productId)
             .flatMap { existing ->
                 // Check for idempotency
-                if (existing.version >= event.version) {
+                if (existing.aggregateVersion >= event.version) {
                     logger.debug(
                         "Skipping already processed event: productId={}, version={}",
                         event.productId, event.version
@@ -126,7 +126,7 @@ class ProductProjector(
                     name = event.name,
                     description = event.description,
                     updatedAt = event.occurredAt,
-                    version = event.version,
+                    aggregateVersion = event.version,
                     searchText = buildSearchText(event.name, event.description),
                     lastEventId = eventId
                 )
@@ -145,7 +145,7 @@ class ProductProjector(
     private fun handleProductPriceChanged(event: ProductPriceChanged, eventId: UUID): Mono<ProductReadModel> {
         return readModelRepository.findById(event.productId)
             .flatMap { existing ->
-                if (existing.version >= event.version) {
+                if (existing.aggregateVersion >= event.version) {
                     return@flatMap Mono.just(existing)
                 }
 
@@ -153,7 +153,7 @@ class ProductProjector(
                     priceCents = event.newPriceCents,
                     priceDisplay = formatPrice(event.newPriceCents),
                     updatedAt = event.occurredAt,
-                    version = event.version,
+                    aggregateVersion = event.version,
                     lastEventId = eventId
                 )
                 readModelRepository.save(updated)
@@ -171,14 +171,14 @@ class ProductProjector(
     private fun handleProductActivated(event: ProductActivated, eventId: UUID): Mono<ProductReadModel> {
         return readModelRepository.findById(event.productId)
             .flatMap { existing ->
-                if (existing.version >= event.version) {
+                if (existing.aggregateVersion >= event.version) {
                     return@flatMap Mono.just(existing)
                 }
 
                 val updated = existing.copy(
                     status = ProductStatusView.ACTIVE.name,
                     updatedAt = event.occurredAt,
-                    version = event.version,
+                    aggregateVersion = event.version,
                     lastEventId = eventId
                 )
                 readModelRepository.save(updated)
@@ -196,14 +196,14 @@ class ProductProjector(
     private fun handleProductDiscontinued(event: ProductDiscontinued, eventId: UUID): Mono<ProductReadModel> {
         return readModelRepository.findById(event.productId)
             .flatMap { existing ->
-                if (existing.version >= event.version) {
+                if (existing.aggregateVersion >= event.version) {
                     return@flatMap Mono.just(existing)
                 }
 
                 val updated = existing.copy(
                     status = ProductStatusView.DISCONTINUED.name,
                     updatedAt = event.occurredAt,
-                    version = event.version,
+                    aggregateVersion = event.version,
                     lastEventId = eventId
                 )
                 readModelRepository.save(updated)
@@ -221,14 +221,14 @@ class ProductProjector(
     private fun handleProductDeleted(event: ProductDeleted, eventId: UUID): Mono<ProductReadModel> {
         return readModelRepository.findById(event.productId)
             .flatMap { existing ->
-                if (existing.version >= event.version) {
+                if (existing.aggregateVersion >= event.version) {
                     return@flatMap Mono.just(existing)
                 }
 
                 val updated = existing.copy(
                     isDeleted = true,
                     updatedAt = event.occurredAt,
-                    version = event.version,
+                    aggregateVersion = event.version,
                     lastEventId = eventId
                 )
                 readModelRepository.save(updated)

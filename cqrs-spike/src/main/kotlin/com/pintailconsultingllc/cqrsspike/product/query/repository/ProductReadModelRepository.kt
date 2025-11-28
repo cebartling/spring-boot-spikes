@@ -188,7 +188,7 @@ interface ProductReadModelRepository : ReactiveCrudRepository<ProductReadModel, 
     @Query("""
         SELECT * FROM read_model.product
         WHERE NOT is_deleted
-        AND (created_at, id) < (:cursorCreatedAt, :cursorId::uuid)
+        AND (created_at, id) < (:cursorCreatedAt, :cursorId)
         ORDER BY created_at DESC, id DESC
         LIMIT :limit
     """)
@@ -205,7 +205,7 @@ interface ProductReadModelRepository : ReactiveCrudRepository<ProductReadModel, 
     @Query("""
         SELECT * FROM read_model.product
         WHERE NOT is_deleted
-        AND (name, id) > (:cursorName, :cursorId::uuid)
+        AND (name, id) > (:cursorName, :cursorId)
         ORDER BY name ASC, id ASC
         LIMIT :limit
     """)

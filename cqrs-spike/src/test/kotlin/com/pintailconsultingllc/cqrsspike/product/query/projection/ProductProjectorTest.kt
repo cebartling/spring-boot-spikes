@@ -158,7 +158,7 @@ class ProductProjectorTest {
             verify(readModelRepository).save(argThat<ProductReadModel> { model ->
                 model.name == "Updated Name" &&
                     model.description == "Updated description" &&
-                    model.version == 2L
+                    model.aggregateVersion == 2L
             })
         }
 
@@ -417,7 +417,7 @@ class ProductProjectorTest {
             status = status,
             createdAt = OffsetDateTime.now().minusDays(1),
             updatedAt = OffsetDateTime.now().minusDays(1),
-            version = version,
+            aggregateVersion = version,
             isDeleted = false,
             priceDisplay = "$19.99",
             searchText = "Test Product A description"

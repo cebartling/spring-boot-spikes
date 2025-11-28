@@ -32,7 +32,7 @@ data class ProductResponse(
                 status = model.status,
                 createdAt = model.createdAt,
                 updatedAt = model.updatedAt,
-                version = model.version
+                version = model.aggregateVersion
             )
         }
 

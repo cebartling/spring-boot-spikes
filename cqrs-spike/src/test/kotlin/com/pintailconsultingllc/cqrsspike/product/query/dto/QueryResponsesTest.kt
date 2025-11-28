@@ -24,7 +24,7 @@ class QueryResponsesTest {
         status = "ACTIVE",
         createdAt = OffsetDateTime.now(),
         updatedAt = OffsetDateTime.now(),
-        version = 1,
+        aggregateVersion = 1,
         isDeleted = false,
         priceDisplay = "$19.99",
         searchText = "Test Product A test product description"
@@ -46,7 +46,7 @@ class QueryResponsesTest {
             assertEquals(testProduct.priceCents, response.priceCents)
             assertEquals(testProduct.priceDisplay, response.priceDisplay)
             assertEquals(testProduct.status, response.status)
-            assertEquals(testProduct.version, response.version)
+            assertEquals(testProduct.aggregateVersion, response.version)
         }
 
         @Test
