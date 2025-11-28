@@ -19,7 +19,8 @@ import org.springframework.data.r2dbc.repository.config.EnableR2dbcRepositories
 @EnableR2dbcRepositories(
     basePackages = [
         "com.pintailconsultingllc.cqrsspike.infrastructure.eventstore",
-        "com.pintailconsultingllc.cqrsspike.product.command.infrastructure"
+        "com.pintailconsultingllc.cqrsspike.product.command.infrastructure",
+        "com.pintailconsultingllc.cqrsspike.product.query.repository"
     ]
 )
 class R2dbcConfig
