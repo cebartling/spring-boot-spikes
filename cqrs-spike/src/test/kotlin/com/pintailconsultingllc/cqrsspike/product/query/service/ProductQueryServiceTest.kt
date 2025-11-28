@@ -223,9 +223,9 @@ class ProductQueryServiceTest {
             whenever(repository.countAllNotDeleted())
                 .thenReturn(Mono.just(0L))
 
-            // Size over max should be capped at 100
+            // Size over max should be capped at 100 (the requested size stored in response)
             StepVerifier.create(queryService.findAllPaginated(0, 200))
-                .expectNextMatches { page -> page.size == 0 } // No content
+                .expectNextMatches { page -> page.size == 100 && page.content.isEmpty() }
                 .verifyComplete()
         }
 
@@ -271,17 +271,17 @@ class ProductQueryServiceTest {
         @Test
         @DisplayName("should reject negative minimum price")
         fun shouldRejectNegativeMinimumPrice() {
-            StepVerifier.create(queryService.findByPriceRange(-100, 3000))
-                .expectError(IllegalArgumentException::class.java)
-                .verify()
+            org.junit.jupiter.api.assertThrows<IllegalArgumentException> {
+                queryService.findByPriceRange(-100, 3000)
+            }
         }
 
         @Test
         @DisplayName("should reject max less than min")
         fun shouldRejectMaxLessThanMin() {
-            StepVerifier.create(queryService.findByPriceRange(3000, 1000))
-                .expectError(IllegalArgumentException::class.java)
-                .verify()
+            org.junit.jupiter.api.assertThrows<IllegalArgumentException> {
+                queryService.findByPriceRange(3000, 1000)
+            }
         }
     }
 

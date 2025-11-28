@@ -64,7 +64,7 @@ class ProductProjector(
             is ProductActivated -> handleProductActivated(event, eventId)
             is ProductDiscontinued -> handleProductDiscontinued(event, eventId)
             is ProductDeleted -> handleProductDeleted(event, eventId)
-        }.flatMap {
+        }.flatMap { _ ->
             updateProjectionPosition(eventId, eventSequence)
         }.doOnSuccess {
             logger.debug(
