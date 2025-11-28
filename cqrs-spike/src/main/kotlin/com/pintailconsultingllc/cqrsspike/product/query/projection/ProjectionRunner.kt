@@ -32,6 +32,7 @@ class ProjectionRunner(
     private val lastError = AtomicReference<Throwable?>(null)
     private val lastErrorAt = AtomicReference<OffsetDateTime?>(null)
     private var subscription: Disposable? = null
+    private var autoStartSubscription: Disposable? = null
 
     /**
      * Start the projection runner.
@@ -124,7 +125,7 @@ class ProjectionRunner(
     @PostConstruct
     fun init() {
         if (config.autoStart) {
-            start()
+            autoStartSubscription = start()
                 .subscribeOn(Schedulers.boundedElastic())
                 .subscribe(
                     { },
@@ -135,6 +136,8 @@ class ProjectionRunner(
 
     @PreDestroy
     fun destroy() {
+        autoStartSubscription?.dispose()
+        autoStartSubscription = null
         stop().block()
     }
 
