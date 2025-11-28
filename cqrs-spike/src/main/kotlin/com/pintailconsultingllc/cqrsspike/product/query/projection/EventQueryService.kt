@@ -104,7 +104,7 @@ class EventQueryService(
             streamId = entity.streamId,
             eventType = entity.eventType,
             aggregateVersion = entity.aggregateVersion.toLong(),
-            globalSequence = 0, // Position tracking uses eventId instead
+            globalSequence = null, // Position tracking uses eventId instead
             occurredAt = entity.occurredAt,
             event = event
         )
