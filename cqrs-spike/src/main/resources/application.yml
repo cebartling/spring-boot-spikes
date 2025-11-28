@@ -180,3 +180,16 @@ resilience4j:
     instances:
       productCommands:
         baseConfig: default
+
+# Projection Configuration
+projection:
+  batch-size: 100
+  poll-interval: 1s
+  idle-timeout: 5m
+  auto-start: true
+  max-retries: 3
+  retry-delay: 500ms
+  retry-backoff-multiplier: 2.0
+  max-retry-delay: 30s
+  lag-warning-threshold: 100
+  lag-error-threshold: 1000
