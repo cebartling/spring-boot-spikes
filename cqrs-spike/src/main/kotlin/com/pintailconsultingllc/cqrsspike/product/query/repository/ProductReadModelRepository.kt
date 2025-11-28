@@ -125,7 +125,7 @@ interface ProductReadModelRepository : ReactiveCrudRepository<ProductReadModel, 
     fun findAllPaginated(limit: Int, offset: Int): Flux<ProductReadModel>
 
     /**
-     * Find all products sorted by name with pagination.
+     * Find all products sorted by name ASC with pagination.
      */
     @Query("""
         SELECT * FROM read_model.product
@@ -133,10 +133,21 @@ interface ProductReadModelRepository : ReactiveCrudRepository<ProductReadModel, 
         ORDER BY name ASC
         LIMIT :limit OFFSET :offset
     """)
-    fun findAllSortedByNamePaginated(limit: Int, offset: Int): Flux<ProductReadModel>
+    fun findAllSortedByNameAscPaginated(limit: Int, offset: Int): Flux<ProductReadModel>
 
     /**
-     * Find all products sorted by price with pagination.
+     * Find all products sorted by name DESC with pagination.
+     */
+    @Query("""
+        SELECT * FROM read_model.product
+        WHERE NOT is_deleted
+        ORDER BY name DESC
+        LIMIT :limit OFFSET :offset
+    """)
+    fun findAllSortedByNameDescPaginated(limit: Int, offset: Int): Flux<ProductReadModel>
+
+    /**
+     * Find all products sorted by price ASC with pagination.
      */
     @Query("""
         SELECT * FROM read_model.product
@@ -144,7 +155,29 @@ interface ProductReadModelRepository : ReactiveCrudRepository<ProductReadModel, 
         ORDER BY price_cents ASC
         LIMIT :limit OFFSET :offset
     """)
-    fun findAllSortedByPricePaginated(limit: Int, offset: Int): Flux<ProductReadModel>
+    fun findAllSortedByPriceAscPaginated(limit: Int, offset: Int): Flux<ProductReadModel>
+
+    /**
+     * Find all products sorted by price DESC with pagination.
+     */
+    @Query("""
+        SELECT * FROM read_model.product
+        WHERE NOT is_deleted
+        ORDER BY price_cents DESC
+        LIMIT :limit OFFSET :offset
+    """)
+    fun findAllSortedByPriceDescPaginated(limit: Int, offset: Int): Flux<ProductReadModel>
+
+    /**
+     * Find all products sorted by created_at ASC with pagination.
+     */
+    @Query("""
+        SELECT * FROM read_model.product
+        WHERE NOT is_deleted
+        ORDER BY created_at ASC
+        LIMIT :limit OFFSET :offset
+    """)
+    fun findAllSortedByCreatedAtAscPaginated(limit: Int, offset: Int): Flux<ProductReadModel>
 
     // ============ Cursor-based Pagination ============
 

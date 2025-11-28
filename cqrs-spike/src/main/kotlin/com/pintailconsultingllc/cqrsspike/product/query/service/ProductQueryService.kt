@@ -193,7 +193,6 @@ class ProductQueryService(
      * @param direction Sort direction
      * @return Mono<ProductPageResponse>
      */
-    @Suppress("UNUSED_PARAMETER")
     fun findAllSortedPaginated(
         page: Int,
         size: Int,
@@ -204,10 +203,24 @@ class ProductQueryService(
         val validatedSize = minOf(maxOf(1, size), MAX_PAGE_SIZE)
         val offset = validatedPage * validatedSize
 
+        logger.debug(
+            "Finding all products sorted: page={}, size={}, sortField={}, direction={}",
+            validatedPage, validatedSize, sortField, direction
+        )
+
         val productsFlux = when (sortField) {
-            SortField.NAME -> repository.findAllSortedByNamePaginated(validatedSize, offset)
-            SortField.PRICE -> repository.findAllSortedByPricePaginated(validatedSize, offset)
-            SortField.CREATED_AT -> repository.findAllPaginated(validatedSize, offset)
+            SortField.NAME -> when (direction) {
+                SortDirection.ASC -> repository.findAllSortedByNameAscPaginated(validatedSize, offset)
+                SortDirection.DESC -> repository.findAllSortedByNameDescPaginated(validatedSize, offset)
+            }
+            SortField.PRICE -> when (direction) {
+                SortDirection.ASC -> repository.findAllSortedByPriceAscPaginated(validatedSize, offset)
+                SortDirection.DESC -> repository.findAllSortedByPriceDescPaginated(validatedSize, offset)
+            }
+            SortField.CREATED_AT -> when (direction) {
+                SortDirection.ASC -> repository.findAllSortedByCreatedAtAscPaginated(validatedSize, offset)
+                SortDirection.DESC -> repository.findAllPaginated(validatedSize, offset)
+            }
         }
 
         return Mono.zip(

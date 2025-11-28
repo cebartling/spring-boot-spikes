@@ -1,5 +1,7 @@
 package com.pintailconsultingllc.cqrsspike.product.query.service
 
+import com.pintailconsultingllc.cqrsspike.product.query.dto.SortDirection
+import com.pintailconsultingllc.cqrsspike.product.query.dto.SortField
 import com.pintailconsultingllc.cqrsspike.product.query.model.ProductReadModel
 import com.pintailconsultingllc.cqrsspike.product.query.model.ProductStatusView
 import com.pintailconsultingllc.cqrsspike.product.query.repository.ProductReadModelRepository
@@ -248,6 +250,127 @@ class ProductQueryServiceTest {
                         !page.last &&
                         page.hasNext &&
                         page.hasPrevious
+                }
+                .verifyComplete()
+        }
+    }
+
+    @Nested
+    @DisplayName("findAllSortedPaginated")
+    inner class FindAllSortedPaginated {
+
+        @Test
+        @DisplayName("should sort by name ASC when direction is ASC")
+        fun shouldSortByNameAscWhenDirectionIsAsc() {
+            val products = listOf(testProduct)
+            whenever(repository.findAllSortedByNameAscPaginated(20, 0))
+                .thenReturn(Flux.fromIterable(products))
+            whenever(repository.countAllNotDeleted())
+                .thenReturn(Mono.just(1L))
+
+            StepVerifier.create(queryService.findAllSortedPaginated(0, 20, SortField.NAME, SortDirection.ASC))
+                .expectNextMatches { page ->
+                    page.content.size == 1 &&
+                        page.page == 0 &&
+                        page.size == 20
+                }
+                .verifyComplete()
+        }
+
+        @Test
+        @DisplayName("should sort by name DESC when direction is DESC")
+        fun shouldSortByNameDescWhenDirectionIsDesc() {
+            val products = listOf(testProduct)
+            whenever(repository.findAllSortedByNameDescPaginated(20, 0))
+                .thenReturn(Flux.fromIterable(products))
+            whenever(repository.countAllNotDeleted())
+                .thenReturn(Mono.just(1L))
+
+            StepVerifier.create(queryService.findAllSortedPaginated(0, 20, SortField.NAME, SortDirection.DESC))
+                .expectNextMatches { page ->
+                    page.content.size == 1 &&
+                        page.page == 0 &&
+                        page.size == 20
+                }
+                .verifyComplete()
+        }
+
+        @Test
+        @DisplayName("should sort by price ASC when direction is ASC")
+        fun shouldSortByPriceAscWhenDirectionIsAsc() {
+            val products = listOf(testProduct)
+            whenever(repository.findAllSortedByPriceAscPaginated(20, 0))
+                .thenReturn(Flux.fromIterable(products))
+            whenever(repository.countAllNotDeleted())
+                .thenReturn(Mono.just(1L))
+
+            StepVerifier.create(queryService.findAllSortedPaginated(0, 20, SortField.PRICE, SortDirection.ASC))
+                .expectNextMatches { page ->
+                    page.content.size == 1
+                }
+                .verifyComplete()
+        }
+
+        @Test
+        @DisplayName("should sort by price DESC when direction is DESC")
+        fun shouldSortByPriceDescWhenDirectionIsDesc() {
+            val products = listOf(testProduct)
+            whenever(repository.findAllSortedByPriceDescPaginated(20, 0))
+                .thenReturn(Flux.fromIterable(products))
+            whenever(repository.countAllNotDeleted())
+                .thenReturn(Mono.just(1L))
+
+            StepVerifier.create(queryService.findAllSortedPaginated(0, 20, SortField.PRICE, SortDirection.DESC))
+                .expectNextMatches { page ->
+                    page.content.size == 1
+                }
+                .verifyComplete()
+        }
+
+        @Test
+        @DisplayName("should sort by created_at ASC when direction is ASC")
+        fun shouldSortByCreatedAtAscWhenDirectionIsAsc() {
+            val products = listOf(testProduct)
+            whenever(repository.findAllSortedByCreatedAtAscPaginated(20, 0))
+                .thenReturn(Flux.fromIterable(products))
+            whenever(repository.countAllNotDeleted())
+                .thenReturn(Mono.just(1L))
+
+            StepVerifier.create(queryService.findAllSortedPaginated(0, 20, SortField.CREATED_AT, SortDirection.ASC))
+                .expectNextMatches { page ->
+                    page.content.size == 1
+                }
+                .verifyComplete()
+        }
+
+        @Test
+        @DisplayName("should sort by created_at DESC when direction is DESC")
+        fun shouldSortByCreatedAtDescWhenDirectionIsDesc() {
+            val products = listOf(testProduct)
+            whenever(repository.findAllPaginated(20, 0))
+                .thenReturn(Flux.fromIterable(products))
+            whenever(repository.countAllNotDeleted())
+                .thenReturn(Mono.just(1L))
+
+            StepVerifier.create(queryService.findAllSortedPaginated(0, 20, SortField.CREATED_AT, SortDirection.DESC))
+                .expectNextMatches { page ->
+                    page.content.size == 1
+                }
+                .verifyComplete()
+        }
+
+        @Test
+        @DisplayName("should default to ASC when direction not specified")
+        fun shouldDefaultToAscWhenDirectionNotSpecified() {
+            val products = listOf(testProduct)
+            whenever(repository.findAllSortedByNameAscPaginated(20, 0))
+                .thenReturn(Flux.fromIterable(products))
+            whenever(repository.countAllNotDeleted())
+                .thenReturn(Mono.just(1L))
+
+            StepVerifier.create(queryService.findAllSortedPaginated(0, 20, SortField.NAME))
+                .expectNextMatches { page ->
+                    page.content.size == 1
                 }
                 .verifyComplete()
         }
