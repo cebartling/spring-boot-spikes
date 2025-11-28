@@ -47,6 +47,7 @@ Create a feature branch and commit small changes often to this feature branch.
 All changes will reside in this feature branch until the implementation is complete.
 Once the implementation is complete, create a pull request to merge the feature branch into the main branch.
 The pull request should include a description of the changes made and reference the implementation plan.
+All unit tests should pass before creating the pull request.
 ```
 
 ## Resolving Pull Request Review Comments
