@@ -43,7 +43,11 @@ data class PageLinks(
                 first = "$basePath?page=0&size=$size$suffix",
                 prev = if (page > 0) "$basePath?page=${page - 1}&size=$size$suffix" else null,
                 next = if (page < totalPages - 1) "$basePath?page=${page + 1}&size=$size$suffix" else null,
-                last = "$basePath?page=${maxOf(0, totalPages - 1)}&size=$size$suffix"
+                // If there are no results (totalPages == 0), the last page is 0 (empty set).
+                last = if (totalPages == 0)
+                    "$basePath?page=0&size=$size$suffix"
+                else
+                    "$basePath?page=${totalPages - 1}&size=$size$suffix"
             )
         }
     }
