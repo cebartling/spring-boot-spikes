@@ -130,6 +130,40 @@ class GlobalExceptionHandler {
     }
 
     /**
+     * Handles ServerWebInputException (HTTP 400).
+     *
+     * Returns a structured error response for invalid input such as malformed UUIDs,
+     * type mismatches, or other input parsing errors.
+     *
+     * @param ex The ServerWebInputException thrown
+     * @param exchange The server web exchange containing request details
+     * @return Mono containing ResponseEntity with ErrorResponse
+     */
+    @ExceptionHandler(ServerWebInputException::class)
+    fun handleServerWebInputException(
+        ex: ServerWebInputException,
+        exchange: ServerWebExchange,
+    ): Mono<ResponseEntity<ErrorResponse>> {
+        val path = exchange.request.path.value()
+
+        logger.warn("Invalid input - path: $path, error: ${ex.reason}", ex)
+
+        val errorResponse = ErrorResponse(
+            status = HttpStatus.BAD_REQUEST.value(),
+            error = HttpStatus.BAD_REQUEST.reasonPhrase,
+            message = ex.reason ?: "Invalid request input",
+            path = path,
+        )
+
+        return Mono.just(
+            ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(errorResponse)
+        )
+    }
+
+    /**
      * Handles all other unhandled exceptions (HTTP 500).
      *
      * Provides a generic error response for unexpected errors while logging full details.
