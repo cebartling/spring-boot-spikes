@@ -284,7 +284,7 @@ class ProductQueryController(
     @GetMapping("/count")
     fun countProducts(
         @RequestParam(required = false)
-        @Pattern(regexp = "^(DRAFT|ACTIVE|DISCONTINUED)?$") status: String?
+        @Pattern(regexp = "^(DRAFT|ACTIVE|DISCONTINUED)$") status: String?
     ): Mono<ResponseEntity<ProductCountResponse>> {
         logger.debug("GET /api/products/count - status={}", status)
 
