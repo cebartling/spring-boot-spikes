@@ -124,6 +124,17 @@ product:
   command:
     idempotency:
       ttl-hours: 24  # Time-to-live for idempotency records
+  # AC9: Business Rules Configuration
+  rules:
+    max-name-length: 255
+    min-name-length: 1
+    max-sku-length: 50
+    min-sku-length: 3
+    max-description-length: 5000
+    price-change-threshold-percent: 20.0
+    sku-pattern: "^[A-Za-z0-9\\-]{3,50}$"
+    max-reason-length: 500
+    max-deleted-by-length: 255
 
 # Resilience4j Configuration
 resilience4j:
