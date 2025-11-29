@@ -211,7 +211,7 @@ class ValidationDomainService(
                         ValidationError(
                             field = "productId",
                             message = "Product not found: $productId",
-                            code = "PRODUCT_NOT_FOUND"
+                            code = ValidationErrorCode.PRODUCT_NOT_FOUND.name
                         )
                     ))
                 }
