@@ -56,10 +56,12 @@ class EventMetrics(private val meterRegistry: MeterRegistry) {
     }
 
     /**
-     * Update current event lag count (number of events behind).
+     * Update current event lag value in milliseconds.
+     * @param projectionName the name of the projection
+     * @param lagMs the lag value in milliseconds
      */
-    fun updateEventLagCount(projectionName: String, lagCount: Long) {
-        getLagGauge(projectionName).set(lagCount)
+    fun updateEventLagMs(projectionName: String, lagMs: Long) {
+        getLagGauge(projectionName).set(lagMs)
     }
 
     private fun getPublishCounter(eventType: String): Counter {
@@ -104,7 +106,7 @@ class EventMetrics(private val meterRegistry: MeterRegistry) {
         val lagValue = AtomicLong(0)
         lagGauges[projectionName] = lagValue
         Gauge.builder("product.event.lag") { lagValue.get().toDouble() }
-            .description("Current event processing lag (events behind)")
+            .description("Current event processing lag (ms)")
             .tag("projection", projectionName)
             .register(meterRegistry)
     }
@@ -113,7 +115,7 @@ class EventMetrics(private val meterRegistry: MeterRegistry) {
         return lagGauges.computeIfAbsent(projectionName) {
             val lagValue = AtomicLong(0)
             Gauge.builder("product.event.lag") { lagValue.get().toDouble() }
-                .description("Current event processing lag (events behind)")
+                .description("Current event processing lag (ms)")
                 .tag("projection", projectionName)
                 .register(meterRegistry)
             lagValue
