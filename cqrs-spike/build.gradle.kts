@@ -70,7 +70,8 @@ dependencies {
     implementation("io.opentelemetry:opentelemetry-exporter-otlp")
 
     // AOP support for @Observed annotation (AC11)
-    implementation("org.springframework.boot:spring-boot-starter-aop")
+    implementation("org.springframework:spring-aop")
+    implementation("org.aspectj:aspectjweaver")
 
     // Observability - Structured Logging
     implementation("net.logstash.logback:logstash-logback-encoder:8.0")
