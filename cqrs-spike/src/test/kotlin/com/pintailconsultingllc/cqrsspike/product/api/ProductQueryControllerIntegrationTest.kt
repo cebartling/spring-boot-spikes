@@ -137,8 +137,8 @@ class ProductQueryControllerIntegrationTest {
     inner class ListProducts {
 
         @Test
-        @DisplayName("should return empty page when no products")
-        fun shouldReturnEmptyPage() {
+        @DisplayName("should return empty page when no products with links")
+        fun shouldReturnEmptyPageWithLinks() {
             webTestClient.get()
                 .uri("/api/products")
                 .accept(MediaType.APPLICATION_JSON)
@@ -148,11 +148,13 @@ class ProductQueryControllerIntegrationTest {
                 .jsonPath("$.content").isArray
                 .jsonPath("$.content.length()").isEqualTo(0)
                 .jsonPath("$.totalElements").isEqualTo(0)
+                .jsonPath("$.links").exists()
+                .jsonPath("$.links.self").exists()
         }
 
         @Test
-        @DisplayName("should return paginated products")
-        fun shouldReturnPaginatedProducts() {
+        @DisplayName("should return paginated products with navigation links")
+        fun shouldReturnPaginatedProductsWithLinks() {
             repeat(5) { i ->
                 createAndSaveProduct("PAGE-$i", "Product $i", 1000 + i * 100)
             }
@@ -168,6 +170,11 @@ class ProductQueryControllerIntegrationTest {
                 .jsonPath("$.totalPages").isEqualTo(2)
                 .jsonPath("$.hasNext").isEqualTo(true)
                 .jsonPath("$.first").isEqualTo(true)
+                .jsonPath("$.links").exists()
+                .jsonPath("$.links.self").exists()
+                .jsonPath("$.links.first").exists()
+                .jsonPath("$.links.next").exists()
+                .jsonPath("$.links.last").exists()
         }
 
         @Test
@@ -268,8 +275,8 @@ class ProductQueryControllerIntegrationTest {
     inner class GetProductsByStatus {
 
         @Test
-        @DisplayName("should return products by status")
-        fun shouldReturnProductsByStatus() {
+        @DisplayName("should return products by status with links")
+        fun shouldReturnProductsByStatusWithLinks() {
             createAndSaveProduct("ACTIVE-1", "Active 1", 1000, "ACTIVE")
             createAndSaveProduct("ACTIVE-2", "Active 2", 2000, "ACTIVE")
             createAndSaveProduct("DRAFT-1", "Draft 1", 3000, "DRAFT")
@@ -283,6 +290,8 @@ class ProductQueryControllerIntegrationTest {
                 .jsonPath("$.content.length()").isEqualTo(2)
                 .jsonPath("$.content[0].status").isEqualTo("ACTIVE")
                 .jsonPath("$.content[1].status").isEqualTo("ACTIVE")
+                .jsonPath("$.links").exists()
+                .jsonPath("$.links.self").exists()
         }
 
         @Test
