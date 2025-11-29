@@ -65,7 +65,8 @@ class BusinessRulesConfigTest {
     @DisplayName("should have default SKU pattern for alphanumeric with hyphens")
     fun shouldHaveDefaultSkuPattern() {
         val config = BusinessRulesConfig()
-        assertEquals("^[A-Za-z0-9\\-]{3,50}$", config.skuPattern)
+        // Pattern validates characters only; length is validated separately via minSkuLength/maxSkuLength
+        assertEquals("^[A-Za-z0-9\\-]+$", config.skuPattern)
     }
 
     @Test
@@ -128,17 +129,16 @@ class BusinessRulesConfigTest {
         val config = BusinessRulesConfig()
         val pattern = Regex(config.skuPattern)
 
-        // Too short
-        assert(!pattern.matches("AB"))
-        assert(!pattern.matches("A"))
+        // Length validation is done separately via minSkuLength/maxSkuLength,
+        // so pattern only validates character format
 
-        // Too long
-        assert(!pattern.matches("a".repeat(51)))
-
-        // Invalid characters
+        // Invalid characters should be rejected by pattern
         assert(!pattern.matches("PROD@001"))
         assert(!pattern.matches("PROD 001"))
         assert(!pattern.matches("PROD#001"))
         assert(!pattern.matches("PROD.001"))
+
+        // Empty string should not match
+        assert(!pattern.matches(""))
     }
 }
