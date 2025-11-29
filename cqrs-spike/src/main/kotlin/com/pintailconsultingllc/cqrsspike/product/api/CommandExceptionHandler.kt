@@ -1,5 +1,8 @@
 package com.pintailconsultingllc.cqrsspike.product.api
 
+import com.pintailconsultingllc.cqrsspike.infrastructure.error.BaseExceptionHandler
+import com.pintailconsultingllc.cqrsspike.infrastructure.error.EnhancedErrorResponse
+import com.pintailconsultingllc.cqrsspike.infrastructure.error.ServiceUnavailableResponse
 import com.pintailconsultingllc.cqrsspike.product.api.dto.CommandErrorResponse
 import com.pintailconsultingllc.cqrsspike.product.api.dto.ConflictErrorResponse
 import com.pintailconsultingllc.cqrsspike.product.api.dto.PriceChangeErrorResponse
@@ -32,10 +35,12 @@ import reactor.core.publisher.Mono
  *
  * Translates domain exceptions to appropriate HTTP responses
  * with structured error payloads.
+ *
+ * Implements AC10: "All errors are logged with correlation IDs"
  */
 @RestControllerAdvice(basePackageClasses = [ProductCommandController::class])
 @Order(1)
-class CommandExceptionHandler {
+class CommandExceptionHandler : BaseExceptionHandler() {
 
     private val logger = LoggerFactory.getLogger(CommandExceptionHandler::class.java)
 
@@ -135,22 +140,27 @@ class CommandExceptionHandler {
 
     /**
      * Handle concurrent modification.
+     *
+     * Implements AC10: "Concurrent modification conflicts return HTTP 409 with retry guidance"
      */
     @ExceptionHandler(ConcurrentModificationException::class)
     fun handleConcurrentModification(
         ex: ConcurrentModificationException,
         exchange: ServerWebExchange
     ): Mono<ResponseEntity<ConflictErrorResponse>> {
+        val correlationId = getCorrelationId(exchange)
         logger.warn(
-            "Concurrent modification for product {}: expected {}, actual {}",
-            ex.productId, ex.expectedVersion, ex.actualVersion
+            "[correlationId={}] Concurrent modification for product {}: expected {}, actual {}",
+            correlationId, ex.productId, ex.expectedVersion, ex.actualVersion
         )
 
         val response = ConflictErrorResponse(
             message = ex.message ?: "Concurrent modification detected",
-            path = exchange.request.path.value(),
+            path = getPath(exchange),
+            correlationId = correlationId,
             currentVersion = ex.actualVersion,
-            expectedVersion = ex.expectedVersion
+            expectedVersion = ex.expectedVersion,
+            recommendedAction = "GET /api/products/${ex.productId} to retrieve current version, then retry with expectedVersion=${ex.actualVersion}"
         )
 
         return Mono.just(ResponseEntity.status(HttpStatus.CONFLICT).body(response))
@@ -257,85 +267,118 @@ class CommandExceptionHandler {
 
     /**
      * Handle rate limit exceeded from resilience4j.
+     *
+     * Implements AC10: "Rate limiting prevents abuse of command endpoints"
      */
     @ExceptionHandler(RequestNotPermitted::class)
     fun handleRateLimitExceeded(
         ex: RequestNotPermitted,
         exchange: ServerWebExchange
-    ): Mono<ResponseEntity<CommandErrorResponse>> {
-        logger.warn("Rate limit exceeded: {}", ex.message)
+    ): Mono<ResponseEntity<EnhancedErrorResponse>> {
+        val correlationId = getCorrelationId(exchange)
+        logger.warn("[correlationId={}] Rate limit exceeded: {}", correlationId, ex.message)
 
-        val response = CommandErrorResponse(
+        val response = EnhancedErrorResponse(
             status = HttpStatus.TOO_MANY_REQUESTS.value(),
             error = "Too Many Requests",
             message = "Rate limit exceeded. Please retry later.",
-            path = exchange.request.path.value(),
-            code = "RATE_LIMIT_EXCEEDED"
+            path = getPath(exchange),
+            correlationId = correlationId,
+            code = "RATE_LIMIT_EXCEEDED",
+            retryAfter = 5,
+            retryGuidance = "Wait for the specified interval before retrying the request."
         )
 
-        return Mono.just(ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(response))
+        return Mono.just(
+            ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("Retry-After", "5")
+                .body(response)
+        )
     }
 
     /**
      * Handle rate limit exception from command handler.
+     *
+     * Implements AC10: "Rate limiting prevents abuse of command endpoints"
      */
     @ExceptionHandler(CommandRateLimitException::class)
     fun handleCommandRateLimit(
         ex: CommandRateLimitException,
         exchange: ServerWebExchange
-    ): Mono<ResponseEntity<CommandErrorResponse>> {
-        logger.warn("Command rate limit: {}", ex.message)
+    ): Mono<ResponseEntity<EnhancedErrorResponse>> {
+        val correlationId = getCorrelationId(exchange)
+        logger.warn("[correlationId={}] Command rate limit: {}", correlationId, ex.message)
 
-        val response = CommandErrorResponse(
+        val response = EnhancedErrorResponse(
             status = HttpStatus.TOO_MANY_REQUESTS.value(),
             error = "Too Many Requests",
             message = ex.message ?: "Rate limit exceeded. Please retry later.",
-            path = exchange.request.path.value(),
-            code = "RATE_LIMIT_EXCEEDED"
+            path = getPath(exchange),
+            correlationId = correlationId,
+            code = "RATE_LIMIT_EXCEEDED",
+            retryAfter = 5,
+            retryGuidance = "Wait for the specified interval before retrying the request."
         )
 
-        return Mono.just(ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(response))
+        return Mono.just(
+            ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("Retry-After", "5")
+                .body(response)
+        )
     }
 
     /**
      * Handle circuit breaker open from resilience4j.
+     *
+     * Implements AC10: "Circuit breaker pattern protects database operations"
      */
     @ExceptionHandler(CallNotPermittedException::class)
     fun handleCircuitBreakerOpen(
         ex: CallNotPermittedException,
         exchange: ServerWebExchange
-    ): Mono<ResponseEntity<CommandErrorResponse>> {
-        logger.error("Circuit breaker open: {}", ex.message)
+    ): Mono<ResponseEntity<ServiceUnavailableResponse>> {
+        val correlationId = getCorrelationId(exchange)
+        logger.error("[correlationId={}] Circuit breaker open: {}", correlationId, ex.message)
 
-        val response = CommandErrorResponse(
-            status = HttpStatus.SERVICE_UNAVAILABLE.value(),
-            error = "Service Unavailable",
+        val response = ServiceUnavailableResponse(
             message = "Service temporarily unavailable. Please retry later.",
-            path = exchange.request.path.value(),
-            code = "SERVICE_UNAVAILABLE"
+            path = getPath(exchange),
+            correlationId = correlationId,
+            retryAfter = 30,
+            circuitBreakerState = "OPEN"
         )
 
-        return Mono.just(ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(response))
+        return Mono.just(
+            ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .header("Retry-After", "30")
+                .body(response)
+        )
     }
 
     /**
      * Handle service unavailable from command handler.
+     *
+     * Implements AC10: "Fallback methods provide graceful degradation"
      */
     @ExceptionHandler(CommandServiceUnavailableException::class)
     fun handleServiceUnavailable(
         ex: CommandServiceUnavailableException,
         exchange: ServerWebExchange
-    ): Mono<ResponseEntity<CommandErrorResponse>> {
-        logger.error("Service unavailable: {}", ex.message)
+    ): Mono<ResponseEntity<ServiceUnavailableResponse>> {
+        val correlationId = getCorrelationId(exchange)
+        logger.error("[correlationId={}] Service unavailable: {}", correlationId, ex.message)
 
-        val response = CommandErrorResponse(
-            status = HttpStatus.SERVICE_UNAVAILABLE.value(),
-            error = "Service Unavailable",
+        val response = ServiceUnavailableResponse(
             message = ex.message ?: "Service temporarily unavailable. Please retry later.",
-            path = exchange.request.path.value(),
-            code = "SERVICE_UNAVAILABLE"
+            path = getPath(exchange),
+            correlationId = correlationId,
+            retryAfter = 30
         )
 
-        return Mono.just(ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(response))
+        return Mono.just(
+            ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .header("Retry-After", "30")
+                .body(response)
+        )
     }
 }
