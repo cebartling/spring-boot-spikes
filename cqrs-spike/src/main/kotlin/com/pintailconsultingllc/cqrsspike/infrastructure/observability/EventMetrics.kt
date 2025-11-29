@@ -104,7 +104,7 @@ class EventMetrics(private val meterRegistry: MeterRegistry) {
         val lagValue = AtomicLong(0)
         lagGauges[projectionName] = lagValue
         Gauge.builder("product.event.lag") { lagValue.get().toDouble() }
-            .description("Current event processing lag (events behind)")
+            .description("Current event processing lag in milliseconds")
             .tag("projection", projectionName)
             .register(meterRegistry)
     }
@@ -113,7 +113,7 @@ class EventMetrics(private val meterRegistry: MeterRegistry) {
         return lagGauges.computeIfAbsent(projectionName) {
             val lagValue = AtomicLong(0)
             Gauge.builder("product.event.lag") { lagValue.get().toDouble() }
-                .description("Current event processing lag (events behind)")
+                .description("Current event processing lag in milliseconds")
                 .tag("projection", projectionName)
                 .register(meterRegistry)
             lagValue
