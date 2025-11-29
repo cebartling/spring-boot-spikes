@@ -1,6 +1,6 @@
 package com.pintailconsultingllc.cqrsspike.product.command.validation
 
-import com.pintailconsultingllc.cqrsspike.product.command.aggregate.ProductAggregate
+import com.pintailconsultingllc.cqrsspike.product.command.model.ActivateProductCommand
 import com.pintailconsultingllc.cqrsspike.product.command.model.ChangePriceCommand
 import com.pintailconsultingllc.cqrsspike.product.command.model.CreateProductCommand
 import com.pintailconsultingllc.cqrsspike.product.command.model.DeleteProductCommand
@@ -10,58 +10,88 @@ import org.springframework.stereotype.Component
 
 /**
  * Validates CreateProductCommand.
+ * Implements AC9 field-level validation rules using externalized configuration.
+ *
+ * AC9 Requirements:
+ * - Product name is required and between 1-255 characters
+ * - Product SKU is required, unique, and follows defined format (alphanumeric, 3-50 chars)
+ * - Product price must be a positive integer (cents)
+ * - Product description is optional but limited to 5000 characters
  */
 @Component
-class CreateProductCommandValidator {
-
-    companion object {
-        private val SKU_PATTERN = Regex("^[A-Za-z0-9\\-]{3,50}$")
-    }
+class CreateProductCommandValidator(
+    private val businessRulesConfig: BusinessRulesConfig
+) {
+    private val skuPattern by lazy { Regex(businessRulesConfig.skuPattern) }
 
     fun validate(command: CreateProductCommand): ValidationResult {
         val errors = mutableListOf<ValidationError>()
 
-        // SKU validation
+        // SKU validation (AC9: required, unique, alphanumeric, 3-50 chars)
         val trimmedSku = command.sku.trim()
         when {
             trimmedSku.isBlank() -> errors.add(
-                ValidationError("sku", "SKU is required", "REQUIRED")
+                ValidationError("sku", "SKU is required", ValidationErrorCode.REQUIRED.name)
             )
-            trimmedSku.length < ProductAggregate.MIN_SKU_LENGTH -> errors.add(
-                ValidationError("sku", "SKU must be at least ${ProductAggregate.MIN_SKU_LENGTH} characters", "MIN_LENGTH")
+            trimmedSku.length < businessRulesConfig.minSkuLength -> errors.add(
+                ValidationError(
+                    "sku",
+                    "SKU must be at least ${businessRulesConfig.minSkuLength} characters",
+                    ValidationErrorCode.MIN_LENGTH.name
+                )
             )
-            trimmedSku.length > ProductAggregate.MAX_SKU_LENGTH -> errors.add(
-                ValidationError("sku", "SKU must not exceed ${ProductAggregate.MAX_SKU_LENGTH} characters", "MAX_LENGTH")
+            trimmedSku.length > businessRulesConfig.maxSkuLength -> errors.add(
+                ValidationError(
+                    "sku",
+                    "SKU must not exceed ${businessRulesConfig.maxSkuLength} characters",
+                    ValidationErrorCode.MAX_LENGTH.name
+                )
             )
-            !SKU_PATTERN.matches(trimmedSku) -> errors.add(
-                ValidationError("sku", "SKU must contain only alphanumeric characters and hyphens", "INVALID_FORMAT")
+            !skuPattern.matches(trimmedSku) -> errors.add(
+                ValidationError(
+                    "sku",
+                    "SKU must contain only alphanumeric characters and hyphens",
+                    ValidationErrorCode.INVALID_FORMAT.name
+                )
             )
         }
 
-        // Name validation
+        // Name validation (AC9: required, 1-255 chars)
         val trimmedName = command.name.trim()
         when {
             trimmedName.isBlank() -> errors.add(
-                ValidationError("name", "Name is required", "REQUIRED")
+                ValidationError("name", "Name is required", ValidationErrorCode.REQUIRED.name)
             )
-            trimmedName.length > ProductAggregate.MAX_NAME_LENGTH -> errors.add(
-                ValidationError("name", "Name must not exceed ${ProductAggregate.MAX_NAME_LENGTH} characters", "MAX_LENGTH")
+            trimmedName.length > businessRulesConfig.maxNameLength -> errors.add(
+                ValidationError(
+                    "name",
+                    "Name must not exceed ${businessRulesConfig.maxNameLength} characters",
+                    ValidationErrorCode.MAX_LENGTH.name
+                )
             )
         }
 
-        // Description validation
+        // Description validation (AC9: optional, max 5000 chars)
         command.description?.let { desc ->
-            if (desc.length > ProductAggregate.MAX_DESCRIPTION_LENGTH) {
+            if (desc.length > businessRulesConfig.maxDescriptionLength) {
                 errors.add(
-                    ValidationError("description", "Description must not exceed ${ProductAggregate.MAX_DESCRIPTION_LENGTH} characters", "MAX_LENGTH")
+                    ValidationError(
+                        "description",
+                        "Description must not exceed ${businessRulesConfig.maxDescriptionLength} characters",
+                        ValidationErrorCode.MAX_LENGTH.name
+                    )
                 )
             }
         }
 
-        // Price validation
+        // Price validation (AC9: positive integer)
         if (command.priceCents <= 0) {
             errors.add(
-                ValidationError("priceCents", "Price must be positive", "POSITIVE_REQUIRED")
+                ValidationError(
+                    "priceCents",
+                    "Price must be a positive integer (cents)",
+                    ValidationErrorCode.POSITIVE_REQUIRED.name
+                )
             )
         }
 
@@ -71,29 +101,39 @@ class CreateProductCommandValidator {
 
 /**
  * Validates UpdateProductCommand.
+ * Implements AC9 field-level validation rules.
  */
 @Component
-class UpdateProductCommandValidator {
-
+class UpdateProductCommandValidator(
+    private val businessRulesConfig: BusinessRulesConfig
+) {
     fun validate(command: UpdateProductCommand): ValidationResult {
         val errors = mutableListOf<ValidationError>()
 
-        // Name validation
+        // Name validation (AC9: required, 1-255 chars)
         val trimmedName = command.name.trim()
         when {
             trimmedName.isBlank() -> errors.add(
-                ValidationError("name", "Name is required", "REQUIRED")
+                ValidationError("name", "Name is required", ValidationErrorCode.REQUIRED.name)
             )
-            trimmedName.length > ProductAggregate.MAX_NAME_LENGTH -> errors.add(
-                ValidationError("name", "Name must not exceed ${ProductAggregate.MAX_NAME_LENGTH} characters", "MAX_LENGTH")
+            trimmedName.length > businessRulesConfig.maxNameLength -> errors.add(
+                ValidationError(
+                    "name",
+                    "Name must not exceed ${businessRulesConfig.maxNameLength} characters",
+                    ValidationErrorCode.MAX_LENGTH.name
+                )
             )
         }
 
-        // Description validation
+        // Description validation (AC9: optional, max 5000 chars)
         command.description?.let { desc ->
-            if (desc.length > ProductAggregate.MAX_DESCRIPTION_LENGTH) {
+            if (desc.length > businessRulesConfig.maxDescriptionLength) {
                 errors.add(
-                    ValidationError("description", "Description must not exceed ${ProductAggregate.MAX_DESCRIPTION_LENGTH} characters", "MAX_LENGTH")
+                    ValidationError(
+                        "description",
+                        "Description must not exceed ${businessRulesConfig.maxDescriptionLength} characters",
+                        ValidationErrorCode.MAX_LENGTH.name
+                    )
                 )
             }
         }
@@ -101,7 +141,11 @@ class UpdateProductCommandValidator {
         // Version validation
         if (command.expectedVersion < 1) {
             errors.add(
-                ValidationError("expectedVersion", "Expected version must be positive", "POSITIVE_REQUIRED")
+                ValidationError(
+                    "expectedVersion",
+                    "Expected version must be positive",
+                    ValidationErrorCode.POSITIVE_REQUIRED.name
+                )
             )
         }
 
@@ -111,22 +155,32 @@ class UpdateProductCommandValidator {
 
 /**
  * Validates ChangePriceCommand.
+ * Implements AC9 price validation rules.
  */
 @Component
 class ChangePriceCommandValidator {
-
     fun validate(command: ChangePriceCommand): ValidationResult {
         val errors = mutableListOf<ValidationError>()
 
+        // Price validation (AC9: positive integer)
         if (command.newPriceCents <= 0) {
             errors.add(
-                ValidationError("newPriceCents", "Price must be positive", "POSITIVE_REQUIRED")
+                ValidationError(
+                    "newPriceCents",
+                    "Price must be a positive integer (cents)",
+                    ValidationErrorCode.POSITIVE_REQUIRED.name
+                )
             )
         }
 
+        // Version validation
         if (command.expectedVersion < 1) {
             errors.add(
-                ValidationError("expectedVersion", "Expected version must be positive", "POSITIVE_REQUIRED")
+                ValidationError(
+                    "expectedVersion",
+                    "Expected version must be positive",
+                    ValidationErrorCode.POSITIVE_REQUIRED.name
+                )
             )
         }
 
@@ -139,13 +193,17 @@ class ChangePriceCommandValidator {
  */
 @Component
 class ActivateProductCommandValidator {
-
-    fun validate(command: com.pintailconsultingllc.cqrsspike.product.command.model.ActivateProductCommand): ValidationResult {
+    fun validate(command: ActivateProductCommand): ValidationResult {
         val errors = mutableListOf<ValidationError>()
 
+        // Version validation
         if (command.expectedVersion < 1) {
             errors.add(
-                ValidationError("expectedVersion", "Expected version must be positive", "POSITIVE_REQUIRED")
+                ValidationError(
+                    "expectedVersion",
+                    "Expected version must be positive",
+                    ValidationErrorCode.POSITIVE_REQUIRED.name
+                )
             )
         }
 
@@ -157,26 +215,33 @@ class ActivateProductCommandValidator {
  * Validates DiscontinueProductCommand.
  */
 @Component
-class DiscontinueProductCommandValidator {
-
-    companion object {
-        const val MAX_REASON_LENGTH = 500
-    }
-
+class DiscontinueProductCommandValidator(
+    private val businessRulesConfig: BusinessRulesConfig
+) {
     fun validate(command: DiscontinueProductCommand): ValidationResult {
         val errors = mutableListOf<ValidationError>()
 
+        // Reason validation
         command.reason?.let { reason ->
-            if (reason.length > MAX_REASON_LENGTH) {
+            if (reason.length > businessRulesConfig.maxReasonLength) {
                 errors.add(
-                    ValidationError("reason", "Reason must not exceed $MAX_REASON_LENGTH characters", "MAX_LENGTH")
+                    ValidationError(
+                        "reason",
+                        "Reason must not exceed ${businessRulesConfig.maxReasonLength} characters",
+                        ValidationErrorCode.MAX_LENGTH.name
+                    )
                 )
             }
         }
 
+        // Version validation
         if (command.expectedVersion < 1) {
             errors.add(
-                ValidationError("expectedVersion", "Expected version must be positive", "POSITIVE_REQUIRED")
+                ValidationError(
+                    "expectedVersion",
+                    "Expected version must be positive",
+                    ValidationErrorCode.POSITIVE_REQUIRED.name
+                )
             )
         }
 
@@ -188,26 +253,33 @@ class DiscontinueProductCommandValidator {
  * Validates DeleteProductCommand.
  */
 @Component
-class DeleteProductCommandValidator {
-
-    companion object {
-        const val MAX_DELETED_BY_LENGTH = 255
-    }
-
+class DeleteProductCommandValidator(
+    private val businessRulesConfig: BusinessRulesConfig
+) {
     fun validate(command: DeleteProductCommand): ValidationResult {
         val errors = mutableListOf<ValidationError>()
 
+        // DeletedBy validation
         command.deletedBy?.let { deletedBy ->
-            if (deletedBy.length > MAX_DELETED_BY_LENGTH) {
+            if (deletedBy.length > businessRulesConfig.maxDeletedByLength) {
                 errors.add(
-                    ValidationError("deletedBy", "DeletedBy must not exceed $MAX_DELETED_BY_LENGTH characters", "MAX_LENGTH")
+                    ValidationError(
+                        "deletedBy",
+                        "DeletedBy must not exceed ${businessRulesConfig.maxDeletedByLength} characters",
+                        ValidationErrorCode.MAX_LENGTH.name
+                    )
                 )
             }
         }
 
+        // Version validation
         if (command.expectedVersion < 1) {
             errors.add(
-                ValidationError("expectedVersion", "Expected version must be positive", "POSITIVE_REQUIRED")
+                ValidationError(
+                    "expectedVersion",
+                    "Expected version must be positive",
+                    ValidationErrorCode.POSITIVE_REQUIRED.name
+                )
             )
         }
 
