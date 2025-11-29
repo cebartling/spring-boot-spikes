@@ -43,6 +43,9 @@ enum class ValidationErrorCode(val httpStatus: Int) {
     /** Operation attempted on deleted product */
     PRODUCT_DELETED(410),
 
+    /** Product not found */
+    PRODUCT_NOT_FOUND(404),
+
     /** Concurrent modification detected */
     CONCURRENT_MODIFICATION(409),
 
