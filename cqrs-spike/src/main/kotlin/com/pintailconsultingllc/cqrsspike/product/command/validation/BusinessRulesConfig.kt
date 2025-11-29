@@ -42,8 +42,8 @@ class BusinessRulesConfig {
     /** Price change threshold for ACTIVE products requiring confirmation (AC9: 20%) */
     var priceChangeThresholdPercent: Double = 20.0
 
-    /** SKU pattern: alphanumeric and hyphens (AC9 specifies alphanumeric, hyphens added for practicality) */
-    var skuPattern: String = "^[A-Za-z0-9\\-]{3,50}$"
+    /** SKU pattern: alphanumeric and hyphens (AC9 specifies alphanumeric, hyphens added for practicality; length is validated separately) */
+    var skuPattern: String = "^[A-Za-z0-9\\-]+$"
 
     /** Maximum length for discontinue reason */
     var maxReasonLength: Int = 500
