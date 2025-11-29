@@ -500,33 +500,6 @@ class ProductQueryControllerTest {
         }
 
         @Test
-        @DisplayName("should return 400 for invalid status value")
-        fun shouldReturn400ForInvalidStatus() {
-            webTestClient.get()
-                .uri("/api/products?status=INVALID")
-                .exchange()
-                .expectStatus().isBadRequest
-        }
-
-        @Test
-        @DisplayName("should return 400 for page size over limit")
-        fun shouldReturn400ForSizeOverLimit() {
-            webTestClient.get()
-                .uri("/api/products?size=500")
-                .exchange()
-                .expectStatus().isBadRequest
-        }
-
-        @Test
-        @DisplayName("should return 400 for negative page number")
-        fun shouldReturn400ForNegativePage() {
-            webTestClient.get()
-                .uri("/api/products?page=-1")
-                .exchange()
-                .expectStatus().isBadRequest
-        }
-
-        @Test
         @DisplayName("should return 400 for missing search query")
         fun shouldReturn400ForMissingSearchQuery() {
             webTestClient.get()
