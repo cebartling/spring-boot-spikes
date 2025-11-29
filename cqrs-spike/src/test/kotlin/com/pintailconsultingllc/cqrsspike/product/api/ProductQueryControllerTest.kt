@@ -32,7 +32,7 @@ class ProductQueryControllerTest {
     @Autowired
     private lateinit var webTestClient: WebTestClient
 
-    @MockitoBean
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
     private lateinit var queryService: ProductQueryService
 
     @Nested
