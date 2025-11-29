@@ -141,6 +141,18 @@ org.slf4j.LoggerFactory
 
 **URLs:** http://localhost:8200/ui • jdbc:postgresql://localhost:5432/cqrs_db
 
+## SDKMAN Setup
+
+This project uses SDKMAN for Java version management. A `.sdkmanrc` file in the project root specifies the required Java version.
+
+**Initialize SDKMAN:** `source "$HOME/.sdkman/bin/sdkman-init.sh"`
+
+**Auto-switch to project Java version:** `sdk env` (reads `.sdkmanrc`)
+
+**Install required version:** `sdk install java 24.0.2-amzn`
+
+**Current requirement:** Java 24.0.2-amzn (Amazon Corretto)
+
 ## Checklists
 
 **Service:** Kotlin • constructor injection • Mono/Flux • resiliency • fallback • logger • tests
