@@ -336,7 +336,7 @@ class ProductQueryController(
         size: Int,
         totalElements: Long
     ): ProductPageResponse {
-        val totalPages = if (totalElements == 0L) 1 else ((totalElements + size - 1) / size).toInt()
+        val totalPages = if (totalElements == 0L) 0 else ((totalElements + size - 1) / size).toInt()
         return ProductPageResponse(
             content = content,
             page = page,
