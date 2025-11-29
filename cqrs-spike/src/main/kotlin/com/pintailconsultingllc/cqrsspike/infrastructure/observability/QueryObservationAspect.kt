@@ -1,5 +1,7 @@
 package com.pintailconsultingllc.cqrsspike.infrastructure.observability
 
+import com.pintailconsultingllc.cqrsspike.product.query.dto.ProductPageResponse
+import com.pintailconsultingllc.cqrsspike.product.query.dto.ProductSearchResponse
 import io.micrometer.observation.Observation
 import io.micrometer.observation.ObservationRegistry
 import org.aspectj.lang.ProceedingJoinPoint
@@ -85,6 +87,8 @@ class QueryObservationAspect(
 
     private fun extractResultCount(result: Any?): Int {
         return when (result) {
+            is ProductPageResponse -> result.content.size
+            is ProductSearchResponse -> result.content.size
             is Collection<*> -> result.size
             null -> 0
             else -> 1
