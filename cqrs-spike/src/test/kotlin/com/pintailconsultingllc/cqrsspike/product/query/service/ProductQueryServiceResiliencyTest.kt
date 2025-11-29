@@ -107,6 +107,8 @@ class ProductQueryServiceResiliencyTest {
         fun shouldHandleIOException() {
             whenever(repository.findAllPaginated(20, 0))
                 .thenReturn(reactor.core.publisher.Flux.error(IOException("Database connection lost")))
+            whenever(repository.countAllNotDeleted())
+                .thenReturn(Mono.just(0L))
 
             StepVerifier.create(service.findAllPaginated(0, 20))
                 .expectError(IOException::class.java)
