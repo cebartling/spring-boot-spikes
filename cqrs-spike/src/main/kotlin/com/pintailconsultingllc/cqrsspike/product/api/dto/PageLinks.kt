@@ -1,6 +1,8 @@
 package com.pintailconsultingllc.cqrsspike.product.api.dto
 
 import io.swagger.v3.oas.annotations.media.Schema
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 /**
  * HATEOAS-style pagination links.
@@ -33,9 +35,11 @@ data class PageLinks(
             totalPages: Int,
             additionalParams: Map<String, String> = emptyMap()
         ): PageLinks {
+            fun encode(value: String): String = URLEncoder.encode(value, StandardCharsets.UTF_8)
+
             val params = additionalParams.entries
                 .filter { it.value.isNotBlank() }
-                .joinToString("&") { "${it.key}=${it.value}" }
+                .joinToString("&") { "${encode(it.key)}=${encode(it.value)}" }
             val suffix = if (params.isNotBlank()) "&$params" else ""
 
             return PageLinks(
@@ -43,7 +47,11 @@ data class PageLinks(
                 first = "$basePath?page=0&size=$size$suffix",
                 prev = if (page > 0) "$basePath?page=${page - 1}&size=$size$suffix" else null,
                 next = if (page < totalPages - 1) "$basePath?page=${page + 1}&size=$size$suffix" else null,
-                last = "$basePath?page=${maxOf(0, totalPages - 1)}&size=$size$suffix"
+                // If there are no results (totalPages == 0), the last page is 0 (empty set).
+                last = if (totalPages == 0)
+                    "$basePath?page=0&size=$size$suffix"
+                else
+                    "$basePath?page=${totalPages - 1}&size=$size$suffix"
             )
         }
     }
