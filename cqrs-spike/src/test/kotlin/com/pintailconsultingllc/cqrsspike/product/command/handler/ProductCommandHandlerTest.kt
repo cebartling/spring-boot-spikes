@@ -13,6 +13,7 @@ import com.pintailconsultingllc.cqrsspike.product.command.model.DiscontinueProdu
 import com.pintailconsultingllc.cqrsspike.product.command.model.UpdateProductCommand
 import com.pintailconsultingllc.cqrsspike.product.command.service.IdempotencyService
 import com.pintailconsultingllc.cqrsspike.product.command.validation.ActivateProductCommandValidator
+import com.pintailconsultingllc.cqrsspike.product.command.validation.BusinessRulesConfig
 import com.pintailconsultingllc.cqrsspike.product.command.validation.ChangePriceCommandValidator
 import com.pintailconsultingllc.cqrsspike.product.command.validation.CommandValidationException
 import com.pintailconsultingllc.cqrsspike.product.command.validation.CreateProductCommandValidator
@@ -56,15 +57,16 @@ class ProductCommandHandlerTest {
 
     @BeforeEach
     fun setUp() {
+        val businessRulesConfig = BusinessRulesConfig()
         handler = ProductCommandHandler(
             aggregateRepository = aggregateRepository,
             idempotencyService = idempotencyService,
-            createValidator = CreateProductCommandValidator(),
-            updateValidator = UpdateProductCommandValidator(),
+            createValidator = CreateProductCommandValidator(businessRulesConfig),
+            updateValidator = UpdateProductCommandValidator(businessRulesConfig),
             changePriceValidator = ChangePriceCommandValidator(),
             activateValidator = ActivateProductCommandValidator(),
-            discontinueValidator = DiscontinueProductCommandValidator(),
-            deleteValidator = DeleteProductCommandValidator()
+            discontinueValidator = DiscontinueProductCommandValidator(businessRulesConfig),
+            deleteValidator = DeleteProductCommandValidator(businessRulesConfig)
         )
     }
 
