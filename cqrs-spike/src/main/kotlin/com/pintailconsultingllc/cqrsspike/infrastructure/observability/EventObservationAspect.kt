@@ -95,8 +95,8 @@ class EventObservationAspect(
         val args = joinPoint.args
         return if (args.isNotEmpty() && args[0] is List<*>) {
             @Suppress("UNCHECKED_CAST")
-            (args[0] as List<Any>).mapNotNull { event ->
-                event::class.simpleName
+            (args[0] as List<Any>).map { event ->
+                event::class.simpleName ?: "UnknownEvent"
             }
         } else {
             listOf("UnknownEvent")
