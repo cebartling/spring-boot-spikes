@@ -37,7 +37,7 @@ data class ProductPageResponseWithLinks(
     val hasPrevious: Boolean,
 
     @Schema(description = "Navigation links")
-    val links: PageLinks
+    val links: PageLinks?
 ) {
     companion object {
         fun from(

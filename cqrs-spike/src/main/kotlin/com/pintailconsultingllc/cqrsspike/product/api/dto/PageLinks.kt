@@ -36,7 +36,7 @@ data class PageLinks(
             additionalParams: Map<String, String> = emptyMap()
         ): PageLinks {
             fun encode(value: String): String = URLEncoder.encode(value, StandardCharsets.UTF_8)
-            
+
             val params = additionalParams.entries
                 .filter { it.value.isNotBlank() }
                 .joinToString("&") { "${encode(it.key)}=${encode(it.value)}" }
