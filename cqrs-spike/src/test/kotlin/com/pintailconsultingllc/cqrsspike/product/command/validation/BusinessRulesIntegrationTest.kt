@@ -22,6 +22,7 @@ import reactor.test.StepVerifier
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
@@ -623,7 +624,7 @@ class BusinessRulesIntegrationTest {
 
             // Test that it correctly determines confirmation requirement
             assertTrue(statusBasedValidator.requiresPriceConfirmation(ProductStatus.ACTIVE, 1000, 1250))
-            assertTrue(!statusBasedValidator.requiresPriceConfirmation(ProductStatus.ACTIVE, 1000, 1150))
+            assertFalse(statusBasedValidator.requiresPriceConfirmation(ProductStatus.ACTIVE, 1000, 1150))
         }
     }
 }
