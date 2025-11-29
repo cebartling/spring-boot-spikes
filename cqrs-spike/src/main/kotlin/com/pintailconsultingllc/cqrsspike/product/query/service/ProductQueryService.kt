@@ -21,6 +21,12 @@ import java.util.UUID
  *
  * Provides methods for retrieving products from the read model
  * with support for pagination, filtering, and search.
+ *
+ * AC9 Requirement: "Deleted products are soft-deleted and excluded from queries by default"
+ *
+ * All query methods in this service automatically exclude soft-deleted products.
+ * This is enforced at the repository level where all queries include
+ * a `WHERE NOT is_deleted` clause.
  */
 @Service
 class ProductQueryService(
