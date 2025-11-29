@@ -1,6 +1,7 @@
 package com.pintailconsultingllc.cqrsspike.product.command.validation
 
 import org.springframework.boot.context.properties.ConfigurationProperties
+import org.springframework.context.annotation.Configuration
 
 /**
  * Externalized configuration for product business rules.
@@ -20,6 +21,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties
  * - Product description is optional but limited to 5000 characters
  * - Products in ACTIVE status require confirmation for price changes over 20%
  */
+@Configuration
 @ConfigurationProperties(prefix = "product.rules")
 class BusinessRulesConfig {
     /** Maximum length for product name (AC9: 255 characters) */
