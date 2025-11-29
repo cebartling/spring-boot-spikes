@@ -1,6 +1,8 @@
 package com.pintailconsultingllc.cqrsspike.product.command.exception
 
 import com.pintailconsultingllc.cqrsspike.product.command.model.ProductStatus
+import com.pintailconsultingllc.cqrsspike.product.command.validation.ValidationError
+import com.pintailconsultingllc.cqrsspike.product.command.validation.ValidationResult
 import java.util.UUID
 
 /**
@@ -67,6 +69,8 @@ class ProductDeletedException(
 
 /**
  * Thrown when price change exceeds allowed threshold without confirmation.
+ *
+ * AC9: "Products in ACTIVE status require confirmation for price changes over 20%"
  */
 class PriceChangeThresholdExceededException(
     val productId: UUID,
@@ -77,4 +81,41 @@ class PriceChangeThresholdExceededException(
 ) : ProductDomainException(
     "Price change of ${String.format("%.2f", changePercentage)}% exceeds threshold of ${thresholdPercentage}% " +
     "for product $productId. Confirmation required."
+)
+
+/**
+ * Thrown when business rule validation fails in the domain service.
+ * Contains structured validation errors for client consumption.
+ *
+ * This exception is used by ValidationDomainService when complex
+ * validation rules (requiring repository access) fail.
+ */
+class BusinessRuleViolationException(
+    val errors: List<ValidationError>,
+    message: String = "Business rule validation failed"
+) : ProductDomainException(message) {
+
+    companion object {
+        /**
+         * Creates a BusinessRuleViolationException from a ValidationResult.Invalid.
+         *
+         * @param result The invalid validation result
+         * @return BusinessRuleViolationException with all validation errors
+         */
+        fun fromValidationResult(result: ValidationResult.Invalid): BusinessRuleViolationException {
+            val message = result.errors.joinToString("; ") { "${it.field}: ${it.message}" }
+            return BusinessRuleViolationException(result.errors, message)
+        }
+    }
+}
+
+/**
+ * Thrown when attempting to reactivate a DISCONTINUED product.
+ *
+ * AC9: "Products in DISCONTINUED status cannot be reactivated"
+ */
+class ProductReactivationException(
+    val productId: UUID
+) : ProductDomainException(
+    "Product $productId is in DISCONTINUED status and cannot be reactivated"
 )
