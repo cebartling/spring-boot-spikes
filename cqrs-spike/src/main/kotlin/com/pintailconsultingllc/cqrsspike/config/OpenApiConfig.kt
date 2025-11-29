@@ -1,8 +1,10 @@
 package com.pintailconsultingllc.cqrsspike.config
 
+import io.swagger.v3.oas.models.Components
 import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.oas.models.info.Contact
 import io.swagger.v3.oas.models.info.Info
+import io.swagger.v3.oas.models.security.SecurityScheme
 import io.swagger.v3.oas.models.servers.Server
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -24,14 +26,21 @@ class OpenApiConfig {
                         Product Catalog REST API built with CQRS architecture.
 
                         This API provides:
-                        - Query endpoints for retrieving products
-                        - Command endpoints for creating and modifying products
+                        - **Command endpoints** for creating and modifying products
+                        - **Query endpoints** for retrieving products
                         - Support for pagination, filtering, and search
 
+                        ## Command Side (Write Model)
+                        Command endpoints modify product state and return the new version.
+                        All commands support idempotency via the `Idempotency-Key` header.
+
                         ## Query Side (Read Model)
-                        All query endpoints operate on the read model which is
-                        eventually consistent with the command model through
-                        event projections.
+                        Query endpoints operate on the read model which is eventually
+                        consistent with the command model through event projections.
+
+                        ## Optimistic Concurrency
+                        Update operations require an `expectedVersion` to prevent
+                        concurrent modification conflicts.
                         """.trimIndent()
                     )
                     .version("1.0.0")
@@ -47,6 +56,17 @@ class OpenApiConfig {
                         .url("/")
                         .description("Default Server")
                 )
+            )
+            .components(
+                Components()
+                    .addSecuritySchemes(
+                        "idempotencyKey",
+                        SecurityScheme()
+                            .type(SecurityScheme.Type.APIKEY)
+                            .`in`(SecurityScheme.In.HEADER)
+                            .name("Idempotency-Key")
+                            .description("Optional idempotency key for command requests (UUID format)")
+                    )
             )
     }
 }

@@ -76,6 +76,8 @@ class ProductCommandHandler(
                     logger.info("Idempotent request detected: key=${command.idempotencyKey}")
                     Mono.just(CommandAlreadyProcessed(
                         productId = existingResult.productId,
+                        version = existingResult.version,
+                        status = existingResult.status,
                         idempotencyKey = command.idempotencyKey!!
                     ) as CommandResult)
                 } else {
@@ -104,6 +106,8 @@ class ProductCommandHandler(
                     val existingResult = existingResultOpt.get()
                     Mono.just(CommandAlreadyProcessed(
                         productId = existingResult.productId,
+                        version = existingResult.version,
+                        status = existingResult.status,
                         idempotencyKey = command.idempotencyKey!!
                     ) as CommandResult)
                 } else {
@@ -132,6 +136,8 @@ class ProductCommandHandler(
                     val existingResult = existingResultOpt.get()
                     Mono.just(CommandAlreadyProcessed(
                         productId = existingResult.productId,
+                        version = existingResult.version,
+                        status = existingResult.status,
                         idempotencyKey = command.idempotencyKey!!
                     ) as CommandResult)
                 } else {
@@ -160,6 +166,8 @@ class ProductCommandHandler(
                     val existingResult = existingResultOpt.get()
                     Mono.just(CommandAlreadyProcessed(
                         productId = existingResult.productId,
+                        version = existingResult.version,
+                        status = existingResult.status,
                         idempotencyKey = command.idempotencyKey!!
                     ) as CommandResult)
                 } else {
@@ -188,6 +196,8 @@ class ProductCommandHandler(
                     val existingResult = existingResultOpt.get()
                     Mono.just(CommandAlreadyProcessed(
                         productId = existingResult.productId,
+                        version = existingResult.version,
+                        status = existingResult.status,
                         idempotencyKey = command.idempotencyKey!!
                     ) as CommandResult)
                 } else {
@@ -216,6 +226,8 @@ class ProductCommandHandler(
                     val existingResult = existingResultOpt.get()
                     Mono.just(CommandAlreadyProcessed(
                         productId = existingResult.productId,
+                        version = existingResult.version,
+                        status = existingResult.status,
                         idempotencyKey = command.idempotencyKey!!
                     ) as CommandResult)
                 } else {
@@ -260,7 +272,8 @@ class ProductCommandHandler(
                 .map { saved ->
                     CommandSuccess(
                         productId = saved.id,
-                        version = saved.version
+                        version = saved.version,
+                        status = saved.status.name
                     )
                 }
         }
@@ -379,7 +392,8 @@ class ProductCommandHandler(
             .map { saved ->
                 CommandSuccess(
                     productId = saved.id,
-                    version = saved.version
+                    version = saved.version,
+                    status = saved.status.name
                 )
             }
     }

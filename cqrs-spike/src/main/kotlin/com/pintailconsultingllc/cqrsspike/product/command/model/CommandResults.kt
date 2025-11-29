@@ -17,6 +17,7 @@ sealed interface CommandResult {
 data class CommandSuccess(
     val productId: UUID,
     val version: Long,
+    val status: String? = null,
     override val timestamp: OffsetDateTime = OffsetDateTime.now()
 ) : CommandResult {
     override val success: Boolean = true
@@ -27,6 +28,8 @@ data class CommandSuccess(
  */
 data class CommandAlreadyProcessed(
     val productId: UUID,
+    val version: Long,
+    val status: String? = null,
     val idempotencyKey: String,
     override val timestamp: OffsetDateTime = OffsetDateTime.now()
 ) : CommandResult {
