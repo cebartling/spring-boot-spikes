@@ -316,7 +316,7 @@ class ProductCommandControllerTest {
                     }
                 """.trimIndent())
                 .exchange()
-                .expectStatus().isEqualTo(422)
+                .expectStatus().value { status -> assert(status == 422) }
                 .expectBody()
                 .jsonPath("$.code").isEqualTo("PRICE_CHANGE_THRESHOLD_EXCEEDED")
                 .jsonPath("$.confirmationRequired").isEqualTo(true)
@@ -387,7 +387,7 @@ class ProductCommandControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue("""{"expectedVersion": 1}""")
                 .exchange()
-                .expectStatus().isEqualTo(422)
+                .expectStatus().value { status -> assert(status == 422) }
                 .expectBody()
                 .jsonPath("$.code").isEqualTo("INVALID_STATE_TRANSITION")
                 .jsonPath("$.details.currentStatus").isEqualTo("DISCONTINUED")

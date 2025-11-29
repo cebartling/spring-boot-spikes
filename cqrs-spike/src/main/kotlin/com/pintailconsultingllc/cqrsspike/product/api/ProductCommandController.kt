@@ -223,7 +223,7 @@ class ProductCommandController(
             productId = id,
             expectedVersion = request.expectedVersion,
             newPriceCents = request.newPriceCents,
-            confirmLargeChange = request.confirmLargeChange,
+            confirmLargeChange = request.confirmLargeChange ?: false,
             idempotencyKey = idempotencyKey
         )
 

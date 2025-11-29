@@ -51,7 +51,7 @@ data class ChangePriceRequest(
     @field:Positive(message = "Price must be a positive integer (cents)")
     val newPriceCents: Int,
 
-    val confirmLargeChange: Boolean = false,
+    val confirmLargeChange: Boolean? = false,
 
     @field:Min(value = 0, message = "Expected version must be non-negative")
     val expectedVersion: Long
