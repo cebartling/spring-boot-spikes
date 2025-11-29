@@ -119,8 +119,8 @@ class ProductQueryControllerTest {
     inner class ListProducts {
 
         @Test
-        @DisplayName("should return paginated products")
-        fun shouldReturnPaginatedProducts() {
+        @DisplayName("should return paginated products with links")
+        fun shouldReturnPaginatedProductsWithLinks() {
             val pageResponse = ProductPageResponse(
                 content = listOf(createProductResponse()),
                 page = 0,
@@ -146,11 +146,14 @@ class ProductQueryControllerTest {
                 .jsonPath("$.page").isEqualTo(0)
                 .jsonPath("$.size").isEqualTo(20)
                 .jsonPath("$.totalElements").isEqualTo(1)
+                .jsonPath("$.links").exists()
+                .jsonPath("$.links.self").exists()
+                .jsonPath("$.links.first").exists()
         }
 
         @Test
-        @DisplayName("should apply pagination parameters")
-        fun shouldApplyPaginationParameters() {
+        @DisplayName("should apply pagination parameters with prev/next links")
+        fun shouldApplyPaginationParametersWithLinks() {
             val pageResponse = ProductPageResponse(
                 content = emptyList(),
                 page = 2,
@@ -174,6 +177,10 @@ class ProductQueryControllerTest {
                 .expectBody()
                 .jsonPath("$.page").isEqualTo(2)
                 .jsonPath("$.size").isEqualTo(10)
+                .jsonPath("$.hasNext").isEqualTo(true)
+                .jsonPath("$.hasPrevious").isEqualTo(true)
+                .jsonPath("$.links.prev").exists()
+                .jsonPath("$.links.next").exists()
         }
 
         @Test
@@ -295,8 +302,8 @@ class ProductQueryControllerTest {
     inner class GetProductsByStatus {
 
         @Test
-        @DisplayName("should return products by status")
-        fun shouldReturnProductsByStatus() {
+        @DisplayName("should return products by status with links")
+        fun shouldReturnProductsByStatusWithLinks() {
             val pageResponse = ProductPageResponse(
                 content = listOf(createProductResponse()),
                 page = 0,
@@ -317,6 +324,10 @@ class ProductQueryControllerTest {
                 .uri("/api/products/by-status/ACTIVE")
                 .exchange()
                 .expectStatus().isOk
+                .expectBody()
+                .jsonPath("$.content").isArray
+                .jsonPath("$.links").exists()
+                .jsonPath("$.links.self").exists()
         }
 
         @Test
@@ -486,6 +497,98 @@ class ProductQueryControllerTest {
                 .uri("/api/products/invalid-uuid")
                 .exchange()
                 .expectStatus().isBadRequest
+        }
+
+        @Test
+        @DisplayName("should return 400 for invalid status value")
+        fun shouldReturn400ForInvalidStatus() {
+            webTestClient.get()
+                .uri("/api/products?status=INVALID")
+                .exchange()
+                .expectStatus().isBadRequest
+        }
+
+        @Test
+        @DisplayName("should return 400 for page size over limit")
+        fun shouldReturn400ForSizeOverLimit() {
+            webTestClient.get()
+                .uri("/api/products?size=500")
+                .exchange()
+                .expectStatus().isBadRequest
+        }
+
+        @Test
+        @DisplayName("should return 400 for negative page number")
+        fun shouldReturn400ForNegativePage() {
+            webTestClient.get()
+                .uri("/api/products?page=-1")
+                .exchange()
+                .expectStatus().isBadRequest
+        }
+
+        @Test
+        @DisplayName("should return 400 for missing search query")
+        fun shouldReturn400ForMissingSearchQuery() {
+            webTestClient.get()
+                .uri("/api/products/search")
+                .exchange()
+                .expectStatus().isBadRequest
+        }
+
+        @Test
+        @DisplayName("should return 400 for missing autocomplete prefix")
+        fun shouldReturn400ForMissingAutocompletePrefix() {
+            webTestClient.get()
+                .uri("/api/products/autocomplete")
+                .exchange()
+                .expectStatus().isBadRequest
+        }
+    }
+
+    @Nested
+    @DisplayName("Cache Headers")
+    inner class CacheHeaders {
+
+        @Test
+        @DisplayName("should include Cache-Control header on product by ID response")
+        fun shouldIncludeCacheControlOnGetById() {
+            val productId = UUID.randomUUID()
+            val product = createProductResponse(productId)
+
+            whenever(queryService.findById(productId))
+                .thenReturn(Mono.just(product))
+
+            webTestClient.get()
+                .uri("/api/products/$productId")
+                .exchange()
+                .expectStatus().isOk
+                .expectHeader().exists("Cache-Control")
+        }
+
+        @Test
+        @DisplayName("should include Cache-Control header on list products response")
+        fun shouldIncludeCacheControlOnListProducts() {
+            val pageResponse = ProductPageResponse(
+                content = listOf(createProductResponse()),
+                page = 0,
+                size = 20,
+                totalElements = 1,
+                totalPages = 1,
+                first = true,
+                last = true,
+                hasNext = false,
+                hasPrevious = false
+            )
+
+            whenever(queryService.findAllSortedPaginated(
+                eq(0), eq(20), eq(SortField.CREATED_AT), eq(SortDirection.DESC)
+            )).thenReturn(Mono.just(pageResponse))
+
+            webTestClient.get()
+                .uri("/api/products")
+                .exchange()
+                .expectStatus().isOk
+                .expectHeader().exists("Cache-Control")
         }
     }
 
