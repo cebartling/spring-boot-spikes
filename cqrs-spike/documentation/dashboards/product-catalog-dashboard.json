@@ -89,18 +89,18 @@
       "targets": [
         {
           "expr": "product_event_lag{projection=\"ProductReadModel\"}",
-          "legendFormat": "Events Behind"
+          "legendFormat": "Processing Lag"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
+          "unit": "ms",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               { "color": "green", "value": null },
               { "color": "yellow", "value": 100 },
-              { "color": "red", "value": 1000 }
+              { "color": "red", "value": 500 }
             ]
           }
         }
@@ -172,7 +172,7 @@
       "targets": [
         {
           "expr": "product_event_lag{projection=\"ProductReadModel\"}",
-          "legendFormat": "ProductReadModel Lag"
+          "legendFormat": "ProductReadModel Lag (ms)"
         },
         {
           "expr": "histogram_quantile(0.95, sum(rate(product_event_lag_histogram_bucket[5m])) by (le, projection))",
