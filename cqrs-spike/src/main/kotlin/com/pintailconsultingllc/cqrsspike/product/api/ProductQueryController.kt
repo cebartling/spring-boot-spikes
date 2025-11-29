@@ -2,6 +2,7 @@ package com.pintailconsultingllc.cqrsspike.product.api
 
 import com.pintailconsultingllc.cqrsspike.product.api.dto.ApiErrorResponse
 import com.pintailconsultingllc.cqrsspike.product.api.dto.ProductCountResponse
+import com.pintailconsultingllc.cqrsspike.product.api.dto.ProductPageResponseWithLinks
 import com.pintailconsultingllc.cqrsspike.product.query.dto.ProductCursorPageResponse
 import com.pintailconsultingllc.cqrsspike.product.query.dto.ProductPageResponse
 import com.pintailconsultingllc.cqrsspike.product.query.dto.ProductResponse
@@ -177,7 +178,7 @@ class ProductQueryController(
             description = "Products retrieved successfully",
             content = [Content(
                 mediaType = MediaType.APPLICATION_JSON_VALUE,
-                schema = Schema(implementation = ProductPageResponse::class)
+                schema = Schema(implementation = ProductPageResponseWithLinks::class)
             )]
         ),
         ApiResponse(
@@ -217,7 +218,7 @@ class ProductQueryController(
         @Parameter(description = "Sort direction", example = "desc")
         @RequestParam(defaultValue = "desc")
         @Pattern(regexp = "^(asc|desc)$") direction: String
-    ): Mono<ResponseEntity<ProductPageResponse>> {
+    ): Mono<ResponseEntity<ProductPageResponseWithLinks>> {
         logger.debug(
             "GET /api/products - page={}, size={}, status={}, minPrice={}, maxPrice={}, sort={}, direction={}",
             page, size, status, minPrice, maxPrice, sort, direction
@@ -225,6 +226,15 @@ class ProductQueryController(
 
         val sortField = parseSortField(sort)
         val sortDirection = parseSortDirection(direction)
+
+        // Build additional params for pagination links
+        val additionalParams = buildMap {
+            status?.let { put("status", it) }
+            minPrice?.let { put("minPrice", it.toString()) }
+            maxPrice?.let { put("maxPrice", it.toString()) }
+            put("sort", sort)
+            put("direction", direction)
+        }
 
         return when {
             // Filter by status AND price range
@@ -259,9 +269,14 @@ class ProductQueryController(
                 queryService.findAllSortedPaginated(page, size, sortField, sortDirection)
             }
         }.map { response ->
+            val responseWithLinks = ProductPageResponseWithLinks.from(
+                response,
+                "/api/products",
+                additionalParams
+            )
             ResponseEntity.ok()
                 .cacheControl(DEFAULT_CACHE_CONTROL)
-                .body(response)
+                .body(responseWithLinks)
         }
     }
 
@@ -338,7 +353,7 @@ class ProductQueryController(
             description = "Products retrieved successfully",
             content = [Content(
                 mediaType = MediaType.APPLICATION_JSON_VALUE,
-                schema = Schema(implementation = ProductPageResponse::class)
+                schema = Schema(implementation = ProductPageResponseWithLinks::class)
             )]
         ),
         ApiResponse(
@@ -362,16 +377,21 @@ class ProductQueryController(
         @Parameter(description = "Page size (1-100)", example = "20")
         @RequestParam(defaultValue = "20")
         @Min(1) @Max(100) size: Int
-    ): Mono<ResponseEntity<ProductPageResponse>> {
+    ): Mono<ResponseEntity<ProductPageResponseWithLinks>> {
         logger.debug("GET /api/products/by-status/{} - page={}, size={}", status, page, size)
 
         val statusEnum = ProductStatusView.valueOf(status)
 
         return queryService.findByStatusPaginated(statusEnum, page, size)
             .map { response ->
+                val responseWithLinks = ProductPageResponseWithLinks.from(
+                    response,
+                    "/api/products/by-status/$status",
+                    emptyMap()
+                )
                 ResponseEntity.ok()
                     .cacheControl(DEFAULT_CACHE_CONTROL)
-                    .body(response)
+                    .body(responseWithLinks)
             }
     }
 
