@@ -26,7 +26,7 @@ class StatusBasedValidator(
      */
     fun canEditFreely(status: ProductStatus): Boolean = when (status) {
         ProductStatus.DRAFT -> true
-        ProductStatus.ACTIVE -> true  // Can edit, but with restrictions (e.g., price confirmation)
+        ProductStatus.ACTIVE -> false  // ACTIVE products have price change restrictions (>20% requires confirmation)
         ProductStatus.DISCONTINUED -> false  // Terminal state - no editing
     }
 

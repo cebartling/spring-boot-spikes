@@ -76,6 +76,12 @@ class StatusBasedValidatorTest {
         }
 
         @Test
+        @DisplayName("ACTIVE products cannot be freely edited due to price change restrictions")
+        fun activeProductsCannotBeFreelyEdited() {
+            assertFalse(validator.canEditFreely(ProductStatus.ACTIVE))
+        }
+
+        @Test
         @DisplayName("ACTIVE products have price change restriction")
         fun activeProductsHavePriceChangeRestriction() {
             val restrictions = validator.getEditingRestrictions(ProductStatus.ACTIVE)
