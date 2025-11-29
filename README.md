@@ -2,3 +2,4 @@
 Various Spring Boot spike solutions for learning.
 
 - [Resiliency spike solution](./resiliency-spike)
+- [CQRS spike solution](./cqrs-spike)
