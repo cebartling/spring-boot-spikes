@@ -2,10 +2,11 @@
 <configuration>
     <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
 
-    <!-- Console appender with trace context (plain format for local development) -->
+    <!-- Console appender with trace context and correlation ID (plain format for local development) -->
+    <!-- Implements AC11: "Logs include correlation IDs for request tracing" -->
     <appender name="CONSOLE_PLAIN" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [trace_id=%X{traceId:-},span_id=%X{spanId:-}] - %msg%n</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [trace_id=%X{traceId:-},span_id=%X{spanId:-},correlation_id=%X{correlationId:-}] - %msg%n</pattern>
         </encoder>
     </appender>
 
@@ -53,6 +54,9 @@
 
     <!-- Application logging -->
     <logger name="com.pintailconsultingllc.cqrsspike" level="INFO"/>
+
+    <!-- Observability logging (AC11) -->
+    <logger name="com.pintailconsultingllc.cqrsspike.infrastructure.observability" level="DEBUG"/>
 
     <!-- Spring profile for local development (plain logs for readability) -->
     <springProfile name="local,default">

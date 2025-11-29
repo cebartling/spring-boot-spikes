@@ -62,9 +62,16 @@ dependencies {
     // Observability - Metrics
     implementation("io.micrometer:micrometer-registry-prometheus")
 
+    // Observability - Observation API for unified tracing and metrics (AC11)
+    implementation("io.micrometer:micrometer-observation")
+
     // Observability - Tracing (OpenTelemetry)
     implementation("io.micrometer:micrometer-tracing-bridge-otel")
     implementation("io.opentelemetry:opentelemetry-exporter-otlp")
+
+    // AOP support for @Observed annotation (AC11)
+    implementation("org.springframework:spring-aop")
+    implementation("org.aspectj:aspectjweaver")
 
     // Observability - Structured Logging
     implementation("net.logstash.logback:logstash-logback-encoder:8.0")
