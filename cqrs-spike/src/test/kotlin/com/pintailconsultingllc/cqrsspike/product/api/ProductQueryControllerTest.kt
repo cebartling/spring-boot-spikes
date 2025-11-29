@@ -17,9 +17,11 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest
 import org.springframework.context.annotation.Import
 import org.springframework.test.context.bean.override.mockito.MockitoBean
+import org.springframework.http.CacheControl
 import org.springframework.test.web.reactive.server.WebTestClient
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import java.time.Duration
 import java.time.OffsetDateTime
 import java.util.UUID
 
@@ -535,7 +537,7 @@ class ProductQueryControllerTest {
                 .uri("/api/products/$productId")
                 .exchange()
                 .expectStatus().isOk
-                .expectHeader().exists("Cache-Control")
+                .expectHeader().cacheControl(CacheControl.maxAge(Duration.ofSeconds(60)))
         }
 
         @Test
@@ -561,7 +563,7 @@ class ProductQueryControllerTest {
                 .uri("/api/products")
                 .exchange()
                 .expectStatus().isOk
-                .expectHeader().exists("Cache-Control")
+                .expectHeader().cacheControl(CacheControl.maxAge(Duration.ofSeconds(60)))
         }
     }
 
