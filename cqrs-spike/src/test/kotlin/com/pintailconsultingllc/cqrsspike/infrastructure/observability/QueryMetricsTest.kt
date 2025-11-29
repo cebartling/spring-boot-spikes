@@ -111,5 +111,33 @@ class QueryMetricsTest {
             // Summary should not be registered when resultCount is 0
             assertEquals(null, summary)
         }
+
+        @Test
+        @DisplayName("should not increment result size count when resultCount is zero after previous non-zero calls")
+        fun shouldNotIncrementResultSizeWhenZeroAfterPreviousCalls() {
+            // First call with non-zero resultCount registers the summary
+            queryMetrics.recordQuery("findById", Duration.ofMillis(20), 5)
+
+            val summaryAfterFirstCall = meterRegistry.find("product.query.results.count")
+                .tag("query_type", "findById")
+                .summary()
+
+            assertNotNull(summaryAfterFirstCall)
+            assertEquals(1L, summaryAfterFirstCall.count())
+            assertEquals(5.0, summaryAfterFirstCall.totalAmount())
+
+            // Second call with zero resultCount should not increment the summary count
+            queryMetrics.recordQuery("findById", Duration.ofMillis(25), 0)
+
+            val summaryAfterSecondCall = meterRegistry.find("product.query.results.count")
+                .tag("query_type", "findById")
+                .summary()
+
+            assertNotNull(summaryAfterSecondCall)
+            // Count should still be 1, not 2
+            assertEquals(1L, summaryAfterSecondCall.count())
+            // Total amount should still be 5.0, not changed
+            assertEquals(5.0, summaryAfterSecondCall.totalAmount())
+        }
     }
 }
