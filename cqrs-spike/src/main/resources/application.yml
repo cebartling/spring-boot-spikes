@@ -160,6 +160,18 @@ resilience4j:
     instances:
       productCommands:
         baseConfig: default
+      productQueries:
+        baseConfig: default
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 15s
+        permittedNumberOfCallsInHalfOpenState: 5
+        recordExceptions:
+          - java.io.IOException
+          - java.net.SocketTimeoutException
+          - org.springframework.dao.DataAccessException
+        ignoreExceptions:
+          - java.lang.IllegalArgumentException
 
   retry:
     configs:
@@ -179,6 +191,18 @@ resilience4j:
     instances:
       productCommands:
         baseConfig: default
+      productQueries:
+        baseConfig: default
+        maxAttempts: 3
+        waitDuration: 200ms
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+        retryExceptions:
+          - java.io.IOException
+          - java.net.SocketTimeoutException
+          - org.springframework.dao.TransientDataAccessException
+        ignoreExceptions:
+          - java.lang.IllegalArgumentException
 
   ratelimiter:
     configs:
@@ -191,6 +215,11 @@ resilience4j:
     instances:
       productCommands:
         baseConfig: default
+      productQueries:
+        limitForPeriod: 500
+        limitRefreshPeriod: 1s
+        timeoutDuration: 2s
+        registerHealthIndicator: true
 
 # Projection Configuration
 projection:
