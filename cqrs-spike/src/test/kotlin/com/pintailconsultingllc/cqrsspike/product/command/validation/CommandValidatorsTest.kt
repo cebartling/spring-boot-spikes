@@ -6,21 +6,46 @@ import com.pintailconsultingllc.cqrsspike.product.command.model.CreateProductCom
 import com.pintailconsultingllc.cqrsspike.product.command.model.DeleteProductCommand
 import com.pintailconsultingllc.cqrsspike.product.command.model.DiscontinueProductCommand
 import com.pintailconsultingllc.cqrsspike.product.command.model.UpdateProductCommand
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import java.util.UUID
+import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
-@DisplayName("Command Validators")
+/**
+ * Unit tests for Command Validators.
+ *
+ * AC9 Requirements tested:
+ * - Product name is required and between 1-255 characters
+ * - Product SKU is required, unique, and follows defined format (alphanumeric, 3-50 chars)
+ * - Product price must be a positive integer (cents)
+ * - Product description is optional but limited to 5000 characters
+ */
+@DisplayName("Command Validators - AC9 Business Rules")
 class CommandValidatorsTest {
+
+    private lateinit var businessRulesConfig: BusinessRulesConfig
+
+    @BeforeEach
+    fun setup() {
+        businessRulesConfig = BusinessRulesConfig()
+    }
 
     @Nested
     @DisplayName("CreateProductCommandValidator")
     inner class CreateProductCommandValidatorTests {
 
-        private val validator = CreateProductCommandValidator()
+        private lateinit var validator: CreateProductCommandValidator
+
+        @BeforeEach
+        fun setup() {
+            validator = CreateProductCommandValidator(businessRulesConfig)
+        }
 
         @Test
         @DisplayName("should pass for valid command")
@@ -52,116 +77,263 @@ class CommandValidatorsTest {
             assertIs<ValidationResult.Valid>(result)
         }
 
-        @Test
-        @DisplayName("should fail for empty SKU")
-        fun shouldFailForEmptySku() {
-            val command = CreateProductCommand(
-                sku = "",
-                name = "Test Product",
-                description = null,
-                priceCents = 1999
-            )
+        @Nested
+        @DisplayName("AC9: Product name is required and between 1-255 characters")
+        inner class NameValidation {
 
-            val result = validator.validate(command)
+            @Test
+            @DisplayName("should fail for empty name with REQUIRED error")
+            fun shouldFailForEmptyName() {
+                val command = CreateProductCommand(
+                    sku = "PROD-001",
+                    name = "",
+                    description = null,
+                    priceCents = 1999
+                )
 
-            assertIs<ValidationResult.Invalid>(result)
-            assertTrue(result.errors.any { it.field == "sku" && it.code == "REQUIRED" })
+                val result = validator.validate(command)
+
+                assertIs<ValidationResult.Invalid>(result)
+                assertTrue(result.errors.any { it.field == "name" && it.code == ValidationErrorCode.REQUIRED.name })
+            }
+
+            @Test
+            @DisplayName("should fail for name exceeding 255 characters with MAX_LENGTH error")
+            fun shouldFailForNameTooLong() {
+                val command = CreateProductCommand(
+                    sku = "PROD-001",
+                    name = "a".repeat(256),
+                    description = null,
+                    priceCents = 1999
+                )
+
+                val result = validator.validate(command)
+
+                assertIs<ValidationResult.Invalid>(result)
+                assertTrue(result.errors.any { it.field == "name" && it.code == ValidationErrorCode.MAX_LENGTH.name })
+            }
+
+            @Test
+            @DisplayName("should pass for name exactly 255 characters")
+            fun shouldPassForNameAtLimit() {
+                val command = CreateProductCommand(
+                    sku = "PROD-001",
+                    name = "a".repeat(255),
+                    description = null,
+                    priceCents = 1999
+                )
+
+                val result = validator.validate(command)
+
+                assertIs<ValidationResult.Valid>(result)
+            }
         }
 
-        @Test
-        @DisplayName("should fail for blank SKU")
-        fun shouldFailForBlankSku() {
-            val command = CreateProductCommand(
-                sku = "   ",
-                name = "Test Product",
-                description = null,
-                priceCents = 1999
-            )
+        @Nested
+        @DisplayName("AC9: Product SKU is required, alphanumeric, 3-50 chars")
+        inner class SkuValidation {
 
-            val result = validator.validate(command)
+            @Test
+            @DisplayName("should fail for empty SKU with REQUIRED error")
+            fun shouldFailForEmptySku() {
+                val command = CreateProductCommand(
+                    sku = "",
+                    name = "Test Product",
+                    description = null,
+                    priceCents = 1999
+                )
 
-            assertIs<ValidationResult.Invalid>(result)
-            assertTrue(result.errors.any { it.field == "sku" })
+                val result = validator.validate(command)
+
+                assertIs<ValidationResult.Invalid>(result)
+                assertTrue(result.errors.any { it.field == "sku" && it.code == ValidationErrorCode.REQUIRED.name })
+            }
+
+            @Test
+            @DisplayName("should fail for blank SKU")
+            fun shouldFailForBlankSku() {
+                val command = CreateProductCommand(
+                    sku = "   ",
+                    name = "Test Product",
+                    description = null,
+                    priceCents = 1999
+                )
+
+                val result = validator.validate(command)
+
+                assertIs<ValidationResult.Invalid>(result)
+                assertTrue(result.errors.any { it.field == "sku" })
+            }
+
+            @ParameterizedTest
+            @ValueSource(strings = ["AB", "A"])
+            @DisplayName("should fail for SKU less than 3 characters with MIN_LENGTH error")
+            fun shouldFailForSkuTooShort(sku: String) {
+                val command = CreateProductCommand(
+                    sku = sku,
+                    name = "Test Product",
+                    description = null,
+                    priceCents = 1999
+                )
+
+                val result = validator.validate(command)
+
+                assertIs<ValidationResult.Invalid>(result)
+                assertTrue(result.errors.any { it.field == "sku" && it.code == ValidationErrorCode.MIN_LENGTH.name })
+            }
+
+            @Test
+            @DisplayName("should fail for SKU exceeding 50 characters with MAX_LENGTH error")
+            fun shouldFailForSkuTooLong() {
+                val command = CreateProductCommand(
+                    sku = "A".repeat(51),
+                    name = "Test Product",
+                    description = null,
+                    priceCents = 1999
+                )
+
+                val result = validator.validate(command)
+
+                assertIs<ValidationResult.Invalid>(result)
+                assertTrue(result.errors.any { it.field == "sku" && it.code == ValidationErrorCode.MAX_LENGTH.name })
+            }
+
+            @ParameterizedTest
+            @ValueSource(strings = ["PROD@001", "PROD 001", "PROD#001", "PROD.001"])
+            @DisplayName("should fail for SKU with invalid characters with INVALID_FORMAT error")
+            fun shouldFailForSkuWithInvalidCharacters(sku: String) {
+                val command = CreateProductCommand(
+                    sku = sku,
+                    name = "Test Product",
+                    description = null,
+                    priceCents = 1999
+                )
+
+                val result = validator.validate(command)
+
+                assertIs<ValidationResult.Invalid>(result)
+                assertTrue(result.errors.any { it.field == "sku" && it.code == ValidationErrorCode.INVALID_FORMAT.name })
+            }
+
+            @ParameterizedTest
+            @ValueSource(strings = ["ABC", "PROD-001", "PRODUCT123", "A-B-C-123"])
+            @DisplayName("should pass for valid SKU formats")
+            fun shouldPassForValidSkuFormats(sku: String) {
+                val command = CreateProductCommand(
+                    sku = sku,
+                    name = "Test Product",
+                    description = null,
+                    priceCents = 1999
+                )
+
+                val result = validator.validate(command)
+
+                assertIs<ValidationResult.Valid>(result)
+            }
         }
 
-        @Test
-        @DisplayName("should fail for SKU that is too short")
-        fun shouldFailForSkuTooShort() {
-            val command = CreateProductCommand(
-                sku = "AB",
-                name = "Test Product",
-                description = null,
-                priceCents = 1999
-            )
+        @Nested
+        @DisplayName("AC9: Product price must be a positive integer (cents)")
+        inner class PriceValidation {
 
-            val result = validator.validate(command)
+            @ParameterizedTest
+            @ValueSource(ints = [0, -1, -100])
+            @DisplayName("should fail for non-positive price with POSITIVE_REQUIRED error")
+            fun shouldFailForNonPositivePrice(price: Int) {
+                val command = CreateProductCommand(
+                    sku = "PROD-001",
+                    name = "Test Product",
+                    description = null,
+                    priceCents = price
+                )
 
-            assertIs<ValidationResult.Invalid>(result)
-            assertTrue(result.errors.any { it.field == "sku" && it.code == "MIN_LENGTH" })
+                val result = validator.validate(command)
+
+                assertIs<ValidationResult.Invalid>(result)
+                assertTrue(result.errors.any { it.field == "priceCents" && it.code == ValidationErrorCode.POSITIVE_REQUIRED.name })
+            }
+
+            @ParameterizedTest
+            @ValueSource(ints = [1, 100, 9999, 1000000])
+            @DisplayName("should pass for positive price")
+            fun shouldPassForPositivePrice(price: Int) {
+                val command = CreateProductCommand(
+                    sku = "PROD-001",
+                    name = "Test Product",
+                    description = null,
+                    priceCents = price
+                )
+
+                val result = validator.validate(command)
+
+                assertIs<ValidationResult.Valid>(result)
+            }
         }
 
-        @Test
-        @DisplayName("should fail for SKU with invalid characters")
-        fun shouldFailForSkuWithInvalidCharacters() {
-            val command = CreateProductCommand(
-                sku = "PROD@001!",
-                name = "Test Product",
-                description = null,
-                priceCents = 1999
-            )
+        @Nested
+        @DisplayName("AC9: Product description is optional but limited to 5000 characters")
+        inner class DescriptionValidation {
 
-            val result = validator.validate(command)
+            @Test
+            @DisplayName("should pass for null description")
+            fun shouldPassForNullDescription() {
+                val command = CreateProductCommand(
+                    sku = "PROD-001",
+                    name = "Test Product",
+                    description = null,
+                    priceCents = 1999
+                )
 
-            assertIs<ValidationResult.Invalid>(result)
-            assertTrue(result.errors.any { it.field == "sku" && it.code == "INVALID_FORMAT" })
-        }
+                val result = validator.validate(command)
 
-        @Test
-        @DisplayName("should fail for empty name")
-        fun shouldFailForEmptyName() {
-            val command = CreateProductCommand(
-                sku = "PROD-001",
-                name = "",
-                description = null,
-                priceCents = 1999
-            )
+                assertIs<ValidationResult.Valid>(result)
+            }
 
-            val result = validator.validate(command)
+            @Test
+            @DisplayName("should pass for empty description")
+            fun shouldPassForEmptyDescription() {
+                val command = CreateProductCommand(
+                    sku = "PROD-001",
+                    name = "Test Product",
+                    description = "",
+                    priceCents = 1999
+                )
 
-            assertIs<ValidationResult.Invalid>(result)
-            assertTrue(result.errors.any { it.field == "name" && it.code == "REQUIRED" })
-        }
+                val result = validator.validate(command)
 
-        @Test
-        @DisplayName("should fail for non-positive price")
-        fun shouldFailForNonPositivePrice() {
-            val command = CreateProductCommand(
-                sku = "PROD-001",
-                name = "Test Product",
-                description = null,
-                priceCents = 0
-            )
+                assertIs<ValidationResult.Valid>(result)
+            }
 
-            val result = validator.validate(command)
+            @Test
+            @DisplayName("should fail for description exceeding 5000 characters with MAX_LENGTH error")
+            fun shouldFailForDescriptionTooLong() {
+                val command = CreateProductCommand(
+                    sku = "PROD-001",
+                    name = "Test Product",
+                    description = "a".repeat(5001),
+                    priceCents = 1999
+                )
 
-            assertIs<ValidationResult.Invalid>(result)
-            assertTrue(result.errors.any { it.field == "priceCents" && it.code == "POSITIVE_REQUIRED" })
-        }
+                val result = validator.validate(command)
 
-        @Test
-        @DisplayName("should fail for negative price")
-        fun shouldFailForNegativePrice() {
-            val command = CreateProductCommand(
-                sku = "PROD-001",
-                name = "Test Product",
-                description = null,
-                priceCents = -100
-            )
+                assertIs<ValidationResult.Invalid>(result)
+                assertTrue(result.errors.any { it.field == "description" && it.code == ValidationErrorCode.MAX_LENGTH.name })
+            }
 
-            val result = validator.validate(command)
+            @Test
+            @DisplayName("should pass for description exactly 5000 characters")
+            fun shouldPassForDescriptionAtLimit() {
+                val command = CreateProductCommand(
+                    sku = "PROD-001",
+                    name = "Test Product",
+                    description = "a".repeat(5000),
+                    priceCents = 1999
+                )
 
-            assertIs<ValidationResult.Invalid>(result)
-            assertTrue(result.errors.any { it.field == "priceCents" })
+                val result = validator.validate(command)
+
+                assertIs<ValidationResult.Valid>(result)
+            }
         }
 
         @Test
@@ -179,29 +351,18 @@ class CommandValidatorsTest {
             assertIs<ValidationResult.Invalid>(result)
             assertTrue(result.errors.size >= 3)
         }
-
-        @Test
-        @DisplayName("should fail for description exceeding max length")
-        fun shouldFailForDescriptionExceedingMaxLength() {
-            val command = CreateProductCommand(
-                sku = "PROD-001",
-                name = "Test Product",
-                description = "a".repeat(5001),
-                priceCents = 1999
-            )
-
-            val result = validator.validate(command)
-
-            assertIs<ValidationResult.Invalid>(result)
-            assertTrue(result.errors.any { it.field == "description" && it.code == "MAX_LENGTH" })
-        }
     }
 
     @Nested
     @DisplayName("UpdateProductCommandValidator")
     inner class UpdateProductCommandValidatorTests {
 
-        private val validator = UpdateProductCommandValidator()
+        private lateinit var validator: UpdateProductCommandValidator
+
+        @BeforeEach
+        fun setup() {
+            validator = UpdateProductCommandValidator(businessRulesConfig)
+        }
 
         @Test
         @DisplayName("should pass for valid command")
@@ -279,6 +440,24 @@ class CommandValidatorsTest {
 
             assertIs<ValidationResult.Invalid>(result)
             assertTrue(result.errors.any { it.field == "expectedVersion" })
+        }
+
+        @Test
+        @DisplayName("should validate name and description rules together")
+        fun shouldValidateNameAndDescriptionRules() {
+            val command = UpdateProductCommand(
+                productId = UUID.randomUUID(),
+                expectedVersion = 1,
+                name = "",
+                description = "a".repeat(5001)
+            )
+
+            val result = validator.validate(command)
+
+            assertIs<ValidationResult.Invalid>(result)
+            assertEquals(2, result.errors.size)
+            assertTrue(result.errors.any { it.field == "name" })
+            assertTrue(result.errors.any { it.field == "description" })
         }
     }
 
@@ -386,7 +565,12 @@ class CommandValidatorsTest {
     @DisplayName("DiscontinueProductCommandValidator")
     inner class DiscontinueProductCommandValidatorTests {
 
-        private val validator = DiscontinueProductCommandValidator()
+        private lateinit var validator: DiscontinueProductCommandValidator
+
+        @BeforeEach
+        fun setup() {
+            validator = DiscontinueProductCommandValidator(businessRulesConfig)
+        }
 
         @Test
         @DisplayName("should pass for valid command")
@@ -428,7 +612,7 @@ class CommandValidatorsTest {
             val result = validator.validate(command)
 
             assertIs<ValidationResult.Invalid>(result)
-            assertTrue(result.errors.any { it.field == "reason" && it.code == "MAX_LENGTH" })
+            assertTrue(result.errors.any { it.field == "reason" && it.code == ValidationErrorCode.MAX_LENGTH.name })
         }
 
         @Test
@@ -451,7 +635,12 @@ class CommandValidatorsTest {
     @DisplayName("DeleteProductCommandValidator")
     inner class DeleteProductCommandValidatorTests {
 
-        private val validator = DeleteProductCommandValidator()
+        private lateinit var validator: DeleteProductCommandValidator
+
+        @BeforeEach
+        fun setup() {
+            validator = DeleteProductCommandValidator(businessRulesConfig)
+        }
 
         @Test
         @DisplayName("should pass for valid command")
@@ -493,7 +682,7 @@ class CommandValidatorsTest {
             val result = validator.validate(command)
 
             assertIs<ValidationResult.Invalid>(result)
-            assertTrue(result.errors.any { it.field == "deletedBy" && it.code == "MAX_LENGTH" })
+            assertTrue(result.errors.any { it.field == "deletedBy" && it.code == ValidationErrorCode.MAX_LENGTH.name })
         }
 
         @Test

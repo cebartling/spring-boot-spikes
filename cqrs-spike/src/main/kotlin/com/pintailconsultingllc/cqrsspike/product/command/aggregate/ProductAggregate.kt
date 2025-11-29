@@ -60,13 +60,27 @@ data class ProductAggregate private constructor(
     val isDeleted: Boolean get() = deletedAt != null
 
     companion object {
-        // Business rule constants
+        /**
+         * Business rule constants - these values match BusinessRulesConfig defaults.
+         *
+         * AC9 Requirements:
+         * - Product name is required and between 1-255 characters
+         * - Product SKU is required, unique, and follows defined format (alphanumeric, 3-50 chars)
+         * - Product price must be a positive integer (cents)
+         * - Product description is optional but limited to 5000 characters
+         * - Products in ACTIVE status require confirmation for price changes over 20%
+         *
+         * Note: These constants provide compile-time validation in the aggregate.
+         * The BusinessRulesConfig provides runtime-configurable values for validators.
+         */
         const val MAX_NAME_LENGTH = 255
         const val MIN_NAME_LENGTH = 1
         const val MAX_SKU_LENGTH = 50
         const val MIN_SKU_LENGTH = 3
         const val MAX_DESCRIPTION_LENGTH = 5000
         const val PRICE_CHANGE_THRESHOLD_PERCENT = 20.0
+
+        /** SKU pattern: alphanumeric and hyphens (AC9 specifies alphanumeric, hyphens added for practicality) */
         private val SKU_PATTERN = Regex("^[A-Za-z0-9\\-]{$MIN_SKU_LENGTH,$MAX_SKU_LENGTH}$")
 
         /**

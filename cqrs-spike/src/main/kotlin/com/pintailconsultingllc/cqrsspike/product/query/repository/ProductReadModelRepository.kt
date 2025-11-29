@@ -13,7 +13,11 @@ import java.util.UUID
  * Reactive repository for Product read model queries.
  *
  * Provides optimized query methods for common access patterns.
- * All queries exclude soft-deleted products by default.
+ *
+ * AC9 Requirement: "Deleted products are soft-deleted and excluded from queries by default"
+ *
+ * All queries in this repository include a `WHERE NOT is_deleted` clause to ensure
+ * soft-deleted products are automatically excluded from results.
  */
 @Repository
 interface ProductReadModelRepository : ReactiveCrudRepository<ProductReadModel, UUID> {
