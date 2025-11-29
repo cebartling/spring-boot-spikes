@@ -623,7 +623,7 @@ class BusinessRulesIntegrationTest {
 
             // Test that it correctly determines confirmation requirement
             assertTrue(statusBasedValidator.requiresPriceConfirmation(ProductStatus.ACTIVE, 1000, 1250))
-            assertTrue(!statusBasedValidator.requiresPriceConfirmation(ProductStatus.ACTIVE, 1000, 1150))
+            assertFalse(statusBasedValidator.requiresPriceConfirmation(ProductStatus.ACTIVE, 1000, 1150))
         }
     }
 }
