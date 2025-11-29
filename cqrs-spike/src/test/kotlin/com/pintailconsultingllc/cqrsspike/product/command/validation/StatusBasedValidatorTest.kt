@@ -329,10 +329,12 @@ class StatusBasedValidatorTest {
         @EnumSource(ProductStatus::class)
         @DisplayName("same status transition validation")
         fun sameStatusTransitionValidation(status: ProductStatus) {
-            // Transitioning to the same status should follow the canTransitionTo rules
+            // Transitioning to the same status is not allowed for any status
+            // DRAFT can only transition to ACTIVE or DISCONTINUED
+            // ACTIVE can only transition to DISCONTINUED
+            // DISCONTINUED cannot transition to any status
             val result = validator.canTransitionTo(status, status)
-            // This depends on ProductStatus.canTransitionTo implementation
-            // Generally, staying in the same status is a no-op and might be allowed or not
+            assertFalse(result, "Transitioning from $status to $status should not be allowed")
         }
     }
 }
