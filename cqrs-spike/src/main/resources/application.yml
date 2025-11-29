@@ -109,9 +109,10 @@ management:
       endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318/v1/traces}
 
 # Logging configuration
+# Implements AC10: "All errors are logged with correlation IDs"
 logging:
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [trace_id=%X{traceId:-},span_id=%X{spanId:-}] - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [trace_id=%X{traceId:-},span_id=%X{spanId:-},correlation_id=%X{correlationId:-}] - %msg%n"
   level:
     com.pintailconsultingllc.cqrsspike: INFO
     org.springframework.cloud.vault: INFO
@@ -160,6 +161,18 @@ resilience4j:
     instances:
       productCommands:
         baseConfig: default
+      productQueries:
+        baseConfig: default
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 15s
+        permittedNumberOfCallsInHalfOpenState: 5
+        recordExceptions:
+          - java.io.IOException
+          - java.net.SocketTimeoutException
+          - org.springframework.dao.DataAccessException
+        ignoreExceptions:
+          - java.lang.IllegalArgumentException
 
   retry:
     configs:
@@ -179,6 +192,18 @@ resilience4j:
     instances:
       productCommands:
         baseConfig: default
+      productQueries:
+        baseConfig: default
+        maxAttempts: 3
+        waitDuration: 200ms
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+        retryExceptions:
+          - java.io.IOException
+          - java.net.SocketTimeoutException
+          - org.springframework.dao.TransientDataAccessException
+        ignoreExceptions:
+          - java.lang.IllegalArgumentException
 
   ratelimiter:
     configs:
@@ -191,6 +216,11 @@ resilience4j:
     instances:
       productCommands:
         baseConfig: default
+      productQueries:
+        limitForPeriod: 500
+        limitRefreshPeriod: 1s
+        timeoutDuration: 2s
+        registerHealthIndicator: true
 
 # Projection Configuration
 projection:

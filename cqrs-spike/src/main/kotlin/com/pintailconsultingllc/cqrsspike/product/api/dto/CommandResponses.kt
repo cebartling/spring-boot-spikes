@@ -50,7 +50,9 @@ data class CommandErrorResponse(
 )
 
 /**
- * Error response for concurrent modification conflicts.
+ * Error response for concurrent modification conflicts (HTTP 409).
+ *
+ * Implements AC10: "Concurrent modification conflicts return HTTP 409 with retry guidance"
  */
 data class ConflictErrorResponse(
     val status: Int = 409,
@@ -58,9 +60,12 @@ data class ConflictErrorResponse(
     val message: String,
     val path: String,
     val timestamp: OffsetDateTime = OffsetDateTime.now(),
+    val correlationId: String? = null,
     val currentVersion: Long? = null,
     val expectedVersion: Long? = null,
-    val code: String = "CONCURRENT_MODIFICATION"
+    val code: String = "CONCURRENT_MODIFICATION",
+    val retryGuidance: String = "Fetch the latest version of the resource and retry with the updated expectedVersion",
+    val recommendedAction: String? = null
 )
 
 /**

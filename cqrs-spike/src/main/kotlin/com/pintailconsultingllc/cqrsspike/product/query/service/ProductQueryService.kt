@@ -7,8 +7,13 @@ import com.pintailconsultingllc.cqrsspike.product.query.dto.ProductResponse
 import com.pintailconsultingllc.cqrsspike.product.query.dto.ProductSearchResponse
 import com.pintailconsultingllc.cqrsspike.product.query.dto.SortDirection
 import com.pintailconsultingllc.cqrsspike.product.query.dto.SortField
+import com.pintailconsultingllc.cqrsspike.product.query.exception.QueryRateLimitException
+import com.pintailconsultingllc.cqrsspike.product.query.exception.QueryServiceUnavailableException
 import com.pintailconsultingllc.cqrsspike.product.query.model.ProductStatusView
 import com.pintailconsultingllc.cqrsspike.product.query.repository.ProductReadModelRepository
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter
+import io.github.resilience4j.retry.annotation.Retry
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
@@ -45,9 +50,14 @@ class ProductQueryService(
     /**
      * Find a product by ID.
      *
+     * Implements AC10: Resiliency patterns protect database operations.
+     *
      * @param id Product UUID
      * @return Mono<ProductResponse> or empty if not found
      */
+    @RateLimiter(name = "productQueries", fallbackMethod = "rateLimitFallbackFindById")
+    @Retry(name = "productQueries", fallbackMethod = "retryFallbackFindById")
+    @CircuitBreaker(name = "productQueries", fallbackMethod = "circuitBreakerFallbackFindById")
     fun findById(id: UUID): Mono<ProductResponse> {
         logger.debug("Finding product by id: {}", id)
         return repository.findByIdNotDeleted(id)
@@ -146,10 +156,15 @@ class ProductQueryService(
     /**
      * Find all products with offset-based pagination.
      *
+     * Implements AC10: Resiliency patterns protect database operations.
+     *
      * @param page Page number (0-indexed)
      * @param size Page size
      * @return Mono<ProductPageResponse>
      */
+    @RateLimiter(name = "productQueries", fallbackMethod = "rateLimitFallbackFindAllPaginated")
+    @Retry(name = "productQueries", fallbackMethod = "retryFallbackFindAllPaginated")
+    @CircuitBreaker(name = "productQueries", fallbackMethod = "circuitBreakerFallbackFindAllPaginated")
     fun findAllPaginated(page: Int, size: Int): Mono<ProductPageResponse> {
         val validatedPage = maxOf(0, page)
         val validatedSize = minOf(maxOf(1, size), MAX_PAGE_SIZE)
@@ -307,10 +322,15 @@ class ProductQueryService(
     /**
      * Full-text search on products.
      *
+     * Implements AC10: Resiliency patterns protect database operations.
+     *
      * @param query Search query string
      * @param limit Maximum results to return
      * @return Mono<ProductSearchResponse>
      */
+    @RateLimiter(name = "productQueries", fallbackMethod = "rateLimitFallbackSearch")
+    @Retry(name = "productQueries", fallbackMethod = "retryFallbackSearch")
+    @CircuitBreaker(name = "productQueries", fallbackMethod = "circuitBreakerFallbackSearch")
     fun search(query: String, limit: Int = DEFAULT_SEARCH_LIMIT): Mono<ProductSearchResponse> {
         val trimmedQuery = query.trim()
         if (trimmedQuery.isBlank()) {
@@ -406,5 +426,88 @@ class ProductQueryService(
      */
     fun countByStatus(status: ProductStatusView): Mono<Long> {
         return repository.countByStatus(status.name)
+    }
+
+    // ============ Fallback Methods (AC10: Graceful Degradation) ============
+
+    /**
+     * Rate limit fallback for findById.
+     */
+    @Suppress("unused")
+    private fun rateLimitFallbackFindById(id: UUID, ex: Throwable): Mono<ProductResponse> {
+        logger.warn("Rate limit exceeded for findById: id={}", id, ex)
+        return Mono.error(QueryRateLimitException("Too many requests. Please try again later."))
+    }
+
+    /**
+     * Retry fallback for findById.
+     */
+    @Suppress("unused")
+    private fun retryFallbackFindById(id: UUID, ex: Throwable): Mono<ProductResponse> {
+        logger.error("Retry exhausted for findById: id={}", id, ex)
+        return Mono.error(ex)
+    }
+
+    /**
+     * Circuit breaker fallback for findById.
+     */
+    @Suppress("unused")
+    private fun circuitBreakerFallbackFindById(id: UUID, ex: Throwable): Mono<ProductResponse> {
+        logger.error("Circuit breaker open for findById: id={}", id, ex)
+        return Mono.error(QueryServiceUnavailableException("Query service temporarily unavailable. Please try again later."))
+    }
+
+    /**
+     * Rate limit fallback for findAllPaginated.
+     */
+    @Suppress("unused")
+    private fun rateLimitFallbackFindAllPaginated(page: Int, size: Int, ex: Throwable): Mono<ProductPageResponse> {
+        logger.warn("Rate limit exceeded for findAllPaginated: page={}, size={}", page, size, ex)
+        return Mono.error(QueryRateLimitException("Too many requests. Please try again later."))
+    }
+
+    /**
+     * Retry fallback for findAllPaginated.
+     */
+    @Suppress("unused")
+    private fun retryFallbackFindAllPaginated(page: Int, size: Int, ex: Throwable): Mono<ProductPageResponse> {
+        logger.error("Retry exhausted for findAllPaginated: page={}, size={}", page, size, ex)
+        return Mono.error(ex)
+    }
+
+    /**
+     * Circuit breaker fallback for findAllPaginated.
+     */
+    @Suppress("unused")
+    private fun circuitBreakerFallbackFindAllPaginated(page: Int, size: Int, ex: Throwable): Mono<ProductPageResponse> {
+        logger.error("Circuit breaker open for findAllPaginated: page={}, size={}", page, size, ex)
+        return Mono.error(QueryServiceUnavailableException("Query service temporarily unavailable. Please try again later."))
+    }
+
+    /**
+     * Rate limit fallback for search.
+     */
+    @Suppress("unused")
+    private fun rateLimitFallbackSearch(query: String, limit: Int, ex: Throwable): Mono<ProductSearchResponse> {
+        logger.warn("Rate limit exceeded for search: query={}", query, ex)
+        return Mono.error(QueryRateLimitException("Too many requests. Please try again later."))
+    }
+
+    /**
+     * Retry fallback for search.
+     */
+    @Suppress("unused")
+    private fun retryFallbackSearch(query: String, limit: Int, ex: Throwable): Mono<ProductSearchResponse> {
+        logger.error("Retry exhausted for search: query={}", query, ex)
+        return Mono.error(ex)
+    }
+
+    /**
+     * Circuit breaker fallback for search.
+     */
+    @Suppress("unused")
+    private fun circuitBreakerFallbackSearch(query: String, limit: Int, ex: Throwable): Mono<ProductSearchResponse> {
+        logger.error("Circuit breaker open for search: query={}", query, ex)
+        return Mono.error(QueryServiceUnavailableException("Query service temporarily unavailable. Please try again later."))
     }
 }
