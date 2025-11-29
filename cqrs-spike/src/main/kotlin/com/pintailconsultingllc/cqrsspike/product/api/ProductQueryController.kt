@@ -232,8 +232,8 @@ class ProductQueryController(
             status?.let { put("status", it) }
             minPrice?.let { put("minPrice", it.toString()) }
             maxPrice?.let { put("maxPrice", it.toString()) }
-            put("sort", sort)
-            put("direction", direction)
+            if (sort != "createdAt") put("sort", sort)
+            if (direction != "desc") put("direction", direction)
         }
 
         return when {
