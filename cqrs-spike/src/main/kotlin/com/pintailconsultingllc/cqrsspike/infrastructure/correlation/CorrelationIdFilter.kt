@@ -40,7 +40,7 @@ class CorrelationIdFilter : WebFilter {
                 CorrelationIdHolder.addToContext(ctx, correlationId)
             }
             .doOnEach { signal ->
-                if (!signal.isOnComplete && !signal.isOnError) {
+                if (signal.hasValue()) {
                     MDC.put(CorrelationIdHolder.CORRELATION_ID_KEY, correlationId)
                 }
             }
