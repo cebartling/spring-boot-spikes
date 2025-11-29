@@ -205,7 +205,7 @@ class ProductQueryController(
     ): Mono<ResponseEntity<ProductPageResponse>> {
         logger.debug("GET /api/products/by-status/{} - page={}, size={}", status, page, size)
 
-        val statusEnum = ProductStatusView.valueOf(status.uppercase())
+        val statusEnum = ProductStatusView.valueOf(status)
 
         return queryService.findByStatusPaginated(statusEnum, page, size)
             .map { response ->
@@ -234,7 +234,7 @@ class ProductQueryController(
         logger.debug("GET /api/products/search - q='{}', limit={}, status={}", q, limit, status)
 
         return if (status != null) {
-            val statusEnum = ProductStatusView.valueOf(status.uppercase())
+            val statusEnum = ProductStatusView.valueOf(status)
             queryService.searchByStatus(q, statusEnum, limit)
                 .collectList()
                 .map { results ->
@@ -289,7 +289,7 @@ class ProductQueryController(
         logger.debug("GET /api/products/count - status={}", status)
 
         return if (status != null) {
-            val statusEnum = ProductStatusView.valueOf(status.uppercase())
+            val statusEnum = ProductStatusView.valueOf(status)
             queryService.countByStatus(statusEnum)
                 .map { count -> ProductCountResponse(count, status) }
         } else {
