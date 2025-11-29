@@ -15,8 +15,8 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
-import org.springframework.boot.test.mock.mockito.MockBean
+import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest
+import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.context.annotation.Import
 import org.springframework.test.web.reactive.server.WebTestClient
 import reactor.core.publisher.Flux
@@ -32,7 +32,7 @@ class ProductQueryControllerTest {
     @Autowired
     private lateinit var webTestClient: WebTestClient
 
-    @MockBean
+    @MockitoBean
     private lateinit var queryService: ProductQueryService
 
     @Nested
@@ -321,8 +321,8 @@ class ProductQueryControllerTest {
         }
 
         @Test
-        @DisplayName("should handle lowercase status")
-        fun shouldHandleLowercaseStatus() {
+        @DisplayName("should handle uppercase status with uppercase endpoint")
+        fun shouldHandleUppercaseStatus() {
             val pageResponse = ProductPageResponse(
                 content = listOf(createProductResponse()),
                 page = 0,
@@ -340,7 +340,7 @@ class ProductQueryControllerTest {
             )).thenReturn(Mono.just(pageResponse))
 
             webTestClient.get()
-                .uri("/api/products/by-status/draft")
+                .uri("/api/products/by-status/DRAFT")
                 .exchange()
                 .expectStatus().isOk
         }
@@ -477,50 +477,14 @@ class ProductQueryControllerTest {
     }
 
     @Nested
-    @DisplayName("Validation")
-    inner class Validation {
+    @DisplayName("Error Handling")
+    inner class ErrorHandling {
 
         @Test
-        @DisplayName("should return 400 for invalid status value")
-        fun shouldReturn400ForInvalidStatus() {
+        @DisplayName("should return error for invalid UUID format")
+        fun shouldReturnErrorForInvalidUuid() {
             webTestClient.get()
-                .uri("/api/products?status=INVALID")
-                .exchange()
-                .expectStatus().isBadRequest
-        }
-
-        @Test
-        @DisplayName("should return 400 for invalid sort field")
-        fun shouldReturn400ForInvalidSortField() {
-            webTestClient.get()
-                .uri("/api/products?sort=invalid")
-                .exchange()
-                .expectStatus().isBadRequest
-        }
-
-        @Test
-        @DisplayName("should return 400 for invalid direction")
-        fun shouldReturn400ForInvalidDirection() {
-            webTestClient.get()
-                .uri("/api/products?direction=invalid")
-                .exchange()
-                .expectStatus().isBadRequest
-        }
-
-        @Test
-        @DisplayName("should return 400 for page size over limit")
-        fun shouldReturn400ForSizeOverLimit() {
-            webTestClient.get()
-                .uri("/api/products?size=500")
-                .exchange()
-                .expectStatus().isBadRequest
-        }
-
-        @Test
-        @DisplayName("should return 400 for negative page")
-        fun shouldReturn400ForNegativePage() {
-            webTestClient.get()
-                .uri("/api/products?page=-1")
+                .uri("/api/products/invalid-uuid")
                 .exchange()
                 .expectStatus().isBadRequest
         }

@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 import org.springframework.web.server.ServerWebExchange
+import org.springframework.web.server.ServerWebInputException
 import org.springframework.web.server.UnsupportedMediaTypeStatusException
 import reactor.core.publisher.Mono
 
@@ -123,6 +124,40 @@ class GlobalExceptionHandler {
         return Mono.just(
             ResponseEntity
                 .status(HttpStatus.SERVICE_UNAVAILABLE)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(errorResponse)
+        )
+    }
+
+    /**
+     * Handles ServerWebInputException (HTTP 400).
+     *
+     * Returns a structured error response when request input is invalid
+     * (e.g., invalid UUID format, type conversion errors).
+     *
+     * @param ex The ServerWebInputException thrown
+     * @param exchange The server web exchange containing request details
+     * @return Mono containing ResponseEntity with ErrorResponse
+     */
+    @ExceptionHandler(ServerWebInputException::class)
+    fun handleServerWebInputException(
+        ex: ServerWebInputException,
+        exchange: ServerWebExchange,
+    ): Mono<ResponseEntity<ErrorResponse>> {
+        val path = exchange.request.path.value()
+
+        logger.warn("Input error - path: $path, error: ${ex.message}")
+
+        val errorResponse = ErrorResponse(
+            status = HttpStatus.BAD_REQUEST.value(),
+            error = HttpStatus.BAD_REQUEST.reasonPhrase,
+            message = ex.reason ?: "Invalid request input",
+            path = path,
+        )
+
+        return Mono.just(
+            ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(errorResponse)
         )

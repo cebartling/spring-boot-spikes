@@ -129,7 +129,7 @@ class ProductQueryController(
                     .collectList()
                     .map { products ->
                         val paged = paginateList(products, page, size)
-                        ProductPageResponse.of(paged, page, size, products.size.toLong())
+                        createPageResponse(paged, page, size, products.size.toLong())
                     }
             }
 
@@ -145,7 +145,7 @@ class ProductQueryController(
                     .collectList()
                     .map { products ->
                         val paged = paginateList(products, page, size)
-                        ProductPageResponse.of(paged, page, size, products.size.toLong())
+                        createPageResponse(paged, page, size, products.size.toLong())
                     }
             }
 
@@ -328,5 +328,25 @@ class ProductQueryController(
         }
         val endIndex = minOf(startIndex + size, list.size)
         return list.subList(startIndex, endIndex)
+    }
+
+    private fun createPageResponse(
+        content: List<ProductResponse>,
+        page: Int,
+        size: Int,
+        totalElements: Long
+    ): ProductPageResponse {
+        val totalPages = if (totalElements == 0L) 1 else ((totalElements + size - 1) / size).toInt()
+        return ProductPageResponse(
+            content = content,
+            page = page,
+            size = size,
+            totalElements = totalElements,
+            totalPages = totalPages,
+            first = page == 0,
+            last = page >= totalPages - 1,
+            hasNext = page < totalPages - 1,
+            hasPrevious = page > 0
+        )
     }
 }
