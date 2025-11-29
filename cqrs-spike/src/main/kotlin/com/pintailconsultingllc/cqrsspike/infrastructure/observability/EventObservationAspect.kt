@@ -74,10 +74,15 @@ class EventObservationAspect(
         return (joinPoint.proceed() as Mono<*>)
             .doOnSuccess {
                 val duration = Duration.between(startTime, Instant.now())
-                val lagMs = duration.toMillis()
+                val lagMs = if (joinPoint.args.isNotEmpty() && joinPoint.args[0] is ProductEvent) {
+                    val event = joinPoint.args[0] as ProductEvent
+                    Duration.between(event.occurredAt, Instant.now()).toMillis()
+                } else {
+                    -1L // Unknown lag
+                }
                 eventMetrics.recordEventConsumed(eventType, duration, lagMs)
                 observation.stop()
-                logger.debug("Event consumed: type={}, duration={}ms", eventType, duration.toMillis())
+                logger.debug("Event consumed: type={}, duration={}ms, lag={}ms", eventType, duration.toMillis(), lagMs)
             }
             .doOnError { error ->
                 observation.error(error)
@@ -90,8 +95,8 @@ class EventObservationAspect(
         val args = joinPoint.args
         return if (args.isNotEmpty() && args[0] is List<*>) {
             @Suppress("UNCHECKED_CAST")
-            (args[0] as List<Any>).mapNotNull { event ->
-                event::class.simpleName
+            (args[0] as List<Any>).map { event ->
+                event::class.simpleName ?: "UnknownEvent"
             }
         } else {
             listOf("UnknownEvent")

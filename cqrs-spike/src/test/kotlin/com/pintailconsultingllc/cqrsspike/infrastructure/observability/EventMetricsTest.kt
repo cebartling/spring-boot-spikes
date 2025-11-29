@@ -78,9 +78,9 @@ class EventMetricsTest {
         }
 
         @Test
-        @DisplayName("should update event lag count")
-        fun shouldUpdateEventLagCount() {
-            eventMetrics.updateEventLagCount("ProductReadModel", 50L)
+        @DisplayName("should update event lag in milliseconds")
+        fun shouldUpdateEventLagMs() {
+            eventMetrics.updateEventLagMs("ProductReadModel", 50L)
 
             val gauge = meterRegistry.find("product.event.lag")
                 .tag("projection", "ProductReadModel")

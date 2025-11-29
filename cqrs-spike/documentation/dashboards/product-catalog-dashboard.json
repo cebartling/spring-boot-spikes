@@ -16,7 +16,7 @@
       "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
       "targets": [
         {
-          "expr": "sum(rate(product_command_success_total[5m])) / sum(rate(product_command_success_total[5m]) + rate(product_command_failure_total[5m])) * 100",
+          "expr": "(sum(rate(product_command_success_total[5m])) / sum(rate(product_command_success_total[5m]) + rate(product_command_failure_total[5m])) * 100) or 100",
           "legendFormat": "Success Rate %"
         }
       ],
