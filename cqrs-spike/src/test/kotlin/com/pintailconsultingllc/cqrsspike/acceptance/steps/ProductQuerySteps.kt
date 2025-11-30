@@ -357,37 +357,20 @@ class ProductQuerySteps {
     }
 
     private fun parsePageResponse() {
-        val body = testContext.lastResponseBody ?: return
-        try {
-            val jsonNode = objectMapper.readTree(body)
-            testContext.lastQueryResults.clear()
-
-            val content = jsonNode.get("content")
-            if (content != null && content.isArray) {
-                content.forEach { node ->
-                    testContext.lastQueryResults.add(
-                        ProductResult(
-                            id = UUID.fromString(node.get("id").asText()),
-                            sku = node.get("sku").asText(),
-                            name = node.get("name").asText(),
-                            description = node.get("description")?.asText(),
-                            priceCents = node.get("priceCents").asInt(),
-                            status = node.get("status").asText(),
-                            version = node.get("version").asLong()
-                        )
-                    )
-                }
-            }
-
-            testContext.totalResultCount = jsonNode.get("totalElements")?.asLong() ?: 0L
-            testContext.currentPage = jsonNode.get("page")?.asInt() ?: 0
-            testContext.totalPages = jsonNode.get("totalPages")?.asInt() ?: 0
-        } catch (e: Exception) {
-            // Response may not be a valid page response
-        }
+        parseListResponse(
+            totalCountField = "totalElements",
+            includePagination = true
+        )
     }
 
     private fun parseSearchResponse() {
+        parseListResponse(
+            totalCountField = "totalMatches",
+            includePagination = false
+        )
+    }
+
+    private fun parseListResponse(totalCountField: String, includePagination: Boolean) {
         val body = testContext.lastResponseBody ?: return
         try {
             val jsonNode = objectMapper.readTree(body)
@@ -410,9 +393,13 @@ class ProductQuerySteps {
                 }
             }
 
-            testContext.totalResultCount = jsonNode.get("totalMatches")?.asLong() ?: 0L
+            testContext.totalResultCount = jsonNode.get(totalCountField)?.asLong() ?: 0L
+            if (includePagination) {
+                testContext.currentPage = jsonNode.get("page")?.asInt() ?: 0
+                testContext.totalPages = jsonNode.get("totalPages")?.asInt() ?: 0
+            }
         } catch (e: Exception) {
-            // Response may not be a valid search response
+            // Response may not be a valid list response
         }
     }
 
