@@ -449,14 +449,31 @@ class ProductLifecycleSteps {
 
         testContext.lastResponseStatus = response.status
         testContext.lastResponseBody = response.responseBody.blockFirst()
-        responseParsingHelper.parseErrorResponse()
-        updateVersionFromResponse()
+        parseErrorResponse()
+        testContext.updateVersionFromResponse(objectMapper)
+        pendingExpectedVersion = testContext.pendingExpectedVersion
     }
 
-    private fun updateVersionFromResponse() {
-        val version = responseParsingHelper.extractVersionFromResponse()
-        if (version != null) {
-            pendingExpectedVersion = version
+    // Removed duplicate utility methods; now using shared methods in TestContext.
+    private fun parseErrorResponse() {
+        val body = testContext.lastResponseBody ?: return
+        try {
+            val jsonNode = objectMapper.readTree(body)
+            testContext.lastErrorMessage = jsonNode.get("message")?.asText()
+            testContext.lastErrorCode = jsonNode.get("code")?.asText()
+
+            // Parse validation errors if present
+            val errors = jsonNode.get("errors")
+            if (errors != null && errors.isArray) {
+                testContext.lastValidationErrors.clear()
+                errors.forEach { error ->
+                    val field = error.get("field")?.asText() ?: ""
+                    val message = error.get("message")?.asText() ?: ""
+                    testContext.lastValidationErrors.add(ValidationError(field, message))
+                }
+            }
+        } catch (e: Exception) {
+            // Response may not be JSON or may not have expected structure
         }
     }
 }

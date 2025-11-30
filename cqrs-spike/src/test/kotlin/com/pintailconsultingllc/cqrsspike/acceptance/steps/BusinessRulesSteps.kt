@@ -143,8 +143,8 @@ class BusinessRulesSteps {
         val productId = testContext.currentProductId
             ?: throw IllegalStateException("No current product ID in context")
 
-        // Get current price from a previous step or assume 1000 cents
-        // New price of 500 is a 50% decrease
+        // Test product starts at 1000 cents (see iHaveAnActiveProductWithPrice step).
+        // 50% decrease (from 1000 to 500) exceeds the 20% threshold, requiring confirmation.
         val request = ChangePriceRequest(
             newPriceCents = 500,
             confirmLargeChange = false,
@@ -168,6 +168,7 @@ class BusinessRulesSteps {
         val productId = testContext.currentProductId
             ?: throw IllegalStateException("No current product ID in context")
 
+        // 50% decrease (from 1000 to 500) exceeds the 20% threshold, but confirmation is provided.
         val request = ChangePriceRequest(
             newPriceCents = 500,
             confirmLargeChange = true,
@@ -192,7 +193,7 @@ class BusinessRulesSteps {
         val productId = testContext.currentProductId
             ?: throw IllegalStateException("No current product ID in context")
 
-        // Assuming current price is 1000, change to 900 (10% decrease)
+        // 10% decrease (from 1000 to 900) is within the 20% threshold, so no confirmation is required.
         val request = ChangePriceRequest(
             newPriceCents = 900,
             confirmLargeChange = false,

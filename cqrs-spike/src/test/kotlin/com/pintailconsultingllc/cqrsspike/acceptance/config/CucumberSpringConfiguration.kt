@@ -33,7 +33,6 @@ class CucumberSpringConfiguration {
             .withUsername("test_user")
             .withPassword("test_password")
             .withInitScript("init-test-schema.sql")
-            .withReuse(true)
 
         @DynamicPropertySource
         @JvmStatic

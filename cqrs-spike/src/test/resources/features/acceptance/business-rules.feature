@@ -116,7 +116,7 @@ Feature: Business Rules Validation
     When I try to change the price by less than 20%
     Then the price change should be accepted
 
-  # AC10: Concurrent modification handling
+  # AC9: Concurrent modification handling
   @concurrency @business-rule
   Scenario: Concurrent modification conflict returns HTTP 409
     Given a product with SKU "CONFLICT-001" and name "Original" exists
