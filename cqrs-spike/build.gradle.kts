@@ -145,8 +145,14 @@ tasks.jacocoTestCoverageVerification {
     violationRules {
         rule {
             limit {
-                minimum = "0.90".toBigDecimal()
+                // AC12: Test coverage meets minimum threshold (80% line coverage)
+                minimum = "0.80".toBigDecimal()
             }
         }
     }
+}
+
+// Add coverage verification to the build lifecycle (AC12)
+tasks.check {
+    dependsOn(tasks.jacocoTestCoverageVerification)
 }
