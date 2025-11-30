@@ -32,6 +32,10 @@ services:
     labels:
       com.example.service: "postgres-test"
       com.example.description: "PostgreSQL database for acceptance tests"
+    # WARNING: The following tmpfs configuration stores all PostgreSQL data in memory.
+    # This improves test performance but means NO DATA will persist between container restarts.
+    # Ensure your system has sufficient RAM to accommodate the database, especially for large test datasets.
+    # This configuration may cause issues on memory-constrained systems.
     tmpfs:
       - /var/lib/postgresql/data  # Use tmpfs for faster tests
     logging:
