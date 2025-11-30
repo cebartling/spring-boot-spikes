@@ -31,6 +31,8 @@ spring:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: true
+    # WARNING: Enabling Flyway clean is DANGEROUS and will drop all database objects.
+    # This setting MUST ONLY be used for automated tests. NEVER use in production or production-like environments!
     clean-disabled: false
 
   # Disable Vault for acceptance tests
