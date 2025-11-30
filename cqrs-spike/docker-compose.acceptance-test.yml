@@ -1,0 +1,46 @@
+# Docker Compose configuration for acceptance testing
+#
+# This configuration provides a minimal environment for running acceptance tests.
+# It can be used in CI/CD pipelines or for manual testing when you don't want
+# to use Testcontainers.
+#
+# Usage:
+#   docker-compose -f docker-compose.acceptance-test.yml up -d
+#   ./gradlew test --tests "*AcceptanceTestRunner*" -Dspring.profiles.active=acceptance-test-docker
+#   docker-compose -f docker-compose.acceptance-test.yml down -v
+
+services:
+  postgres-test:
+    image: postgres:18-alpine
+    container_name: cqrs-postgres-test
+    hostname: postgres-test
+    ports:
+      - "5433:5432"  # Different port to avoid conflicts with dev database
+    environment:
+      POSTGRES_DB: cqrs_test_db
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_user -d cqrs_test_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    networks:
+      - cqrs-test-network
+    restart: "no"
+    labels:
+      com.example.service: "postgres-test"
+      com.example.description: "PostgreSQL database for acceptance tests"
+    tmpfs:
+      - /var/lib/postgresql/data  # Use tmpfs for faster tests
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "1"
+
+networks:
+  cqrs-test-network:
+    name: cqrs-test-network
+    driver: bridge
