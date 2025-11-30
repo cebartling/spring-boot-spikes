@@ -1,5 +1,6 @@
 package com.pintailconsultingllc.cqrsspike.acceptance.steps
 
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.pintailconsultingllc.cqrsspike.acceptance.context.ProductResult
 import com.pintailconsultingllc.cqrsspike.acceptance.context.TestContext
@@ -387,7 +388,7 @@ class ProductQuerySteps {
         }
     }
 
-    private fun parseProductResult(node: com.fasterxml.jackson.databind.JsonNode): ProductResult {
+    private fun parseProductResult(node: JsonNode): ProductResult {
         return ProductResult(
             id = UUID.fromString(node.get("id").asText()),
             sku = node.get("sku").asText(),
