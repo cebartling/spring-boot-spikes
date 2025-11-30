@@ -3,6 +3,7 @@ package com.pintailconsultingllc.cqrsspike.acceptance.steps
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.pintailconsultingllc.cqrsspike.acceptance.context.ProductResult
 import com.pintailconsultingllc.cqrsspike.acceptance.context.TestContext
+import com.pintailconsultingllc.cqrsspike.acceptance.helpers.ResponseParsingHelper
 import io.cucumber.java.en.Given
 import io.cucumber.java.en.Then
 import io.cucumber.java.en.When
@@ -31,6 +32,9 @@ class ProductQuerySteps {
 
     @Autowired
     private lateinit var objectMapper: ObjectMapper
+
+    @Autowired
+    private lateinit var responseParsingHelper: ResponseParsingHelper
 
     // ========== Given Steps ==========
 
@@ -103,7 +107,7 @@ class ProductQuerySteps {
 
         testContext.lastResponseStatus = response.status
         testContext.lastResponseBody = response.responseBody.blockFirst()
-        parseErrorResponse()
+        responseParsingHelper.parseErrorResponse()
     }
 
     @When("I list all products")
@@ -413,17 +417,6 @@ class ProductQuerySteps {
             testContext.totalResultCount = jsonNode.get("totalMatches")?.asLong() ?: 0L
         } catch (e: Exception) {
             // Response may not be a valid search response
-        }
-    }
-
-    private fun parseErrorResponse() {
-        val body = testContext.lastResponseBody ?: return
-        try {
-            val jsonNode = objectMapper.readTree(body)
-            testContext.lastErrorMessage = jsonNode.get("message")?.asText()
-            testContext.lastErrorCode = jsonNode.get("code")?.asText()
-        } catch (e: Exception) {
-            // Response may not be JSON
         }
     }
 }
