@@ -1,0 +1,64 @@
+# Test Configuration - Uses Docker Compose Infrastructure
+#
+# IMPORTANT: Before running tests, ensure Docker Compose infrastructure is running:
+#   make start
+#
+# This configuration connects to the local Docker Compose PostgreSQL instance
+# instead of using Testcontainers.
+
+spring:
+  application:
+    name: cqrs-spike-test
+
+  # Disable Vault for tests - use static configuration
+  cloud:
+    vault:
+      enabled: false
+
+  # R2DBC Configuration - Connect to Docker Compose PostgreSQL
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/cqrs_db
+    username: cqrs_user
+    password: local_dev_password
+    pool:
+      initial-size: 5
+      max-size: 10
+      max-idle-time: 10m
+      validation-query: SELECT 1
+
+  # JDBC DataSource - Connect to Docker Compose PostgreSQL
+  datasource:
+    url: jdbc:postgresql://localhost:5432/cqrs_db
+    username: cqrs_user
+    password: local_dev_password
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: TestHikariPool
+      maximum-pool-size: 5
+      minimum-idle: 2
+      connection-timeout: 10000
+
+  # Flyway - Disabled for tests, schema managed separately
+  flyway:
+    enabled: false
+
+# Disable projection auto-start for tests
+projection:
+  auto-start: false
+
+# Logging - reduced verbosity for tests
+logging:
+  level:
+    root: WARN
+    com.pintailconsultingllc.cqrsspike: INFO
+    org.springframework.r2dbc: WARN
+
+# Actuator - minimal exposure for tests
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  tracing:
+    sampling:
+      probability: 0.0  # Disable tracing in tests
