@@ -23,7 +23,7 @@ import org.junit.platform.suite.api.Suite
 @SelectClasspathResource("features/acceptance")
 @ConfigurationParameter(
     key = "cucumber.glue",
-    value = "com.pintailconsultingllc.cqrsspike.acceptance.steps"
+    value = "com.pintailconsultingllc.cqrsspike.acceptance.steps,com.pintailconsultingllc.cqrsspike.acceptance.config"
 )
 @ConfigurationParameter(
     key = "cucumber.plugin",
