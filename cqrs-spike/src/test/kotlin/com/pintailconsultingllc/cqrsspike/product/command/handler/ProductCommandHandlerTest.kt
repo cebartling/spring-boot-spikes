@@ -628,7 +628,7 @@ class ProductCommandHandlerTest {
             val aggregate = ProductAggregateBuilder.aDraftProduct()
                 .build()
                 .delete(expectedVersion = 1L, deletedBy = "test")
-            aggregate.getUncommittedEvents() // Clear events
+                .buildWithClearedEvents()
             val productId = aggregate.id
 
             val command = ProductCommandBuilders.updateProductCommand(
