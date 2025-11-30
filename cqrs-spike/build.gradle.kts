@@ -145,9 +145,7 @@ val jacocoExclusions = listOf(
     "**/ProjectionController*",
     // Exception handlers (tested via @WebFluxTest integration tests)
     "**/CommandExceptionHandler*",
-    "**/QueryExceptionHandler*",
-    // Query service resiliency fallback methods require integration tests
-    "**/ProductQueryService*"
+    "**/QueryExceptionHandler*"
 )
 
 tasks.jacocoTestReport {
