@@ -9,8 +9,8 @@ import java.util.UUID
  * Scenario-scoped context for sharing state between Cucumber steps.
  *
  * This class maintains state that needs to be passed between different
- * step definitions within a single scenario. It is automatically reset
- * at the start of each new scenario.
+ * step definitions within a single scenario. A fresh instance is created
+ * for each new scenario via the @ScenarioScope annotation.
  *
  * Usage:
  * - Store product IDs after creation for use in subsequent steps
@@ -46,26 +46,6 @@ class TestContext {
     var currentPage: Int = 0
     var totalPages: Int = 0
 
-    /**
-     * Resets all state. Called automatically between scenarios
-     * by the @ScenarioScope annotation.
-     */
-    fun reset() {
-        currentProductId = null
-        createdProductIds.clear()
-        lastResponseStatus = null
-        lastResponseBody = null
-        lastResponseHeaders.clear()
-        lastErrorMessage = null
-        lastErrorCode = null
-        lastValidationErrors.clear()
-        lastEventId = null
-        capturedEvents.clear()
-        lastQueryResults.clear()
-        totalResultCount = 0
-        currentPage = 0
-        totalPages = 0
-    }
 }
 
 /**
