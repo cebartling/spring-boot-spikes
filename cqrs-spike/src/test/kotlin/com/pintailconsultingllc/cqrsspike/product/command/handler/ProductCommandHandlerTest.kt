@@ -1,7 +1,13 @@
 package com.pintailconsultingllc.cqrsspike.product.command.handler
 
 import com.pintailconsultingllc.cqrsspike.product.command.aggregate.ProductAggregate
+import com.pintailconsultingllc.cqrsspike.product.command.exception.ConcurrentModificationException
+import com.pintailconsultingllc.cqrsspike.product.command.exception.InvalidStateTransitionException
+import com.pintailconsultingllc.cqrsspike.product.command.exception.PriceChangeThresholdExceededException
+import com.pintailconsultingllc.cqrsspike.product.command.exception.ProductDeletedException
 import com.pintailconsultingllc.cqrsspike.product.command.exception.ProductNotFoundException
+import com.pintailconsultingllc.cqrsspike.testutil.builders.ProductAggregateBuilder
+import com.pintailconsultingllc.cqrsspike.testutil.builders.ProductCommandBuilders
 import com.pintailconsultingllc.cqrsspike.product.command.infrastructure.ProductAggregateRepository
 import com.pintailconsultingllc.cqrsspike.product.command.model.ActivateProductCommand
 import com.pintailconsultingllc.cqrsspike.product.command.model.ChangePriceCommand
@@ -559,6 +565,228 @@ class ProductCommandHandlerTest {
             StepVerifier.create(handler.handle(command))
                 .expectError(ProductNotFoundException::class.java)
                 .verify()
+        }
+    }
+
+    @Nested
+    @DisplayName("AC12: Edge Cases - Concurrent Modification Handling")
+    inner class ConcurrentModificationHandling {
+
+        @Test
+        @DisplayName("should propagate concurrent modification exception from repository")
+        fun shouldPropagateConcurrentModificationException() {
+            // Use draft product (version 1) so expectedVersion matches
+            val aggregate = ProductAggregateBuilder.aDraftProduct().buildWithClearedEvents()
+            val productId = aggregate.id
+
+            val command = ProductCommandBuilders.updateProductCommand(
+                productId = productId,
+                expectedVersion = 1L
+            )
+
+            whenever(idempotencyService.checkIdempotency(anyOrNull()))
+                .thenReturn(Mono.empty())
+            whenever(aggregateRepository.findById(productId))
+                .thenReturn(Mono.just(aggregate))
+            whenever(aggregateRepository.update(any()))
+                .thenReturn(Mono.error(ConcurrentModificationException(productId, 1L, 3L)))
+
+            StepVerifier.create(handler.handle(command))
+                .expectError(ConcurrentModificationException::class.java)
+                .verify()
+        }
+    }
+
+    @Nested
+    @DisplayName("AC12: Edge Cases - Business Rule Violations")
+    inner class BusinessRuleViolations {
+
+        @Test
+        @DisplayName("should reject activation of already active product")
+        fun shouldRejectActivationOfAlreadyActiveProduct() {
+            val aggregate = ProductAggregateBuilder.anActiveProduct().buildWithClearedEvents()
+            val productId = aggregate.id
+
+            val command = ProductCommandBuilders.activateProductCommand(
+                productId = productId,
+                expectedVersion = aggregate.version
+            )
+
+            whenever(idempotencyService.checkIdempotency(anyOrNull()))
+                .thenReturn(Mono.empty())
+            whenever(aggregateRepository.findById(productId))
+                .thenReturn(Mono.just(aggregate))
+
+            StepVerifier.create(handler.handle(command))
+                .expectError(InvalidStateTransitionException::class.java)
+                .verify()
+        }
+
+        @Test
+        @DisplayName("should reject operations on deleted product")
+        fun shouldRejectOperationsOnDeletedProduct() {
+            val aggregate = ProductAggregateBuilder.aDraftProduct()
+                .buildWithClearedEvents()
+                .delete(expectedVersion = 1L, deletedBy = "test")
+            val productId = aggregate.id
+
+            val command = ProductCommandBuilders.updateProductCommand(
+                productId = productId,
+                expectedVersion = aggregate.version
+            )
+
+            whenever(idempotencyService.checkIdempotency(anyOrNull()))
+                .thenReturn(Mono.empty())
+            whenever(aggregateRepository.findById(productId))
+                .thenReturn(Mono.just(aggregate))
+
+            StepVerifier.create(handler.handle(command))
+                .expectError(ProductDeletedException::class.java)
+                .verify()
+        }
+
+        @Test
+        @DisplayName("should reject large price change without confirmation for active product")
+        fun shouldRejectLargePriceChangeWithoutConfirmation() {
+            val aggregate = ProductAggregateBuilder.anActiveProduct()
+                .withPrice(1000)
+                .buildWithClearedEvents()
+            val productId = aggregate.id
+
+            val command = ProductCommandBuilders.changePriceCommand(
+                productId = productId,
+                expectedVersion = aggregate.version,
+                newPriceCents = 3000, // 200% increase - exceeds 20% threshold
+                confirmLargeChange = false
+            )
+
+            whenever(idempotencyService.checkIdempotency(anyOrNull()))
+                .thenReturn(Mono.empty())
+            whenever(aggregateRepository.findById(productId))
+                .thenReturn(Mono.just(aggregate))
+
+            StepVerifier.create(handler.handle(command))
+                .expectError(PriceChangeThresholdExceededException::class.java)
+                .verify()
+        }
+
+        @Test
+        @DisplayName("should allow large price change with confirmation for active product")
+        fun shouldAllowLargePriceChangeWithConfirmation() {
+            val aggregate = ProductAggregateBuilder.anActiveProduct()
+                .withPrice(1000)
+                .buildWithClearedEvents()
+            val productId = aggregate.id
+
+            val command = ProductCommandBuilders.changePriceCommand(
+                productId = productId,
+                expectedVersion = aggregate.version,
+                newPriceCents = 3000, // 200% increase - exceeds 20% threshold
+                confirmLargeChange = true // Confirmed
+            )
+
+            whenever(idempotencyService.checkIdempotency(anyOrNull()))
+                .thenReturn(Mono.empty())
+            whenever(aggregateRepository.findById(productId))
+                .thenReturn(Mono.just(aggregate))
+            whenever(aggregateRepository.update(any()))
+                .thenAnswer { invocation ->
+                    Mono.just(invocation.getArgument<ProductAggregate>(0))
+                }
+            whenever(idempotencyService.recordProcessedCommand(anyOrNull(), any(), any(), any()))
+                .thenReturn(Mono.empty())
+
+            StepVerifier.create(handler.handle(command))
+                .expectNextMatches { result ->
+                    result is CommandSuccess
+                }
+                .verifyComplete()
+        }
+
+        @Test
+        @DisplayName("should reject reactivation of discontinued product")
+        fun shouldRejectReactivationOfDiscontinuedProduct() {
+            val aggregate = ProductAggregateBuilder.aDiscontinuedProduct().buildWithClearedEvents()
+            val productId = aggregate.id
+
+            val command = ProductCommandBuilders.activateProductCommand(
+                productId = productId,
+                expectedVersion = aggregate.version
+            )
+
+            whenever(idempotencyService.checkIdempotency(anyOrNull()))
+                .thenReturn(Mono.empty())
+            whenever(aggregateRepository.findById(productId))
+                .thenReturn(Mono.just(aggregate))
+
+            StepVerifier.create(handler.handle(command))
+                .expectError(InvalidStateTransitionException::class.java)
+                .verify()
+        }
+    }
+
+    @Nested
+    @DisplayName("AC12: Edge Cases - Using Test Builders")
+    inner class TestBuilderUsageExamples {
+
+        @Test
+        @DisplayName("should create product using builder")
+        fun shouldCreateProductUsingBuilder() {
+            val command = ProductCommandBuilders.createProductCommand(
+                sku = "BUILDER-TEST-001",
+                name = "Builder Test Product",
+                priceCents = 4999
+            )
+
+            whenever(idempotencyService.checkIdempotency(anyOrNull()))
+                .thenReturn(Mono.empty())
+            whenever(aggregateRepository.save(any()))
+                .thenAnswer { invocation ->
+                    val aggregate = invocation.getArgument<ProductAggregate>(0)
+                    Mono.just(aggregate)
+                }
+            whenever(idempotencyService.recordProcessedCommand(anyOrNull(), any(), any(), any()))
+                .thenReturn(Mono.empty())
+
+            StepVerifier.create(handler.handle(command))
+                .expectNextMatches { result ->
+                    result is CommandSuccess &&
+                    result.version == 1L
+                }
+                .verifyComplete()
+        }
+
+        @Test
+        @DisplayName("should update product using aggregate builder")
+        fun shouldUpdateProductUsingAggregateBuilder() {
+            val aggregate = ProductAggregateBuilder.aValidProduct()
+                .withSku("UPDATE-TEST-001")
+                .buildWithClearedEvents()
+            val productId = aggregate.id
+
+            val command = ProductCommandBuilders.updateProductCommand(
+                productId = productId,
+                expectedVersion = aggregate.version,
+                name = "New Name From Builder",
+                description = "New Description From Builder"
+            )
+
+            whenever(idempotencyService.checkIdempotency(anyOrNull()))
+                .thenReturn(Mono.empty())
+            whenever(aggregateRepository.findById(productId))
+                .thenReturn(Mono.just(aggregate))
+            whenever(aggregateRepository.update(any()))
+                .thenAnswer { invocation ->
+                    Mono.just(invocation.getArgument<ProductAggregate>(0))
+                }
+            whenever(idempotencyService.recordProcessedCommand(anyOrNull(), any(), any(), any()))
+                .thenReturn(Mono.empty())
+
+            StepVerifier.create(handler.handle(command))
+                .expectNextMatches { result ->
+                    result is CommandSuccess
+                }
+                .verifyComplete()
         }
     }
 }

@@ -7,6 +7,7 @@ import com.pintailconsultingllc.cqrsspike.product.event.ProductDiscontinued
 import com.pintailconsultingllc.cqrsspike.product.event.ProductEvent
 import com.pintailconsultingllc.cqrsspike.product.event.ProductPriceChanged
 import com.pintailconsultingllc.cqrsspike.product.event.ProductUpdated
+import com.pintailconsultingllc.cqrsspike.product.query.model.ProductFormatUtils
 import com.pintailconsultingllc.cqrsspike.product.query.model.ProductReadModel
 import com.pintailconsultingllc.cqrsspike.product.query.model.ProductStatusView
 import com.pintailconsultingllc.cqrsspike.product.query.repository.ProductReadModelRepository
@@ -95,8 +96,8 @@ class ProductProjector(
             updatedAt = event.occurredAt,
             aggregateVersion = event.version,
             isDeleted = false,
-            priceDisplay = formatPrice(event.priceCents),
-            searchText = buildSearchText(event.name, event.description),
+            priceDisplay = ProductFormatUtils.formatPrice(event.priceCents),
+            searchText = ProductFormatUtils.buildSearchText(event.name, event.description),
             lastEventId = eventId
         )
 
@@ -127,7 +128,7 @@ class ProductProjector(
                     description = event.description,
                     updatedAt = event.occurredAt,
                     aggregateVersion = event.version,
-                    searchText = buildSearchText(event.name, event.description),
+                    searchText = ProductFormatUtils.buildSearchText(event.name, event.description),
                     lastEventId = eventId
                 )
                 readModelRepository.save(updated)
@@ -151,7 +152,7 @@ class ProductProjector(
 
                 val updated = existing.copy(
                     priceCents = event.newPriceCents,
-                    priceDisplay = formatPrice(event.newPriceCents),
+                    priceDisplay = ProductFormatUtils.formatPrice(event.newPriceCents),
                     updatedAt = event.occurredAt,
                     aggregateVersion = event.version,
                     lastEventId = eventId
@@ -264,17 +265,5 @@ class ProductProjector(
                     eventsProcessed = 0
                 )
             )
-    }
-
-    // Helper methods
-
-    private fun formatPrice(cents: Int): String {
-        val dollars = cents / 100
-        val remainingCents = cents % 100
-        return "$${dollars}.${remainingCents.toString().padStart(2, '0')}"
-    }
-
-    private fun buildSearchText(name: String, description: String?): String {
-        return listOfNotNull(name, description).joinToString(" ")
     }
 }
