@@ -7,6 +7,8 @@ import com.pintailconsultingllc.cqrsspike.product.event.ProductDeleted
 import com.pintailconsultingllc.cqrsspike.product.event.ProductDiscontinued
 import com.pintailconsultingllc.cqrsspike.product.event.ProductPriceChanged
 import com.pintailconsultingllc.cqrsspike.product.event.ProductUpdated
+import com.pintailconsultingllc.cqrsspike.testutil.builders.ProductEventBuilders
+import com.pintailconsultingllc.cqrsspike.testutil.builders.ProductReadModelBuilder
 import com.pintailconsultingllc.cqrsspike.product.query.model.ProductReadModel
 import com.pintailconsultingllc.cqrsspike.product.query.repository.ProductReadModelRepository
 import com.pintailconsultingllc.cqrsspike.product.query.repository.ProjectionPosition
@@ -400,6 +402,165 @@ class ProductProjectorTest {
                         position.eventsProcessed == 0L
                 }
                 .verifyComplete()
+        }
+    }
+
+    @Nested
+    @DisplayName("AC12: Using Test Builders")
+    inner class UsingTestBuilders {
+
+        @Test
+        @DisplayName("should process ProductCreated event using builder")
+        fun shouldProcessProductCreatedEventUsingBuilder() {
+            setupPositionRepository()
+
+            val event = ProductEventBuilders.productCreated(
+                productId = productId,
+                sku = "BUILDER-TEST-001",
+                name = "Builder Test Product",
+                priceCents = 4999
+            )
+
+            whenever(readModelRepository.save(any<ProductReadModel>()))
+                .thenAnswer { invocation -> Mono.just(invocation.getArgument<ProductReadModel>(0)) }
+
+            StepVerifier.create(projector.processEvent(event, eventId, eventSequence))
+                .verifyComplete()
+
+            verify(readModelRepository).save(argThat<ProductReadModel> { model ->
+                model.sku == "BUILDER-TEST-001" &&
+                model.name == "Builder Test Product" &&
+                model.priceCents == 4999 &&
+                model.priceDisplay == "$49.99"
+            })
+        }
+
+        @Test
+        @DisplayName("should process ProductUpdated event using builders")
+        fun shouldProcessProductUpdatedEventUsingBuilders() {
+            setupPositionRepository()
+
+            val existingModel = ProductReadModelBuilder.aProductReadModel()
+                .withId(productId)
+                .withSku("BUILDER-TEST-001")
+                .withName("Original Name")
+                .withVersion(1L)
+                .build()
+
+            val event = ProductEventBuilders.productUpdated(
+                productId = productId,
+                version = 2L,
+                name = "Updated Name",
+                description = "Updated description",
+                previousName = "Original Name"
+            )
+
+            whenever(readModelRepository.findById(productId))
+                .thenReturn(Mono.just(existingModel))
+            whenever(readModelRepository.save(any<ProductReadModel>()))
+                .thenAnswer { invocation -> Mono.just(invocation.getArgument<ProductReadModel>(0)) }
+
+            StepVerifier.create(projector.processEvent(event, eventId, eventSequence))
+                .verifyComplete()
+
+            verify(readModelRepository).save(argThat<ProductReadModel> { model ->
+                model.name == "Updated Name" &&
+                model.description == "Updated description" &&
+                model.aggregateVersion == 2L
+            })
+        }
+
+        @Test
+        @DisplayName("should process sequence of events using builders")
+        fun shouldProcessSequenceOfEventsUsingBuilders() {
+            setupPositionRepository()
+
+            val existingDraftModel = ProductReadModelBuilder.aDraftProductReadModel()
+                .withId(productId)
+                .withVersion(1L)
+                .build()
+
+            val activateEvent = ProductEventBuilders.productActivated(
+                productId = productId,
+                version = 2L,
+                previousStatus = ProductStatus.DRAFT
+            )
+
+            whenever(readModelRepository.findById(productId))
+                .thenReturn(Mono.just(existingDraftModel))
+            whenever(readModelRepository.save(any<ProductReadModel>()))
+                .thenAnswer { invocation -> Mono.just(invocation.getArgument<ProductReadModel>(0)) }
+
+            StepVerifier.create(projector.processEvent(activateEvent, eventId, eventSequence))
+                .verifyComplete()
+
+            verify(readModelRepository).save(argThat<ProductReadModel> { model ->
+                model.status == "ACTIVE" &&
+                model.aggregateVersion == 2L
+            })
+        }
+
+        @Test
+        @DisplayName("should process ProductPriceChanged using builders")
+        fun shouldProcessProductPriceChangedUsingBuilders() {
+            setupPositionRepository()
+
+            val existingModel = ProductReadModelBuilder.anActiveProductReadModel()
+                .withId(productId)
+                .withPrice(1999)
+                .withVersion(1L)
+                .build()
+
+            val event = ProductEventBuilders.productPriceChanged(
+                productId = productId,
+                version = 2L,
+                newPriceCents = 3999,
+                previousPriceCents = 1999,
+                changePercentage = 100.0
+            )
+
+            whenever(readModelRepository.findById(productId))
+                .thenReturn(Mono.just(existingModel))
+            whenever(readModelRepository.save(any<ProductReadModel>()))
+                .thenAnswer { invocation -> Mono.just(invocation.getArgument<ProductReadModel>(0)) }
+
+            StepVerifier.create(projector.processEvent(event, eventId, eventSequence))
+                .verifyComplete()
+
+            verify(readModelRepository).save(argThat<ProductReadModel> { model ->
+                model.priceCents == 3999 &&
+                model.priceDisplay == "$39.99"
+            })
+        }
+
+        @Test
+        @DisplayName("should process ProductDeleted using builders")
+        fun shouldProcessProductDeletedUsingBuilders() {
+            setupPositionRepository()
+
+            val existingModel = ProductReadModelBuilder.anActiveProductReadModel()
+                .withId(productId)
+                .withVersion(1L)
+                .build()
+
+            val event = ProductEventBuilders.productDeleted(
+                productId = productId,
+                version = 2L,
+                deletedBy = "test@example.com"
+            )
+
+            whenever(readModelRepository.findById(productId))
+                .thenReturn(Mono.just(existingModel))
+            whenever(readModelRepository.save(any<ProductReadModel>()))
+                .thenAnswer { invocation -> Mono.just(invocation.getArgument<ProductReadModel>(0)) }
+
+            StepVerifier.create(projector.processEvent(event, eventId, eventSequence))
+                .verifyComplete()
+
+            verify(readModelRepository).save(argThat<ProductReadModel> { model ->
+                model.isDeleted &&
+                model.aggregateVersion == 2L
+            })
         }
     }
 

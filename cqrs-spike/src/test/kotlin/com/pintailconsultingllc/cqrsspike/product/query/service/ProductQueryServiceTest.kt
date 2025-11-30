@@ -5,6 +5,7 @@ import com.pintailconsultingllc.cqrsspike.product.query.dto.SortField
 import com.pintailconsultingllc.cqrsspike.product.query.model.ProductReadModel
 import com.pintailconsultingllc.cqrsspike.product.query.model.ProductStatusView
 import com.pintailconsultingllc.cqrsspike.product.query.repository.ProductReadModelRepository
+import com.pintailconsultingllc.cqrsspike.testutil.builders.ProductReadModelBuilder
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
@@ -508,6 +509,201 @@ class ProductQueryServiceTest {
 
             StepVerifier.create(queryService.countByStatus(ProductStatusView.ACTIVE))
                 .expectNext(10L)
+                .verifyComplete()
+        }
+    }
+
+    @Nested
+    @DisplayName("AC12: Edge Cases - Error Handling")
+    inner class ErrorHandling {
+
+        @Test
+        @DisplayName("should handle repository exception gracefully")
+        fun shouldHandleRepositoryExceptionGracefully() {
+            val error = RuntimeException("Database connection failed")
+
+            whenever(repository.findByIdNotDeleted(any()))
+                .thenReturn(Mono.error(error))
+
+            StepVerifier.create(queryService.findById(UUID.randomUUID()))
+                .expectError(RuntimeException::class.java)
+                .verify()
+        }
+
+        @Test
+        @DisplayName("should handle repository exception in search")
+        fun shouldHandleRepositoryExceptionInSearch() {
+            val error = RuntimeException("Search failed")
+
+            whenever(repository.searchByText(any(), any()))
+                .thenReturn(Flux.error(error))
+            whenever(repository.countBySearchTerm(any()))
+                .thenReturn(Mono.just(0L))
+
+            StepVerifier.create(queryService.search("test"))
+                .expectError(RuntimeException::class.java)
+                .verify()
+        }
+
+        @Test
+        @DisplayName("should return empty when searching with special characters")
+        fun shouldReturnEmptyForSpecialCharacterSearch() {
+            whenever(repository.searchByText(any(), any()))
+                .thenReturn(Flux.empty())
+            whenever(repository.countBySearchTerm(any()))
+                .thenReturn(Mono.just(0L))
+
+            // Test with special characters that might cause issues
+            StepVerifier.create(queryService.search("'; DROP TABLE products; --"))
+                .expectNextMatches { response ->
+                    response.content.isEmpty() &&
+                    response.totalMatches == 0L
+                }
+                .verifyComplete()
+        }
+    }
+
+    @Nested
+    @DisplayName("AC12: Edge Cases - Boundary Conditions")
+    inner class BoundaryConditions {
+
+        @Test
+        @DisplayName("should handle maximum page size")
+        fun shouldHandleMaximumPageSize() {
+            whenever(repository.findAllPaginated(100, 0))
+                .thenReturn(Flux.empty())
+            whenever(repository.countAllNotDeleted())
+                .thenReturn(Mono.just(0L))
+
+            StepVerifier.create(queryService.findAllPaginated(0, Int.MAX_VALUE))
+                .expectNextMatches { page -> page.size == 100 } // Capped at max
+                .verifyComplete()
+        }
+
+        @Test
+        @DisplayName("should handle price range with same min and max")
+        fun shouldHandlePriceRangeWithSameMinMax() {
+            val price = 1999
+            val product = ProductReadModelBuilder.aProductReadModel()
+                .withPrice(price)
+                .build()
+
+            whenever(repository.findByPriceRange(price, price))
+                .thenReturn(Flux.just(product))
+
+            StepVerifier.create(queryService.findByPriceRange(price, price))
+                .expectNextMatches { it.priceCents == price }
+                .verifyComplete()
+        }
+
+        @Test
+        @DisplayName("should handle zero minimum page size")
+        fun shouldHandleZeroMinimumPageSize() {
+            whenever(repository.findAllPaginated(1, 0))
+                .thenReturn(Flux.empty())
+            whenever(repository.countAllNotDeleted())
+                .thenReturn(Mono.just(0L))
+
+            // Size of 0 should be converted to minimum of 1
+            StepVerifier.create(queryService.findAllPaginated(0, 0))
+                .expectNextMatches { page -> page.size == 1 }
+                .verifyComplete()
+        }
+
+        @Test
+        @DisplayName("should handle very large page number")
+        fun shouldHandleVeryLargePageNumber() {
+            whenever(repository.findAllPaginated(any(), any()))
+                .thenReturn(Flux.empty())
+            whenever(repository.countAllNotDeleted())
+                .thenReturn(Mono.just(10L))
+
+            // Large page number should return empty results but not fail
+            StepVerifier.create(queryService.findAllPaginated(1000000, 20))
+                .expectNextMatches { page ->
+                    page.content.isEmpty() &&
+                    page.page == 1000000 &&
+                    page.totalElements == 10L
+                }
+                .verifyComplete()
+        }
+    }
+
+    @Nested
+    @DisplayName("AC12: Edge Cases - Using Test Builders")
+    inner class TestBuilderUsageExamples {
+
+        @Test
+        @DisplayName("should find product using builder-created read model")
+        fun shouldFindProductUsingBuilderCreatedReadModel() {
+            val product = ProductReadModelBuilder.anActiveProductReadModel()
+                .withSku("BUILDER-TEST-001")
+                .withName("Builder Test Product")
+                .withPrice(4999)
+                .build()
+
+            whenever(repository.findByIdNotDeleted(product.id))
+                .thenReturn(Mono.just(product))
+
+            StepVerifier.create(queryService.findById(product.id))
+                .expectNextMatches { response ->
+                    response.id == product.id &&
+                    response.sku == "BUILDER-TEST-001" &&
+                    response.name == "Builder Test Product" &&
+                    response.priceCents == 4999
+                }
+                .verifyComplete()
+        }
+
+        @Test
+        @DisplayName("should handle multiple products from builder")
+        fun shouldHandleMultipleProductsFromBuilder() {
+            val products = listOf(
+                ProductReadModelBuilder.anActiveProductReadModel()
+                    .withSku("PROD-001")
+                    .withName("Product One")
+                    .withPrice(1999)
+                    .build(),
+                ProductReadModelBuilder.anActiveProductReadModel()
+                    .withSku("PROD-002")
+                    .withName("Product Two")
+                    .withPrice(2999)
+                    .build(),
+                ProductReadModelBuilder.aDraftProductReadModel()
+                    .withSku("PROD-003")
+                    .withName("Draft Product")
+                    .withPrice(999)
+                    .build()
+            )
+
+            whenever(repository.findAllPaginated(20, 0))
+                .thenReturn(Flux.fromIterable(products))
+            whenever(repository.countAllNotDeleted())
+                .thenReturn(Mono.just(3L))
+
+            StepVerifier.create(queryService.findAllPaginated(0, 20))
+                .expectNextMatches { page ->
+                    page.content.size == 3 &&
+                    page.totalElements == 3L &&
+                    page.content.any { it.sku == "PROD-001" } &&
+                    page.content.any { it.sku == "PROD-002" } &&
+                    page.content.any { it.sku == "PROD-003" }
+                }
+                .verifyComplete()
+        }
+
+        @Test
+        @DisplayName("should filter deleted products correctly")
+        fun shouldFilterDeletedProductsCorrectly() {
+            // Deleted products should not be returned by findByIdNotDeleted
+            val deletedProduct = ProductReadModelBuilder.aDeletedProductReadModel()
+                .withSku("DELETED-001")
+                .build()
+
+            whenever(repository.findByIdNotDeleted(deletedProduct.id))
+                .thenReturn(Mono.empty())
+
+            StepVerifier.create(queryService.findById(deletedProduct.id))
                 .verifyComplete()
         }
     }
