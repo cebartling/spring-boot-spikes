@@ -626,9 +626,8 @@ class ProductCommandHandlerTest {
         @DisplayName("should reject operations on deleted product")
         fun shouldRejectOperationsOnDeletedProduct() {
             val aggregate = ProductAggregateBuilder.aDraftProduct()
-                .build()
+                .buildWithClearedEvents()
                 .delete(expectedVersion = 1L, deletedBy = "test")
-                .also { it.getUncommittedEvents() } // Clear events
             val productId = aggregate.id
 
             val command = ProductCommandBuilders.updateProductCommand(
