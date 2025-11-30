@@ -87,12 +87,15 @@ class ProductReadModelBuilder private constructor() {
         lastEventId = lastEventId
     )
 
-    private fun formatPrice(cents: Int): String {
-        val dollars = cents / 100
-        val remainingCents = cents % 100
-        return "$$dollars.${remainingCents.toString().padStart(2, '0')}"
-    }
-
     private fun buildSearchText(): String =
         listOfNotNull(name, description).joinToString(" ")
+}
+
+/**
+ * Shared utility for formatting price in cents to dollar string.
+ */
+fun formatPrice(cents: Int): String {
+    val dollars = cents / 100
+    val remainingCents = cents % 100
+    return "$$dollars.${remainingCents.toString().padStart(2, '0')}"
 }
