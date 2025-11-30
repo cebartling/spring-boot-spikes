@@ -39,7 +39,7 @@ class CommonSteps {
 
     @Given("the product catalog is empty")
     fun theProductCatalogIsEmpty() {
-        // The test database is reset between scenarios via Testcontainers
+        // The test database should be manually cleaned before running tests
         // This step is primarily for documentation purposes in feature files
         testContext.createdProductIds.clear()
     }

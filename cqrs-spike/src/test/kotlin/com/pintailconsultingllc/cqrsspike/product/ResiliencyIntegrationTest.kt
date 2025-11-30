@@ -6,14 +6,10 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
+import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient
 import org.springframework.http.MediaType
-import org.springframework.test.context.DynamicPropertyRegistry
-import org.springframework.test.context.DynamicPropertySource
+import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
-import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 import java.util.UUID
 
 /**
@@ -24,34 +20,16 @@ import java.util.UUID
  * - Concurrent modification conflicts return HTTP 409 with retry guidance
  * - Domain exceptions are translated to appropriate HTTP responses
  * - Correlation ID propagation through request/response
+ *
+ * IMPORTANT: Before running these tests, ensure Docker Compose
+ * infrastructure is running:
+ *   make start
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureWebTestClient
-@Testcontainers(disabledWithoutDocker = true)
+@ActiveProfiles("test")
 @DisplayName("AC10: Resiliency and Error Handling Integration Tests")
 class ResiliencyIntegrationTest {
-
-    companion object {
-        @Container
-        @JvmStatic
-        val postgres: PostgreSQLContainer<*> = PostgreSQLContainer("postgres:18-alpine")
-            .withDatabaseName("cqrs_test")
-            .withUsername("test")
-            .withPassword("test")
-            .withInitScript("init-test-schema.sql")
-
-        @DynamicPropertySource
-        @JvmStatic
-        fun configureProperties(registry: DynamicPropertyRegistry) {
-            registry.add("spring.r2dbc.url") {
-                "r2dbc:postgresql://${postgres.host}:${postgres.firstMappedPort}/${postgres.databaseName}"
-            }
-            registry.add("spring.r2dbc.username", postgres::getUsername)
-            registry.add("spring.r2dbc.password", postgres::getPassword)
-            registry.add("spring.flyway.enabled") { "false" }
-            registry.add("spring.cloud.vault.enabled") { "false" }
-        }
-    }
 
     @Autowired
     private lateinit var webTestClient: WebTestClient
