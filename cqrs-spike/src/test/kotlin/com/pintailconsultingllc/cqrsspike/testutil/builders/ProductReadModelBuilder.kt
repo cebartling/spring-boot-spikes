@@ -1,5 +1,6 @@
 package com.pintailconsultingllc.cqrsspike.testutil.builders
 
+import com.pintailconsultingllc.cqrsspike.product.query.model.ProductFormatUtils
 import com.pintailconsultingllc.cqrsspike.product.query.model.ProductReadModel
 import java.time.OffsetDateTime
 import java.util.UUID
@@ -82,20 +83,8 @@ class ProductReadModelBuilder private constructor() {
         updatedAt = updatedAt,
         aggregateVersion = aggregateVersion,
         isDeleted = isDeleted,
-        priceDisplay = formatPrice(priceCents),
-        searchText = buildSearchText(),
+        priceDisplay = ProductFormatUtils.formatPrice(priceCents),
+        searchText = ProductFormatUtils.buildSearchText(name, description),
         lastEventId = lastEventId
     )
-
-    private fun buildSearchText(): String =
-        listOfNotNull(name, description).joinToString(" ")
-}
-
-/**
- * Shared utility for formatting price in cents to dollar string.
- */
-fun formatPrice(cents: Int): String {
-    val dollars = cents / 100
-    val remainingCents = cents % 100
-    return "$$dollars.${remainingCents.toString().padStart(2, '0')}"
 }
