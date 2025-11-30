@@ -26,10 +26,6 @@ class CommonSteps {
     @Autowired
     private lateinit var testContext: TestContext
 
-    @Before
-    fun setUp() {
-        testContext.reset()
-    }
 
     // ========== Given Steps ==========
 

@@ -1,8 +1,7 @@
 package com.pintailconsultingllc.cqrsspike.acceptance.steps
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.pintailconsultingllc.cqrsspike.acceptance.context.TestContext
-import com.pintailconsultingllc.cqrsspike.acceptance.context.ValidationError
+import com.pintailconsultingllc.cqrsspike.acceptance.helpers.ResponseParsingHelper
 import com.pintailconsultingllc.cqrsspike.product.api.dto.ActivateProductRequest
 import com.pintailconsultingllc.cqrsspike.product.api.dto.ChangePriceRequest
 import com.pintailconsultingllc.cqrsspike.product.api.dto.CreateProductRequest
@@ -15,7 +14,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.WebTestClient
-import java.util.UUID
 
 /**
  * Step definitions for business rules validation scenarios.
@@ -37,7 +35,7 @@ class BusinessRulesSteps {
     private lateinit var testContext: TestContext
 
     @Autowired
-    private lateinit var objectMapper: ObjectMapper
+    private lateinit var responseParsingHelper: ResponseParsingHelper
 
     private var currentExpectedVersion: Long = 0
 
@@ -145,8 +143,8 @@ class BusinessRulesSteps {
         val productId = testContext.currentProductId
             ?: throw IllegalStateException("No current product ID in context")
 
-        // Get current price from a previous step or assume 1000 cents
-        // New price of 500 is a 50% decrease
+        // Test product starts at 1000 cents (see iHaveAnActiveProductWithPrice step).
+        // 50% decrease (from 1000 to 500) exceeds the 20% threshold, requiring confirmation.
         val request = ChangePriceRequest(
             newPriceCents = 500,
             confirmLargeChange = false,
@@ -162,7 +160,7 @@ class BusinessRulesSteps {
 
         testContext.lastResponseStatus = response.status
         testContext.lastResponseBody = response.responseBody.blockFirst()
-        parseErrorResponse()
+        responseParsingHelper.parseErrorResponse()
     }
 
     @When("I try to change the price by more than 20% with confirmation")
@@ -170,6 +168,7 @@ class BusinessRulesSteps {
         val productId = testContext.currentProductId
             ?: throw IllegalStateException("No current product ID in context")
 
+        // 50% decrease (from 1000 to 500) exceeds the 20% threshold, but confirmation is provided.
         val request = ChangePriceRequest(
             newPriceCents = 500,
             confirmLargeChange = true,
@@ -185,7 +184,7 @@ class BusinessRulesSteps {
 
         testContext.lastResponseStatus = response.status
         testContext.lastResponseBody = response.responseBody.blockFirst()
-        parseErrorResponse()
+        responseParsingHelper.parseErrorResponse()
         updateVersionFromResponse()
     }
 
@@ -194,7 +193,7 @@ class BusinessRulesSteps {
         val productId = testContext.currentProductId
             ?: throw IllegalStateException("No current product ID in context")
 
-        // Assuming current price is 1000, change to 900 (10% decrease)
+        // 10% decrease (from 1000 to 900) is within the 20% threshold, so no confirmation is required.
         val request = ChangePriceRequest(
             newPriceCents = 900,
             confirmLargeChange = false,
@@ -210,7 +209,7 @@ class BusinessRulesSteps {
 
         testContext.lastResponseStatus = response.status
         testContext.lastResponseBody = response.responseBody.blockFirst()
-        parseErrorResponse()
+        responseParsingHelper.parseErrorResponse()
         updateVersionFromResponse()
     }
 
@@ -235,7 +234,7 @@ class BusinessRulesSteps {
 
         testContext.lastResponseStatus = response.status
         testContext.lastResponseBody = response.responseBody.blockFirst()
-        parseErrorResponse()
+        responseParsingHelper.parseErrorResponse()
     }
 
     // ========== Then Steps ==========
@@ -329,7 +328,7 @@ class BusinessRulesSteps {
 
         testContext.lastResponseStatus = response.status
         testContext.lastResponseBody = response.responseBody.blockFirst()
-        extractProductIdFromResponse()
+        responseParsingHelper.extractProductIdFromResponse()
         updateVersionFromResponse()
     }
 
@@ -350,7 +349,7 @@ class BusinessRulesSteps {
 
         testContext.lastResponseStatus = response.status
         testContext.lastResponseBody = response.responseBody.blockFirst()
-        parseErrorResponse()
+        responseParsingHelper.parseErrorResponse()
     }
 
     private fun activateCurrentProduct() {
@@ -385,7 +384,7 @@ class BusinessRulesSteps {
 
         testContext.lastResponseStatus = response.status
         testContext.lastResponseBody = response.responseBody.blockFirst()
-        parseErrorResponse()
+        responseParsingHelper.parseErrorResponse()
         updateVersionFromResponse()
     }
 
@@ -427,57 +426,14 @@ class BusinessRulesSteps {
 
         testContext.lastResponseStatus = response.status
         testContext.lastResponseBody = response.responseBody.blockFirst()
-        parseErrorResponse()
+        responseParsingHelper.parseErrorResponse()
         updateVersionFromResponse()
     }
 
-    private fun extractProductIdFromResponse() {
-        val body = testContext.lastResponseBody ?: return
-        try {
-            val jsonNode = objectMapper.readTree(body)
-            val productIdStr = jsonNode.get("productId")?.asText()
-            if (productIdStr != null) {
-                val productId = UUID.fromString(productIdStr)
-                testContext.currentProductId = productId
-                testContext.createdProductIds.add(productId)
-            }
-        } catch (e: Exception) {
-            // Response may not contain productId
-        }
-    }
-
     private fun updateVersionFromResponse() {
-        val body = testContext.lastResponseBody ?: return
-        try {
-            val jsonNode = objectMapper.readTree(body)
-            val version = jsonNode.get("version")?.asLong()
-            if (version != null) {
-                currentExpectedVersion = version
-            }
-        } catch (e: Exception) {
-            // Response may not contain version
-        }
-    }
-
-    private fun parseErrorResponse() {
-        val body = testContext.lastResponseBody ?: return
-        try {
-            val jsonNode = objectMapper.readTree(body)
-            testContext.lastErrorMessage = jsonNode.get("message")?.asText()
-            testContext.lastErrorCode = jsonNode.get("code")?.asText()
-
-            // Parse validation errors if present
-            val errors = jsonNode.get("errors")
-            if (errors != null && errors.isArray) {
-                testContext.lastValidationErrors.clear()
-                errors.forEach { error ->
-                    val field = error.get("field")?.asText() ?: ""
-                    val message = error.get("message")?.asText() ?: ""
-                    testContext.lastValidationErrors.add(ValidationError(field, message))
-                }
-            }
-        } catch (e: Exception) {
-            // Response may not be JSON
+        val version = responseParsingHelper.extractVersionFromResponse()
+        if (version != null) {
+            currentExpectedVersion = version
         }
     }
 }

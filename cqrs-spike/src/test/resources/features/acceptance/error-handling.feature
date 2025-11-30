@@ -7,7 +7,7 @@ Feature: Error Handling and Resilience
   Background:
     Given the system is running
 
-  @error-handling @happy-path
+  @happy-path
   Scenario: System health check returns OK
     Given the database is available
     Then the response status should be OK
