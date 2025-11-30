@@ -86,7 +86,7 @@ com.pintailconsultingllc.resiliencyspike/
 - **Messaging:** Spring Pulsar Reactive
 - **Observability:** Micrometer Tracing + OpenTelemetry + OTLP exporter
 - **API Documentation:** SpringDoc OpenAPI (WebFlux variant)
-- **Testing:** JUnit 5 + mockito-kotlin + reactor-test
+- **Testing:** JUnit 5 + mockito-kotlin + reactor-test + Cucumber BDD + Testcontainers
 
 ### 3.3 Forbidden Dependencies
 
@@ -327,6 +327,64 @@ src/test/kotlin/
 - **SHOULD** mock external dependencies in unit tests
 - **SHOULD** use `StepVerifier.withVirtualTime()` for time-dependent tests
 - **SHOULD** document complex test scenarios with comments
+
+### 7.8 Acceptance Tests (BDD)
+
+The project uses Cucumber BDD for acceptance testing, validating complete user scenarios in business-readable language.
+
+#### Framework Setup
+
+- **MUST** use Cucumber with JUnit Platform Suite (`io.cucumber:cucumber-junit-platform-engine`)
+- **MUST** use `@CucumberContextConfiguration` with `@SpringBootTest` for Spring integration
+- **MUST** use Testcontainers for database isolation in acceptance tests
+- **MUST** use `@ScenarioScope` for scenario-scoped state management
+
+#### Feature File Standards
+
+- **MUST** write scenarios from user perspective using business language
+- **MUST** place feature files in `src/test/resources/features/acceptance/`
+- **MUST** use meaningful tags for selective test execution
+- **SHOULD** use Background for common setup across scenarios
+- **SHOULD** keep scenarios independent (each sets up its own data)
+- **SHOULD** prefer declarative scenarios over imperative step sequences
+
+#### Tag Strategy
+
+| Tag | Purpose |
+|-----|---------|
+| `@smoke` | Quick validation tests for critical paths |
+| `@happy-path` | Main success scenarios |
+| `@error-handling` | Error and exception scenarios |
+| `@business-rule` | Business rule validation |
+| `@edge-case` | Edge case and boundary scenarios |
+| `@wip` | Work in progress (excluded by default) |
+
+#### Step Definitions
+
+- **MUST** organize step definitions by feature area (e.g., `ProductLifecycleSteps.kt`)
+- **MUST** use `WebTestClient` for HTTP interactions
+- **MUST** use shared `TestContext` for scenario state
+- **SHOULD** make step definitions reusable across scenarios
+- **SHOULD** use Cucumber expressions with parameters for flexibility
+
+#### Running Acceptance Tests
+
+```bash
+# Run all acceptance tests
+./gradlew test --tests '*AcceptanceTestRunner*'
+
+# Run tests by tag
+./gradlew test --tests '*AcceptanceTestRunner*' -Dcucumber.filter.tags="@smoke"
+
+# Exclude work-in-progress
+./gradlew test --tests '*AcceptanceTestRunner*' -Dcucumber.filter.tags="not @wip"
+```
+
+#### Test Reports
+
+- **MUST** generate HTML and JSON reports in `build/reports/cucumber/`
+- **SHOULD** review Cucumber reports for failed scenarios
+- **SHOULD** use JSON reports for CI/CD integration
 
 ---
 

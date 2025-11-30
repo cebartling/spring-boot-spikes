@@ -99,6 +99,28 @@ class ProductControllerTest {
 }
 ```
 
+## Acceptance Testing
+
+**Framework:** Cucumber BDD + Testcontainers + WebTestClient
+
+```bash
+# Run all acceptance tests
+./gradlew test --tests '*AcceptanceTestRunner*'
+
+# Run by tag
+./gradlew test --tests '*AcceptanceTestRunner*' -Dcucumber.filter.tags="@smoke"
+./gradlew test --tests '*AcceptanceTestRunner*' -Dcucumber.filter.tags="@happy-path"
+
+# View reports
+open build/reports/cucumber/cucumber-report.html
+```
+
+**Tags:** `@smoke` • `@happy-path` • `@error-handling` • `@product-lifecycle` • `@product-queries` • `@business-rules` • `@wip`
+
+**Feature files:** `src/test/resources/features/acceptance/`
+
+**Step definitions:** `src/test/kotlin/.../acceptance/steps/`
+
 ## Resiliency
 
 **Order:** @RateLimiter → @Retry → @CircuitBreaker

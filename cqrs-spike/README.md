@@ -175,7 +175,7 @@ Database Schemas:
 - **Migrations:** Flyway
 - **Resilience:** Resilience4j
 - **Observability:** OpenTelemetry
-- **Testing:** JUnit 5, Mockito, StepVerifier
+- **Testing:** JUnit 5, Mockito, StepVerifier, Cucumber BDD, Testcontainers
 
 ## Architecture
 
@@ -193,7 +193,7 @@ This project demonstrates:
 ### Running Tests
 
 ```bash
-# All tests
+# All tests (unit, integration, and acceptance)
 make test
 
 # Specific test
@@ -201,6 +201,116 @@ make test
 
 # With coverage
 ./gradlew test jacocoTestReport
+```
+
+### Running Acceptance Tests
+
+The project includes Cucumber BDD acceptance tests that validate complete user scenarios for the Product Catalog CQRS system. These tests use Gherkin feature files to describe behavior in business-readable language.
+
+#### Prerequisites
+
+- Docker Desktop running (required for Testcontainers)
+- Java 21+
+
+#### Running All Acceptance Tests
+
+```bash
+# Run all acceptance tests
+./gradlew test --tests '*AcceptanceTestRunner*'
+
+# Or run all tests which includes acceptance tests
+./gradlew test
+```
+
+#### Running Tests by Tag
+
+Acceptance tests are tagged for selective execution:
+
+```bash
+# Run smoke tests only (quick validation)
+./gradlew test --tests '*AcceptanceTestRunner*' -Dcucumber.filter.tags="@smoke"
+
+# Run happy path tests
+./gradlew test --tests '*AcceptanceTestRunner*' -Dcucumber.filter.tags="@happy-path"
+
+# Run error handling tests
+./gradlew test --tests '*AcceptanceTestRunner*' -Dcucumber.filter.tags="@error-handling"
+
+# Run product lifecycle tests
+./gradlew test --tests '*AcceptanceTestRunner*' -Dcucumber.filter.tags="@product-lifecycle"
+
+# Run product query tests
+./gradlew test --tests '*AcceptanceTestRunner*' -Dcucumber.filter.tags="@product-queries"
+
+# Exclude work-in-progress tests
+./gradlew test --tests '*AcceptanceTestRunner*' -Dcucumber.filter.tags="not @wip"
+
+# Combine tags (AND logic)
+./gradlew test --tests '*AcceptanceTestRunner*' -Dcucumber.filter.tags="@smoke and @happy-path"
+```
+
+#### Available Tags
+
+| Tag | Description |
+|-----|-------------|
+| `@smoke` | Quick validation tests for critical paths |
+| `@happy-path` | Main success scenarios |
+| `@error-handling` | Error and exception scenarios |
+| `@product-lifecycle` | Product creation, update, activation, discontinuation |
+| `@product-queries` | Query, search, pagination, filtering |
+| `@business-rules` | Business rule validation |
+| `@event-sourcing` | Event store verification |
+| `@edge-case` | Edge case and boundary scenarios |
+| `@wip` | Work in progress (excluded by default) |
+
+#### Viewing Test Reports
+
+After running tests, Cucumber generates HTML and JSON reports:
+
+```bash
+# HTML report (open in browser)
+open build/reports/cucumber/cucumber-report.html
+
+# JSON report (for CI/CD integration)
+cat build/reports/cucumber/cucumber-report.json
+```
+
+#### Feature Files Location
+
+Feature files are located at:
+```
+src/test/resources/features/acceptance/
+├── business-rules.feature      # Business rule validation scenarios
+├── error-handling.feature      # Error handling scenarios
+├── event-sourcing.feature      # Event sourcing verification
+├── product-lifecycle.feature   # Product CRUD and status transitions
+└── product-queries.feature     # Query, search, and pagination
+```
+
+#### Writing New Acceptance Tests
+
+1. Create or update a `.feature` file in `src/test/resources/features/acceptance/`
+2. Write scenarios using Gherkin syntax (Given/When/Then)
+3. Add step definitions in `src/test/kotlin/.../acceptance/steps/`
+4. Tag scenarios appropriately for selective execution
+
+Example feature file:
+```gherkin
+@product-lifecycle @smoke
+Feature: Product Lifecycle Management
+  As a product administrator
+  I want to manage products through their lifecycle
+  So that I can maintain an accurate product catalog
+
+  Background:
+    Given the system is running
+    And the product catalog is empty
+
+  @happy-path
+  Scenario: Create a new product
+    When I create a product with SKU "TEST-001", name "Test Product", and price 1999 cents
+    Then the response status should be CREATED
+    And the product should be created successfully
 ```
 
 ### Debugging
