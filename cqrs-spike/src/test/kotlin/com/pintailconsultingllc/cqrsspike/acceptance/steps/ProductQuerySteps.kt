@@ -391,4 +391,16 @@ class ProductQuerySteps {
             // Response may not be a valid list response
         }
     }
+
+    private fun parseProductResult(node: JsonNode): ProductResult {
+        return ProductResult(
+            id = UUID.fromString(node.get("id").asText()),
+            sku = node.get("sku").asText(),
+            name = node.get("name").asText(),
+            description = node.get("description")?.asText(),
+            priceCents = node.get("priceCents").asInt(),
+            status = node.get("status").asText(),
+            version = node.get("version").asLong()
+        )
+    }
 }
