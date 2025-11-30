@@ -101,15 +101,24 @@ class ProductControllerTest {
 
 ## Acceptance Testing
 
-**Framework:** Cucumber BDD + Testcontainers + WebTestClient
+**Framework:** Cucumber BDD + Docker Compose + WebTestClient
+
+**IMPORTANT:** Start Docker Compose infrastructure before running tests:
 
 ```bash
-# Run all acceptance tests
+# 1. Start infrastructure (required)
+make start
+make health  # Verify services are healthy
+
+# 2. Run all acceptance tests
 ./gradlew test --tests '*AcceptanceTestRunner*'
 
 # Run by tag
 ./gradlew test --tests '*AcceptanceTestRunner*' -Dcucumber.filter.tags="@smoke"
 ./gradlew test --tests '*AcceptanceTestRunner*' -Dcucumber.filter.tags="@happy-path"
+
+# 3. Stop infrastructure when done (manual)
+make stop
 
 # View reports
 open build/reports/cucumber/cucumber-report.html
