@@ -9,7 +9,7 @@ import java.util.UUID
 /**
  * Entity for tracking processed commands for idempotency.
  */
-@Table("command_model.processed_command")
+@Table(name = "processed_command", schema = "command_model")
 data class ProcessedCommandEntity(
     @Id
     @Column("idempotency_key")

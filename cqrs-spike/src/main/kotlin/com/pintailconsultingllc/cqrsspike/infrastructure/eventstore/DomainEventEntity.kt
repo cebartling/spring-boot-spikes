@@ -10,7 +10,7 @@ import java.util.UUID
  * R2DBC entity for event_store.domain_event table.
  * Represents a single domain event.
  */
-@Table("event_store.domain_event")
+@Table(name = "domain_event", schema = "event_store")
 data class DomainEventEntity(
     @Id
     @Column("event_id")

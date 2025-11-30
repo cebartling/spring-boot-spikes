@@ -13,7 +13,7 @@ import java.util.UUID
 /**
  * Entity for tracking projection processing position.
  */
-@Table("read_model.projection_position")
+@Table(name = "projection_position", schema = "read_model")
 data class ProjectionPosition(
     @Id
     @Column("projection_name")

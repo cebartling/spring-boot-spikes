@@ -31,10 +31,13 @@ class CommonSteps {
 
     @Given("the system is running")
     fun theSystemIsRunning() {
-        webTestClient.get()
+        val response = webTestClient.get()
             .uri("/actuator/health")
             .exchange()
-            .expectStatus().isOk
+            .returnResult(String::class.java)
+
+        testContext.lastResponseStatus = response.status
+        testContext.lastResponseBody = response.responseBody.blockFirst()
     }
 
     @Given("the product catalog is empty")
@@ -47,10 +50,13 @@ class CommonSteps {
     @Given("the database is available")
     fun theDatabaseIsAvailable() {
         // Verify database connectivity by checking health endpoint
-        webTestClient.get()
+        val response = webTestClient.get()
             .uri("/actuator/health")
             .exchange()
-            .expectStatus().isOk
+            .returnResult(String::class.java)
+
+        testContext.lastResponseStatus = response.status
+        testContext.lastResponseBody = response.responseBody.blockFirst()
     }
 
     // ========== Then Steps ==========

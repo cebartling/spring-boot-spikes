@@ -61,6 +61,11 @@ class ResponseParsingHelper(
     /**
      * Parses error response and stores error details in the test context.
      * Extracts message, code, and validation errors if present.
+     *
+     * Handles multiple error response formats:
+     * - ApiErrorResponse with "details" array containing ValidationError objects
+     * - CommandErrorResponse with "code" and "details" map
+     * - Generic ErrorResponse with "message" field
      */
     fun parseErrorResponse() {
         val body = testContext.lastResponseBody ?: return
@@ -69,14 +74,28 @@ class ResponseParsingHelper(
             testContext.lastErrorMessage = jsonNode.get("message")?.asText()
             testContext.lastErrorCode = jsonNode.get("code")?.asText()
 
-            // Parse validation errors if present
+            // Clear previous validation errors
+            testContext.lastValidationErrors.clear()
+
+            // Parse validation errors - handle "errors" array format
             val errors = jsonNode.get("errors")
             if (errors != null && errors.isArray) {
-                testContext.lastValidationErrors.clear()
                 errors.forEach { error ->
                     val field = error.get("field")?.asText() ?: ""
                     val message = error.get("message")?.asText() ?: ""
                     testContext.lastValidationErrors.add(ValidationError(field, message))
+                }
+            }
+
+            // Parse validation errors - handle "details" array format (ApiErrorResponse)
+            val details = jsonNode.get("details")
+            if (details != null && details.isArray) {
+                details.forEach { detail ->
+                    val field = detail.get("field")?.asText() ?: ""
+                    val message = detail.get("message")?.asText() ?: ""
+                    if (field.isNotEmpty()) {
+                        testContext.lastValidationErrors.add(ValidationError(field, message))
+                    }
                 }
             }
         } catch (e: Exception) {

@@ -15,7 +15,7 @@ import java.util.UUID
  *
  * Maps to read_model.product table.
  */
-@Table("read_model.product")
+@Table(name = "product", schema = "read_model")
 data class ProductReadModel(
     @Id
     @Column("id")
