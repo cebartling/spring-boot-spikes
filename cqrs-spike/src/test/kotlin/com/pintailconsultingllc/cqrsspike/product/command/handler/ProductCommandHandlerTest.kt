@@ -575,7 +575,8 @@ class ProductCommandHandlerTest {
         @Test
         @DisplayName("should propagate concurrent modification exception from repository")
         fun shouldPropagateConcurrentModificationException() {
-            val aggregate = ProductAggregateBuilder.anActiveProduct().buildWithClearedEvents()
+            // Use draft product (version 1) so expectedVersion matches
+            val aggregate = ProductAggregateBuilder.aDraftProduct().buildWithClearedEvents()
             val productId = aggregate.id
 
             val command = ProductCommandBuilders.updateProductCommand(
