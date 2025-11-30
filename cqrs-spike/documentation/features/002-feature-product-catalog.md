@@ -203,27 +203,37 @@ As a business, we need a product catalog system that allows administrators to ma
 - Test coverage meets minimum threshold (80% line coverage)
 - Test data builders exist for domain objects
 
+### AC13: Acceptance Testing
+
+**Implementation Plan:** [AC13 - Acceptance Testing](../plans/product-catalog/AC13-acceptance-testing.md)
+
+- End-to-end tests cover main user scenarios
+- Tests cover command and query flows
+- Tests validate business rules and error handling
+- Use Cucumber or similar BDD framework
+- Tests run with the Docker Compose test environment
+
 ## Future Acceptance Criteria (Phase 2)
 
-### AC13: Product Categories
+### AC14: Product Categories
 - Products can be assigned to one or more categories
 - Categories support hierarchical structure (parent/child)
 - Query endpoints support filtering by category
 - Category changes emit appropriate domain events
 
-### AC14: Product Variants
+### AC15: Product Variants
 - Products can have variants (e.g., size, color combinations)
 - Each variant has its own SKU and price
 - Variants share parent product attributes
 - Variant-specific events are captured
 
-### AC15: Inventory Integration
+### AC16: Inventory Integration
 - Product read model includes inventory availability
 - Inventory changes trigger read model updates
 - Low stock alerts are supported
 - Out-of-stock products can be flagged in queries
 
-### AC16: Pricing Rules
+### AC17: Pricing Rules
 - Time-based pricing (sale periods) is supported
 - Customer segment pricing is supported
 - Bulk pricing tiers are supported
