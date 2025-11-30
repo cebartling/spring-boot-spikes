@@ -1,8 +1,10 @@
 package com.pintailconsultingllc.cqrsspike.acceptance.steps
 
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.pintailconsultingllc.cqrsspike.acceptance.context.ProductResult
 import com.pintailconsultingllc.cqrsspike.acceptance.context.TestContext
+import com.pintailconsultingllc.cqrsspike.acceptance.helpers.ResponseParsingHelper
 import io.cucumber.java.en.Given
 import io.cucumber.java.en.Then
 import io.cucumber.java.en.When
@@ -31,6 +33,9 @@ class ProductQuerySteps {
 
     @Autowired
     private lateinit var objectMapper: ObjectMapper
+
+    @Autowired
+    private lateinit var responseParsingHelper: ResponseParsingHelper
 
     // ========== Given Steps ==========
 
@@ -103,7 +108,7 @@ class ProductQuerySteps {
 
         testContext.lastResponseStatus = response.status
         testContext.lastResponseBody = response.responseBody.blockFirst()
-        parseErrorResponse()
+        responseParsingHelper.parseErrorResponse()
     }
 
     @When("I list all products")
@@ -357,20 +362,14 @@ class ProductQuerySteps {
     }
 
     private fun parsePageResponse() {
-        parseListResponse(
-            totalCountField = "totalElements",
-            includePagination = true
-        )
+        parseProductListResponse(totalCountField = "totalElements", includePagination = true)
     }
 
     private fun parseSearchResponse() {
-        parseListResponse(
-            totalCountField = "totalMatches",
-            includePagination = false
-        )
+        parseProductListResponse(totalCountField = "totalMatches", includePagination = false)
     }
 
-    private fun parseListResponse(totalCountField: String, includePagination: Boolean) {
+    private fun parseProductListResponse(totalCountField: String, includePagination: Boolean) {
         val body = testContext.lastResponseBody ?: return
         try {
             val jsonNode = objectMapper.readTree(body)
@@ -379,17 +378,7 @@ class ProductQuerySteps {
             val content = jsonNode.get("content")
             if (content != null && content.isArray) {
                 content.forEach { node ->
-                    testContext.lastQueryResults.add(
-                        ProductResult(
-                            id = UUID.fromString(node.get("id").asText()),
-                            sku = node.get("sku").asText(),
-                            name = node.get("name").asText(),
-                            description = node.get("description")?.asText(),
-                            priceCents = node.get("priceCents").asInt(),
-                            status = node.get("status").asText(),
-                            version = node.get("version").asLong()
-                        )
-                    )
+                    testContext.lastQueryResults.add(parseProductResult(node))
                 }
             }
 
@@ -400,17 +389,6 @@ class ProductQuerySteps {
             }
         } catch (e: Exception) {
             // Response may not be a valid list response
-        }
-    }
-
-    private fun parseErrorResponse() {
-        val body = testContext.lastResponseBody ?: return
-        try {
-            val jsonNode = objectMapper.readTree(body)
-            testContext.lastErrorMessage = jsonNode.get("message")?.asText()
-            testContext.lastErrorCode = jsonNode.get("code")?.asText()
-        } catch (e: Exception) {
-            // Response may not be JSON
         }
     }
 }

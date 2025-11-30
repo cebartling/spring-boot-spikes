@@ -1,8 +1,7 @@
 package com.pintailconsultingllc.cqrsspike.acceptance.steps
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.pintailconsultingllc.cqrsspike.acceptance.context.TestContext
-import com.pintailconsultingllc.cqrsspike.acceptance.context.ValidationError
+import com.pintailconsultingllc.cqrsspike.acceptance.helpers.ResponseParsingHelper
 import com.pintailconsultingllc.cqrsspike.product.api.dto.ActivateProductRequest
 import com.pintailconsultingllc.cqrsspike.product.api.dto.ChangePriceRequest
 import com.pintailconsultingllc.cqrsspike.product.api.dto.CreateProductRequest
@@ -16,7 +15,6 @@ import org.assertj.core.api.Assertions.assertThat
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.WebTestClient
-import java.util.UUID
 
 /**
  * Step definitions for product lifecycle scenarios.
@@ -38,7 +36,7 @@ class ProductLifecycleSteps {
     private lateinit var testContext: TestContext
 
     @Autowired
-    private lateinit var objectMapper: ObjectMapper
+    private lateinit var responseParsingHelper: ResponseParsingHelper
 
     // Temporary storage for building request data
     private var pendingProductSku: String = ""
@@ -142,7 +140,7 @@ class ProductLifecycleSteps {
 
         testContext.lastResponseStatus = response.status
         testContext.lastResponseBody = response.responseBody.blockFirst()
-        parseErrorResponse()
+        responseParsingHelper.parseErrorResponse()
     }
 
     @When("I update the product description to {string}")
@@ -165,7 +163,7 @@ class ProductLifecycleSteps {
 
         testContext.lastResponseStatus = response.status
         testContext.lastResponseBody = response.responseBody.blockFirst()
-        parseErrorResponse()
+        responseParsingHelper.parseErrorResponse()
     }
 
     @When("I change the product price to {int} cents")
@@ -194,7 +192,7 @@ class ProductLifecycleSteps {
 
         testContext.lastResponseStatus = response.status
         testContext.lastResponseBody = response.responseBody.blockFirst()
-        parseErrorResponse()
+        responseParsingHelper.parseErrorResponse()
         updateVersionFromResponse()
     }
 
@@ -217,7 +215,7 @@ class ProductLifecycleSteps {
 
         testContext.lastResponseStatus = response.status
         testContext.lastResponseBody = response.responseBody.blockFirst()
-        parseErrorResponse()
+        responseParsingHelper.parseErrorResponse()
         updateVersionFromResponse()
     }
 
@@ -240,7 +238,7 @@ class ProductLifecycleSteps {
 
         testContext.lastResponseStatus = response.status
         testContext.lastResponseBody = response.responseBody.blockFirst()
-        parseErrorResponse()
+        responseParsingHelper.parseErrorResponse()
         updateVersionFromResponse()
     }
 
@@ -263,7 +261,7 @@ class ProductLifecycleSteps {
 
         testContext.lastResponseStatus = response.status
         testContext.lastResponseBody = response.responseBody.blockFirst()
-        parseErrorResponse()
+        responseParsingHelper.parseErrorResponse()
     }
 
     @When("I try to create a product with duplicate SKU {string}")
@@ -383,14 +381,14 @@ class ProductLifecycleSteps {
         testContext.lastResponseStatus = response.status
         testContext.lastResponseBody = response.responseBody.blockFirst()
 
-        extractProductIdFromResponse()
+        responseParsingHelper.extractProductIdFromResponse()
         updateVersionFromResponse()
         pendingProductName = name
     }
 
     private fun createProductAndStoreResponse(sku: String, name: String, description: String?, priceCents: Int) {
         createProduct(sku, name, description, priceCents)
-        parseErrorResponse()
+        responseParsingHelper.parseErrorResponse()
     }
 
     private fun activateCurrentProduct() {
@@ -452,37 +450,11 @@ class ProductLifecycleSteps {
         testContext.lastResponseStatus = response.status
         testContext.lastResponseBody = response.responseBody.blockFirst()
         parseErrorResponse()
-        updateVersionFromResponse()
+        testContext.updateVersionFromResponse(objectMapper)
+        pendingExpectedVersion = testContext.pendingExpectedVersion
     }
 
-    private fun extractProductIdFromResponse() {
-        val body = testContext.lastResponseBody ?: return
-        try {
-            val jsonNode = objectMapper.readTree(body)
-            val productIdStr = jsonNode.get("productId")?.asText()
-            if (productIdStr != null) {
-                val productId = UUID.fromString(productIdStr)
-                testContext.currentProductId = productId
-                testContext.createdProductIds.add(productId)
-            }
-        } catch (e: Exception) {
-            // Response may not contain productId (e.g., error responses)
-        }
-    }
-
-    private fun updateVersionFromResponse() {
-        val body = testContext.lastResponseBody ?: return
-        try {
-            val jsonNode = objectMapper.readTree(body)
-            val version = jsonNode.get("version")?.asLong()
-            if (version != null) {
-                pendingExpectedVersion = version
-            }
-        } catch (e: Exception) {
-            // Response may not contain version
-        }
-    }
-
+    // Removed duplicate utility methods; now using shared methods in TestContext.
     private fun parseErrorResponse() {
         val body = testContext.lastResponseBody ?: return
         try {

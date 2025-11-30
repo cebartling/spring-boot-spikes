@@ -91,7 +91,7 @@ Feature: Product Query Operations
     Given there are 5 products in the catalog
     When I list products sorted by "price" in "ASC" order
     Then the response status should be OK
-    And the products should be sorted by "PRICE" in "ASC" order
+    And the products should be sorted by "price" in "ASC" order
 
   @edge-case
   Scenario: Search with no matching results
