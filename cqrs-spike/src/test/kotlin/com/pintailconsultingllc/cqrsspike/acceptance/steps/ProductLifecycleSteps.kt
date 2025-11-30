@@ -452,37 +452,11 @@ class ProductLifecycleSteps {
         testContext.lastResponseStatus = response.status
         testContext.lastResponseBody = response.responseBody.blockFirst()
         parseErrorResponse()
-        updateVersionFromResponse()
+        testContext.updateVersionFromResponse(objectMapper)
+        pendingExpectedVersion = testContext.pendingExpectedVersion
     }
 
-    private fun extractProductIdFromResponse() {
-        val body = testContext.lastResponseBody ?: return
-        try {
-            val jsonNode = objectMapper.readTree(body)
-            val productIdStr = jsonNode.get("productId")?.asText()
-            if (productIdStr != null) {
-                val productId = UUID.fromString(productIdStr)
-                testContext.currentProductId = productId
-                testContext.createdProductIds.add(productId)
-            }
-        } catch (e: Exception) {
-            // Response may not contain productId (e.g., error responses)
-        }
-    }
-
-    private fun updateVersionFromResponse() {
-        val body = testContext.lastResponseBody ?: return
-        try {
-            val jsonNode = objectMapper.readTree(body)
-            val version = jsonNode.get("version")?.asLong()
-            if (version != null) {
-                pendingExpectedVersion = version
-            }
-        } catch (e: Exception) {
-            // Response may not contain version
-        }
-    }
-
+    // Removed duplicate utility methods; now using shared methods in TestContext.
     private fun parseErrorResponse() {
         val body = testContext.lastResponseBody ?: return
         try {
