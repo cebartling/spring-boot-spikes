@@ -175,7 +175,7 @@ Database Schemas:
 - **Migrations:** Flyway
 - **Resilience:** Resilience4j
 - **Observability:** OpenTelemetry
-- **Testing:** JUnit 5, Mockito, StepVerifier, Cucumber BDD, Testcontainers
+- **Testing:** JUnit 5, Mockito, StepVerifier, Cucumber BDD
 
 ## Architecture
 
@@ -192,25 +192,62 @@ This project demonstrates:
 
 ### Running Tests
 
-```bash
-# All tests (unit, integration, and acceptance)
-make test
+All tests (unit, integration, and acceptance) require the Docker Compose infrastructure to be running.
 
-# Specific test
+#### Prerequisites
+
+1. **Docker Desktop** must be installed and running
+2. **Java 21+** installed
+3. **Docker Compose infrastructure** must be started before running tests
+
+#### Starting Test Infrastructure
+
+```bash
+# Start all infrastructure services (required before running tests)
+make start
+
+# Verify services are healthy
+make health
+```
+
+#### Running Tests
+
+```bash
+# Run all tests (unit, integration, and acceptance)
+make test
+# or
+./gradlew test
+
+# Run specific test
 ./gradlew test --tests "ProductServiceTest"
+
+# Run only unit tests (no database required)
+./gradlew test --tests '*Test' --exclude-task '*IntegrationTest*' --exclude-task '*AcceptanceTestRunner*'
 
 # With coverage
 ./gradlew test jacocoTestReport
+```
+
+#### Stopping Test Infrastructure
+
+```bash
+# Stop services after testing (manual intervention required)
+make stop
+
+# Or for a complete reset (removes all data)
+make clean
 ```
 
 ### Running Acceptance Tests
 
 The project includes Cucumber BDD acceptance tests that validate complete user scenarios for the Product Catalog CQRS system. These tests use Gherkin feature files to describe behavior in business-readable language.
 
-#### Prerequisites
+**IMPORTANT:** Before running acceptance tests, ensure Docker Compose infrastructure is running:
 
-- Docker Desktop running (required for Testcontainers)
-- Java 21+
+```bash
+make start
+make health  # Verify all services are healthy
+```
 
 #### Running All Acceptance Tests
 

@@ -86,7 +86,7 @@ com.pintailconsultingllc.resiliencyspike/
 - **Messaging:** Spring Pulsar Reactive
 - **Observability:** Micrometer Tracing + OpenTelemetry + OTLP exporter
 - **API Documentation:** SpringDoc OpenAPI (WebFlux variant)
-- **Testing:** JUnit 5 + mockito-kotlin + reactor-test + Cucumber BDD + Testcontainers
+- **Testing:** JUnit 5 + mockito-kotlin + reactor-test + Cucumber BDD
 
 ### 3.3 Forbidden Dependencies
 
@@ -317,7 +317,7 @@ src/test/kotlin/
 ### 7.7 Integration Tests
 
 - **MAY** use `@SpringBootTest` for full-stack integration tests
-- **MAY** use Testcontainers for real database and messaging broker
+- **MAY** use Docker Compose for real database and messaging broker
 - **MAY** verify end-to-end flows (e.g., create product, retrieve product)
 - **SHOULD** keep integration tests separate from unit tests
 - **SHOULD** run integration tests in CI pipeline
@@ -336,7 +336,8 @@ The project uses Cucumber BDD for acceptance testing, validating complete user s
 
 - **MUST** use Cucumber with JUnit Platform Suite (`io.cucumber:cucumber-junit-platform-engine`)
 - **MUST** use `@CucumberContextConfiguration` with `@SpringBootTest` for Spring integration
-- **MUST** use Testcontainers for database isolation in acceptance tests
+- **MUST** use Docker Compose infrastructure for database connectivity (manually started)
+- **MUST** use `@ActiveProfiles("test")` to load test configuration
 - **MUST** use `@ScenarioScope` for scenario-scoped state management
 
 #### Feature File Standards
@@ -369,8 +370,14 @@ The project uses Cucumber BDD for acceptance testing, validating complete user s
 
 #### Running Acceptance Tests
 
+**IMPORTANT:** Docker Compose infrastructure must be running before executing tests:
+
 ```bash
-# Run all acceptance tests
+# 1. Start infrastructure (required)
+make start
+make health  # Verify services are healthy
+
+# 2. Run all acceptance tests
 ./gradlew test --tests '*AcceptanceTestRunner*'
 
 # Run tests by tag
@@ -378,6 +385,9 @@ The project uses Cucumber BDD for acceptance testing, validating complete user s
 
 # Exclude work-in-progress
 ./gradlew test --tests '*AcceptanceTestRunner*' -Dcucumber.filter.tags="not @wip"
+
+# 3. Stop infrastructure when done (manual)
+make stop
 ```
 
 #### Test Reports

@@ -14,58 +14,27 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.DynamicPropertyRegistry
-import org.springframework.test.context.DynamicPropertySource
-import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
+import org.springframework.test.context.ActiveProfiles
 import reactor.test.StepVerifier
 import java.util.UUID
 
 /**
- * Integration tests for ProductCommandHandler with PostgreSQL via Testcontainers.
+ * Integration tests for ProductCommandHandler with PostgreSQL.
  *
  * These tests verify the complete command handling flow including:
  * - Validation
  * - Idempotency
  * - Aggregate operations
  * - Event persistence
+ *
+ * IMPORTANT: Before running these tests, ensure Docker Compose
+ * infrastructure is running:
+ *   make start
  */
 @SpringBootTest
-@Testcontainers(disabledWithoutDocker = true)
+@ActiveProfiles("test")
 @DisplayName("ProductCommandHandler Integration Tests")
 class ProductCommandHandlerIntegrationTest {
-
-    companion object {
-        @Container
-        @JvmStatic
-        val postgres: PostgreSQLContainer<*> = PostgreSQLContainer("postgres:18-alpine")
-            .withDatabaseName("cqrs_test")
-            .withUsername("test")
-            .withPassword("test")
-            .withInitScript("init-test-schema.sql")
-
-        @DynamicPropertySource
-        @JvmStatic
-        fun configureProperties(registry: DynamicPropertyRegistry) {
-            registry.add("spring.r2dbc.url") {
-                "r2dbc:postgresql://${postgres.host}:${postgres.firstMappedPort}/${postgres.databaseName}"
-            }
-            registry.add("spring.r2dbc.username", postgres::getUsername)
-            registry.add("spring.r2dbc.password", postgres::getPassword)
-
-            // JDBC for Flyway (if needed)
-            registry.add("spring.datasource.url", postgres::getJdbcUrl)
-            registry.add("spring.datasource.username", postgres::getUsername)
-            registry.add("spring.datasource.password", postgres::getPassword)
-
-            // Disable Flyway for tests - we use init script
-            registry.add("spring.flyway.enabled") { "false" }
-
-            // Disable Vault for tests
-            registry.add("spring.cloud.vault.enabled") { "false" }
-        }
-    }
 
     @Autowired
     private lateinit var commandHandler: ProductCommandHandler
