@@ -10,7 +10,7 @@ import java.util.UUID
  * R2DBC entity for event_store.event_stream table.
  * Represents an aggregate's event stream.
  */
-@Table(name = "event_stream", schema = "event_store")
+@Table("event_store\".\"event_stream")
 data class EventStreamEntity(
     @Id
     @Column("stream_id")

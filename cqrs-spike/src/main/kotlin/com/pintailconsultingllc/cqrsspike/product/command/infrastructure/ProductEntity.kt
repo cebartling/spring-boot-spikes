@@ -11,7 +11,7 @@ import java.util.UUID
  * R2DBC entity for Product command model persistence.
  * Maps to command_model.product table.
  */
-@Table(name = "product", schema = "command_model")
+@Table("command_model\".\"product")
 data class ProductEntity(
     @Id
     val id: UUID,
