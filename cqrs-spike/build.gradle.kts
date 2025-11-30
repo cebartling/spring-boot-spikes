@@ -95,6 +95,12 @@ dependencies {
     testImplementation("org.testcontainers:postgresql:1.20.4")
     testImplementation("org.testcontainers:r2dbc:1.20.4")
 
+    // Cucumber BDD for Acceptance Testing (AC13)
+    testImplementation("io.cucumber:cucumber-java:7.20.1")
+    testImplementation("io.cucumber:cucumber-junit-platform-engine:7.20.1")
+    testImplementation("io.cucumber:cucumber-spring:7.20.1")
+    testImplementation("org.junit.platform:junit-platform-suite:1.11.3")
+
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
