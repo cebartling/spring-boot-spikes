@@ -201,7 +201,7 @@ class ProductQueryController(
 
         @Parameter(description = "Filter by status", example = "ACTIVE")
         @RequestParam(required = false)
-        @Pattern(regexp = "^(DRAFT|ACTIVE|DISCONTINUED)?$") status: String?,
+        @Pattern(regexp = "^(?i)(DRAFT|ACTIVE|DISCONTINUED)?$") status: String?,
 
         @Parameter(description = "Minimum price in cents", example = "1000")
         @RequestParam(required = false)
@@ -239,7 +239,7 @@ class ProductQueryController(
         return when {
             // Filter by status AND price range
             status != null && minPrice != null && maxPrice != null -> {
-                val statusEnum = ProductStatusView.valueOf(status)
+                val statusEnum = ProductStatusView.valueOf(status.uppercase())
                 queryService.findByStatusAndPriceRange(statusEnum, minPrice, maxPrice)
                     .collectList()
                     .map { products ->
@@ -250,7 +250,7 @@ class ProductQueryController(
 
             // Filter by status only
             status != null -> {
-                val statusEnum = ProductStatusView.valueOf(status)
+                val statusEnum = ProductStatusView.valueOf(status.uppercase())
                 queryService.findByStatusPaginated(statusEnum, page, size)
             }
 
@@ -368,7 +368,7 @@ class ProductQueryController(
     fun getProductsByStatus(
         @Parameter(description = "Product status", required = true, example = "ACTIVE")
         @PathVariable
-        @Pattern(regexp = "^(DRAFT|ACTIVE|DISCONTINUED)$") status: String,
+        @Pattern(regexp = "^(?i)(DRAFT|ACTIVE|DISCONTINUED)$") status: String,
 
         @Parameter(description = "Page number (0-indexed)", example = "0")
         @RequestParam(defaultValue = "0")
@@ -380,7 +380,7 @@ class ProductQueryController(
     ): Mono<ResponseEntity<ProductPageResponseWithLinks>> {
         logger.debug("GET /api/products/by-status/{} - page={}, size={}", status, page, size)
 
-        val statusEnum = ProductStatusView.valueOf(status)
+        val statusEnum = ProductStatusView.valueOf(status.uppercase())
 
         return queryService.findByStatusPaginated(statusEnum, page, size)
             .map { response ->
@@ -438,12 +438,12 @@ class ProductQueryController(
 
         @Parameter(description = "Filter results by status", example = "ACTIVE")
         @RequestParam(required = false)
-        @Pattern(regexp = "^(DRAFT|ACTIVE|DISCONTINUED)?$") status: String?
+        @Pattern(regexp = "^(?i)(DRAFT|ACTIVE|DISCONTINUED)?$") status: String?
     ): Mono<ResponseEntity<ProductSearchResponse>> {
         logger.debug("GET /api/products/search - q='{}', limit={}, status={}", q, limit, status)
 
         return if (status != null) {
-            val statusEnum = ProductStatusView.valueOf(status)
+            val statusEnum = ProductStatusView.valueOf(status.uppercase())
             queryService.searchByStatus(q, statusEnum, limit)
                 .collectList()
                 .map { results ->
@@ -540,14 +540,14 @@ class ProductQueryController(
     fun countProducts(
         @Parameter(description = "Filter count by status", example = "ACTIVE")
         @RequestParam(required = false)
-        @Pattern(regexp = "^(DRAFT|ACTIVE|DISCONTINUED)$") status: String?
+        @Pattern(regexp = "^(?i)(DRAFT|ACTIVE|DISCONTINUED)$") status: String?
     ): Mono<ResponseEntity<ProductCountResponse>> {
         logger.debug("GET /api/products/count - status={}", status)
 
         return if (status != null) {
-            val statusEnum = ProductStatusView.valueOf(status)
+            val statusEnum = ProductStatusView.valueOf(status.uppercase())
             queryService.countByStatus(statusEnum)
-                .map { count -> ProductCountResponse(count, status) }
+                .map { count -> ProductCountResponse(count, status.uppercase()) }
         } else {
             queryService.count()
                 .map { count -> ProductCountResponse(count) }
