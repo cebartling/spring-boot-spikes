@@ -82,29 +82,42 @@ class ProductProjector(
 
     /**
      * Handle ProductCreated event.
-     * Creates a new read model entry.
+     * Creates a new read model entry. Idempotent - ignores duplicates.
      */
     private fun handleProductCreated(event: ProductCreated, eventId: UUID): Mono<ProductReadModel> {
-        val readModel = ProductReadModel.newInstance(
-            productId = event.productId,
-            sku = event.sku,
-            name = event.name,
-            description = event.description,
-            priceCents = event.priceCents,
-            status = event.status.name,
-            createdAt = event.occurredAt,
-            updatedAt = event.occurredAt,
-            aggregateVersion = event.version,
-            isDeleted = false,
-            priceDisplay = ProductFormatUtils.formatPrice(event.priceCents),
-            searchText = ProductFormatUtils.buildSearchText(event.name, event.description),
-            lastEventId = eventId
-        )
-
-        return readModelRepository.save(readModel)
-            .doOnSuccess {
-                logger.info("Created read model for product: id={}, sku={}", event.productId, event.sku)
+        // Check if product already exists (idempotency check)
+        return readModelRepository.findById(event.productId)
+            .flatMap { existing ->
+                // Product already exists, skip creation
+                logger.debug(
+                    "Skipping already processed ProductCreated event: productId={}, version={}",
+                    event.productId, event.version
+                )
+                Mono.just(existing)
             }
+            .switchIfEmpty(Mono.defer {
+                // Product doesn't exist, create it
+                val readModel = ProductReadModel.newInstance(
+                    productId = event.productId,
+                    sku = event.sku,
+                    name = event.name,
+                    description = event.description,
+                    priceCents = event.priceCents,
+                    status = event.status.name,
+                    createdAt = event.occurredAt,
+                    updatedAt = event.occurredAt,
+                    aggregateVersion = event.version,
+                    isDeleted = false,
+                    priceDisplay = ProductFormatUtils.formatPrice(event.priceCents),
+                    searchText = ProductFormatUtils.buildSearchText(event.name, event.description),
+                    lastEventId = eventId
+                )
+
+                readModelRepository.save(readModel)
+                    .doOnSuccess {
+                        logger.info("Created read model for product: id={}, sku={}", event.productId, event.sku)
+                    }
+            })
     }
 
     /**
