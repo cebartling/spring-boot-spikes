@@ -5,7 +5,6 @@ import com.pintailconsultingllc.cqrsspike.acceptance.helpers.ResponseParsingHelp
 import com.pintailconsultingllc.cqrsspike.product.api.dto.ActivateProductRequest
 import com.pintailconsultingllc.cqrsspike.product.api.dto.ChangePriceRequest
 import com.pintailconsultingllc.cqrsspike.product.api.dto.CreateProductRequest
-import com.pintailconsultingllc.cqrsspike.product.api.dto.DeleteProductRequest
 import com.pintailconsultingllc.cqrsspike.product.api.dto.DiscontinueProductRequest
 import com.pintailconsultingllc.cqrsspike.product.api.dto.UpdateProductRequest
 import io.cucumber.java.en.Given
@@ -247,15 +246,14 @@ class ProductLifecycleSteps {
         val productId = testContext.currentProductId
             ?: throw IllegalStateException("No current product ID in context")
 
-        val request = DeleteProductRequest(
-            deletedBy = "acceptance-test",
-            expectedVersion = pendingExpectedVersion
-        )
-
-        val response = webTestClient.method(org.springframework.http.HttpMethod.DELETE)
-            .uri("/api/products/{id}", productId)
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(request)
+        // Delete endpoint uses query parameters, not request body
+        val response = webTestClient.delete()
+            .uri { builder ->
+                builder.path("/api/products/{id}")
+                    .queryParam("expectedVersion", pendingExpectedVersion)
+                    .queryParam("deletedBy", "acceptance-test")
+                    .build(productId)
+            }
             .exchange()
             .returnResult(String::class.java)
 
@@ -428,9 +426,34 @@ class ProductLifecycleSteps {
         }
     }
 
-    private fun createProductAndStoreResponse(sku: String, name: String, description: String?, priceCents: Int) {
-        createProduct(sku, name, description, priceCents)
+    /**
+     * Try to create a product without asserting success.
+     * Used for error scenario tests where creation is expected to fail.
+     */
+    private fun tryCreateProduct(sku: String, name: String, description: String?, priceCents: Int) {
+        val request = CreateProductRequest(
+            sku = sku,
+            name = name,
+            description = description,
+            priceCents = priceCents
+        )
+
+        val response = webTestClient.post()
+            .uri("/api/products")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(request)
+            .exchange()
+            .returnResult(String::class.java)
+
+        testContext.lastResponseStatus = response.status
+        testContext.lastResponseBody = response.responseBody.blockFirst()
+        responseParsingHelper.extractProductIdFromResponse()
         responseParsingHelper.parseErrorResponse()
+        updateVersionFromResponse()
+    }
+
+    private fun createProductAndStoreResponse(sku: String, name: String, description: String?, priceCents: Int) {
+        tryCreateProduct(sku, name, description, priceCents)
     }
 
     private fun activateCurrentProduct() {

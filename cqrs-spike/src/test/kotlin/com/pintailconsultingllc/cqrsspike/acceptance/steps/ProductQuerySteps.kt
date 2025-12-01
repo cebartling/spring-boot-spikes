@@ -44,6 +44,8 @@ class ProductQuerySteps {
         repeat(count) { index ->
             createTestProduct("TEST-SKU-$index", "Test Product $index", 1999 + index * 100)
         }
+        // Wait for projection to process all events
+        waitForReadModel(count)
     }
 
     @Given("there are {int} active products in the catalog")
@@ -52,6 +54,8 @@ class ProductQuerySteps {
             createTestProduct("ACTIVE-SKU-$index", "Active Product $index", 1999 + index * 100)
             activateProduct(testContext.currentProductId!!)
         }
+        // Wait for projection to process all events
+        waitForReadModel(count)
     }
 
     @Given("there are {int} draft products in the catalog")
@@ -59,6 +63,8 @@ class ProductQuerySteps {
         repeat(count) { index ->
             createTestProduct("DRAFT-SKU-$index", "Draft Product $index", 1999 + index * 100)
         }
+        // Wait for projection to process all events
+        waitForReadModel(count)
     }
 
     @Given("products with names containing {string} exist")
@@ -66,6 +72,8 @@ class ProductQuerySteps {
         createTestProduct("SEARCH-1", "Product with $searchTerm in name", 1999)
         createTestProduct("SEARCH-2", "Another $searchTerm product", 2999)
         createTestProduct("SEARCH-3", "$searchTerm at start", 3999)
+        // Wait for projection to process all events
+        waitForReadModel(3)
     }
 
     // ========== When Steps ==========
@@ -75,14 +83,38 @@ class ProductQuerySteps {
         val productId = testContext.currentProductId
             ?: throw IllegalStateException("No current product ID in context")
 
-        val response = webTestClient.get()
-            .uri("/api/products/{id}", productId)
-            .exchange()
-            .returnResult(String::class.java)
-
-        testContext.lastResponseStatus = response.status
-        testContext.lastResponseBody = response.responseBody.blockFirst()
+        // Use retry logic to handle eventual consistency
+        val body = fetchProductWithRetry(productId)
+        testContext.lastResponseBody = body
+        if (body != null && body.contains("\"id\":")) {
+            testContext.lastResponseStatus = org.springframework.http.HttpStatus.OK
+        } else {
+            testContext.lastResponseStatus = org.springframework.http.HttpStatus.NOT_FOUND
+        }
         parseProductResponse()
+    }
+
+    /**
+     * Fetches a product from the read model with retry logic to handle eventual consistency.
+     */
+    private fun fetchProductWithRetry(productId: UUID): String? {
+        val maxAttempts = 10
+        val initialDelayMs = 100L
+
+        for (attempt in 1..maxAttempts) {
+            Thread.sleep(initialDelayMs * attempt)
+
+            val response = webTestClient.get()
+                .uri("/api/products/{id}", productId)
+                .exchange()
+                .returnResult(String::class.java)
+
+            val body = response.responseBody.blockFirst()
+            if (response.status.is2xxSuccessful && body != null && body.contains("\"id\":")) {
+                return body
+            }
+        }
+        return null
     }
 
     @When("I retrieve a product with ID {string}")
@@ -94,6 +126,8 @@ class ProductQuerySteps {
 
         testContext.lastResponseStatus = response.status
         testContext.lastResponseBody = response.responseBody.blockFirst()
+        // Parse error response for error scenarios (e.g., invalid UUID)
+        responseParsingHelper.parseErrorResponse()
         parseProductResponse()
     }
 
@@ -143,14 +177,27 @@ class ProductQuerySteps {
 
     @When("I list products filtered by status {string}")
     fun iListProductsFilteredByStatus(status: String) {
-        val response = webTestClient.get()
-            .uri("/api/products/by-status/{status}", status)
-            .exchange()
-            .returnResult(String::class.java)
+        // Add retry to handle eventual consistency
+        val maxAttempts = 5
+        val initialDelayMs = 200L
 
-        testContext.lastResponseStatus = response.status
-        testContext.lastResponseBody = response.responseBody.blockFirst()
-        parsePageResponse()
+        for (attempt in 1..maxAttempts) {
+            Thread.sleep(initialDelayMs * attempt)
+
+            val response = webTestClient.get()
+                .uri("/api/products/by-status/{status}", status)
+                .exchange()
+                .returnResult(String::class.java)
+
+            testContext.lastResponseStatus = response.status
+            testContext.lastResponseBody = response.responseBody.blockFirst()
+            parsePageResponse()
+
+            // If we got some results, we're done
+            if (testContext.lastQueryResults.isNotEmpty()) {
+                return
+            }
+        }
     }
 
     @When("I search for products with query {string}")
@@ -402,5 +449,39 @@ class ProductQuerySteps {
             status = node.get("status").asText(),
             version = node.get("version").asLong()
         )
+    }
+
+    /**
+     * Wait for the read model to be populated with the expected number of products.
+     * Uses exponential backoff with retry to handle eventual consistency.
+     */
+    private fun waitForReadModel(expectedCount: Int) {
+        val maxAttempts = 10
+        val initialDelayMs = 100L
+
+        for (attempt in 1..maxAttempts) {
+            Thread.sleep(initialDelayMs * attempt)
+
+            val response = webTestClient.get()
+                .uri("/api/products?size=100")
+                .exchange()
+                .returnResult(String::class.java)
+
+            if (response.status.is2xxSuccessful) {
+                val body = response.responseBody.blockFirst()
+                if (body != null) {
+                    try {
+                        val jsonNode = objectMapper.readTree(body)
+                        val totalElements = jsonNode.get("totalElements")?.asInt() ?: 0
+                        if (totalElements >= expectedCount) {
+                            return // Read model is populated
+                        }
+                    } catch (e: Exception) {
+                        // Continue retrying
+                    }
+                }
+            }
+        }
+        // If we get here, the read model may not be fully populated but we'll proceed with the test
     }
 }

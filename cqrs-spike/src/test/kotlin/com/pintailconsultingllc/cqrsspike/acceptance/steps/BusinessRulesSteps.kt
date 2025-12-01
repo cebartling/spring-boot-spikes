@@ -220,15 +220,37 @@ class BusinessRulesSteps {
         val productId = testContext.currentProductId
             ?: throw IllegalStateException("No current product ID in context")
 
-        val request = mapOf(
-            "name" to "Updated Name",
-            "expectedVersion" to 0L // Outdated version
+        // First, update the product successfully to increment its version to 2
+        val firstUpdateRequest = mapOf(
+            "name" to "First Update",
+            "expectedVersion" to 1L
+        )
+
+        val firstResponse = webTestClient.put()
+            .uri("/api/products/{id}", productId)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(firstUpdateRequest)
+            .exchange()
+            .returnResult(String::class.java)
+
+        // Verify first update succeeded
+        if (!firstResponse.status.is2xxSuccessful) {
+            throw IllegalStateException(
+                "Failed to perform initial update. Status: ${firstResponse.status}, " +
+                "Body: ${firstResponse.responseBody.blockFirst()}"
+            )
+        }
+
+        // Now try to update with stale version 1 (product is now at version 2)
+        val staleRequest = mapOf(
+            "name" to "Stale Update",
+            "expectedVersion" to 1L // This is now outdated
         )
 
         val response = webTestClient.put()
             .uri("/api/products/{id}", productId)
             .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(request)
+            .bodyValue(staleRequest)
             .exchange()
             .returnResult(String::class.java)
 
@@ -274,9 +296,11 @@ class BusinessRulesSteps {
 
     @Then("the price change should require confirmation")
     fun thePriceChangeShouldRequireConfirmation() {
-        assertThat(testContext.lastResponseStatus)
-            .describedAs("Response status should be UNPROCESSABLE_ENTITY")
-            .isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY)
+        // Spring Boot 4.0 renamed UNPROCESSABLE_ENTITY to UNPROCESSABLE_CONTENT
+        // Check for 422 status code directly
+        assertThat(testContext.lastResponseStatus?.value())
+            .describedAs("Response status should be 422")
+            .isEqualTo(422)
 
         assertThat(testContext.lastErrorCode)
             .describedAs("Error code")

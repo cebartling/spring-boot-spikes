@@ -106,10 +106,19 @@ class QueryExceptionHandler : BaseExceptionHandler() {
     ): Mono<ResponseEntity<ApiErrorResponse>> {
         logger.warn("Input error: {}", ex.message)
 
+        // Detect UUID parsing errors for more specific error messages
+        val message = when {
+            ex.cause?.message?.contains("UUID", ignoreCase = true) == true ||
+            ex.message?.contains("UUID", ignoreCase = true) == true ->
+                "Invalid UUID format"
+            else ->
+                "Invalid request: ${ex.reason ?: "Invalid input"}"
+        }
+
         val response = ApiErrorResponse(
             status = HttpStatus.BAD_REQUEST.value(),
             error = HttpStatus.BAD_REQUEST.reasonPhrase,
-            message = "Invalid request: ${ex.reason ?: "Invalid input"}",
+            message = message,
             path = exchange.request.path.value()
         )
 

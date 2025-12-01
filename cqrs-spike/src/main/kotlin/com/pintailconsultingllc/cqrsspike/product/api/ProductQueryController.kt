@@ -89,19 +89,28 @@ class ProductQueryController(
             content = [Content()]
         )
     )
+    @Suppress("UNCHECKED_CAST")
     fun getProductById(
         @Parameter(description = "Product UUID", required = true, example = "550e8400-e29b-41d4-a716-446655440000")
         @PathVariable id: UUID
-    ): Mono<ResponseEntity<ProductResponse>> {
+    ): Mono<ResponseEntity<Any>> {
         logger.debug("GET /api/products/{}", id)
 
         return queryService.findById(id)
             .map { product ->
                 ResponseEntity.ok()
                     .cacheControl(DEFAULT_CACHE_CONTROL)
-                    .body(product)
+                    .body(product as Any)
             }
-            .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()))
+            .switchIfEmpty(Mono.defer {
+                val errorResponse = ApiErrorResponse(
+                    status = 404,
+                    error = "Not Found",
+                    message = "Product not found with ID: $id",
+                    path = "/api/products/$id"
+                )
+                Mono.just(ResponseEntity.status(404).body(errorResponse as Any))
+            })
     }
 
     /**

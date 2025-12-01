@@ -10,6 +10,10 @@ spring:
   application:
     name: cqrs-spike-test
 
+  # Increase buffer size for large Prometheus metrics responses
+  codec:
+    max-in-memory-size: 5MB
+
   # Disable Vault for tests - use static configuration
   cloud:
     vault:
