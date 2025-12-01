@@ -70,21 +70,25 @@ class ProductEventStoreRepository(
             return Mono.empty()
         }
 
-        val productId = events.first().productId
-        val expectedVersion = events.first().version - 1
+        return Mono.defer {
+            val productId = events.first().productId
+            val expectedVersion = events.first().version - 1
 
-        // Verify all events belong to the same aggregate
-        require(events.all { it.productId == productId }) {
-            "All events must belong to the same aggregate"
-        }
-
-        return appendEventsUsingStoredProcedure(productId, expectedVersion, events, metadata)
-            .doOnError { error ->
-                logger.error("Failed to save events for Product $productId", error)
+            // Verify all events belong to the same aggregate
+            if (!events.all { it.productId == productId }) {
+                return@defer Mono.error<Void>(
+                    IllegalArgumentException("All events must belong to the same aggregate")
+                )
             }
-            .then(Mono.fromRunnable {
-                logger.info("Saved ${events.size} events for Product $productId")
-            })
+
+            appendEventsUsingStoredProcedure(productId, expectedVersion, events, metadata)
+                .doOnError { error ->
+                    logger.error("Failed to save events for Product $productId", error)
+                }
+                .then(Mono.fromRunnable {
+                    logger.info("Saved ${events.size} events for Product $productId")
+                })
+        }
     }
 
     /**

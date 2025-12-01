@@ -5,8 +5,8 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.util.UUID
@@ -19,14 +19,23 @@ import java.util.UUID
  *   make start
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@AutoConfigureWebTestClient
 @ActiveProfiles("test")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DisplayName("AC11: Observability Integration Tests")
 class ObservabilityIntegrationTest {
 
-    @Autowired
-    private lateinit var webTestClient: WebTestClient
+    @LocalServerPort
+    private var port: Int = 0
+
+    private val webTestClient: WebTestClient by lazy {
+        WebTestClient
+            .bindToServer()
+            .baseUrl("http://localhost:$port")
+            .codecs { configurer ->
+                configurer.defaultCodecs().maxInMemorySize(10 * 1024 * 1024) // 10MB
+            }
+            .build()
+    }
 
     @Nested
     @DisplayName("AC11: Prometheus metrics endpoint")
