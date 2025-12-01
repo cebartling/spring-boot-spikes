@@ -14,6 +14,9 @@ import java.util.UUID
  * Implements Persistable to control INSERT vs UPDATE behavior in Spring Data R2DBC.
  * Since the idempotency key is always provided (not auto-generated), we use
  * the isNew flag to explicitly indicate when this is a new entity.
+ *
+ * Note: The isNew flag is defined outside the primary constructor to avoid
+ * Spring Data R2DBC trying to map it from the database on read operations.
  */
 @Table("command_model\".\"processed_command")
 data class ProcessedCommandEntity(
@@ -34,17 +37,25 @@ data class ProcessedCommandEntity(
     val processedAt: OffsetDateTime = OffsetDateTime.now(),
 
     @Column("expires_at")
-    val expiresAt: OffsetDateTime,
+    val expiresAt: OffsetDateTime
+) : Persistable<String> {
 
     /**
      * Flag to indicate if this entity is new (should INSERT) or existing (should UPDATE).
-     * Not persisted to the database.
+     * Not persisted to the database. Defined outside constructor to avoid mapping issues.
      */
     @Transient
-    private val isNew: Boolean = true
-) : Persistable<String> {
+    private var entityIsNew: Boolean = true
 
     override fun getId(): String = idempotencyKey
 
-    override fun isNew(): Boolean = isNew
+    override fun isNew(): Boolean = entityIsNew
+
+    /**
+     * Returns a copy of this entity marked as existing (not new).
+     * Used when reading from the database.
+     */
+    fun markAsExisting(): ProcessedCommandEntity {
+        return this.also { it.entityIsNew = false }
+    }
 }
