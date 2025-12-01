@@ -73,7 +73,7 @@ Feature: Product Lifecycle Management
     Given a product with SKU "DELETE-001" exists
     And I use expected version 1
     When I delete the product
-    Then the response status should be OK
+    Then the response status should be NO_CONTENT
     And the product should be deleted
 
   @error-handling

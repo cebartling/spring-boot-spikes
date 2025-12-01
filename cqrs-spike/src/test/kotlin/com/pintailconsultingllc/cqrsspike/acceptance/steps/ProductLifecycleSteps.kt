@@ -426,9 +426,34 @@ class ProductLifecycleSteps {
         }
     }
 
-    private fun createProductAndStoreResponse(sku: String, name: String, description: String?, priceCents: Int) {
-        createProduct(sku, name, description, priceCents)
+    /**
+     * Try to create a product without asserting success.
+     * Used for error scenario tests where creation is expected to fail.
+     */
+    private fun tryCreateProduct(sku: String, name: String, description: String?, priceCents: Int) {
+        val request = CreateProductRequest(
+            sku = sku,
+            name = name,
+            description = description,
+            priceCents = priceCents
+        )
+
+        val response = webTestClient.post()
+            .uri("/api/products")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(request)
+            .exchange()
+            .returnResult(String::class.java)
+
+        testContext.lastResponseStatus = response.status
+        testContext.lastResponseBody = response.responseBody.blockFirst()
+        responseParsingHelper.extractProductIdFromResponse()
         responseParsingHelper.parseErrorResponse()
+        updateVersionFromResponse()
+    }
+
+    private fun createProductAndStoreResponse(sku: String, name: String, description: String?, priceCents: Int) {
+        tryCreateProduct(sku, name, description, priceCents)
     }
 
     private fun activateCurrentProduct() {

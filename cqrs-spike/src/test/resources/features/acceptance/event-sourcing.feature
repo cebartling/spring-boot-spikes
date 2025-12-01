@@ -46,7 +46,8 @@ Feature: Event Sourcing Verification
     When I activate the product
     Then the product version should be 2
     When I use expected version 2
-    And I change the product price to 2500 cents
+    # Price change within 20% threshold (1999 to 2300 = ~15%)
+    And I change the product price to 2300 cents
     Then the product version should be 3
     When I use expected version 3
     And I discontinue the product

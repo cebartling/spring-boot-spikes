@@ -296,9 +296,11 @@ class BusinessRulesSteps {
 
     @Then("the price change should require confirmation")
     fun thePriceChangeShouldRequireConfirmation() {
-        assertThat(testContext.lastResponseStatus)
-            .describedAs("Response status should be UNPROCESSABLE_ENTITY")
-            .isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY)
+        // Spring Boot 4.0 renamed UNPROCESSABLE_ENTITY to UNPROCESSABLE_CONTENT
+        // Check for 422 status code directly
+        assertThat(testContext.lastResponseStatus?.value())
+            .describedAs("Response status should be 422")
+            .isEqualTo(422)
 
         assertThat(testContext.lastErrorCode)
             .describedAs("Error code")
