@@ -63,7 +63,7 @@ class QueryObservationAspect(
 
         @Suppress("UNCHECKED_CAST")
         return (joinPoint.proceed() as Mono<*>)
-            .doOnSuccess { result ->
+            .doOnSuccess { result: Any? ->
                 val duration = Duration.between(startTime, Instant.now())
                 val resultCount = extractResultCount(result)
                 queryMetrics.recordQuery(queryType, duration, resultCount)

@@ -63,6 +63,10 @@ class ProductQueryService(
         return repository.findByIdNotDeleted(id)
             .doOnNext { logger.debug("Found product: id={}, sku={}", id, it.sku) }
             .map { ProductResponse.from(it) }
+            .onErrorResume(NoSuchElementException::class.java) { ex ->
+                logger.debug("Product not found (NoSuchElementException): id={}", id)
+                Mono.empty()
+            }
             .switchIfEmpty(Mono.defer {
                 logger.debug("Product not found: id={}", id)
                 Mono.empty()
