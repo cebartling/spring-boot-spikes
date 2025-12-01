@@ -217,7 +217,7 @@ class ProductQueryController(
 
         @Parameter(description = "Sort direction", example = "desc")
         @RequestParam(defaultValue = "desc")
-        @Pattern(regexp = "^(asc|desc)$") direction: String
+        @Pattern(regexp = "^(?i)(asc|desc)$") direction: String
     ): Mono<ResponseEntity<ProductPageResponseWithLinks>> {
         logger.debug(
             "GET /api/products - page={}, size={}, status={}, minPrice={}, maxPrice={}, sort={}, direction={}",
