@@ -402,38 +402,49 @@ class ProductCommandHandler(
 
     @Suppress("unused")
     private fun rateLimitFallbackCreate(command: CreateProductCommand, ex: Exception): Mono<CommandResult> {
-        logger.warn("Rate limit exceeded for CreateProductCommand", ex)
-        return Mono.error(CommandRateLimitException("Too many requests. Please try again later."))
+        return handleRateLimitFallback("CreateProductCommand", ex)
     }
 
     @Suppress("unused")
     private fun rateLimitFallbackUpdate(command: UpdateProductCommand, ex: Exception): Mono<CommandResult> {
-        logger.warn("Rate limit exceeded for UpdateProductCommand", ex)
-        return Mono.error(CommandRateLimitException("Too many requests. Please try again later."))
+        return handleRateLimitFallback("UpdateProductCommand", ex)
     }
 
     @Suppress("unused")
     private fun rateLimitFallbackChangePrice(command: ChangePriceCommand, ex: Throwable): Mono<CommandResult> {
-        logger.warn("Rate limit exceeded for ChangePriceCommand", ex)
-        return Mono.error(CommandRateLimitException("Too many requests. Please try again later."))
+        return handleRateLimitFallback("ChangePriceCommand", ex)
     }
 
     @Suppress("unused")
     private fun rateLimitFallbackActivate(command: ActivateProductCommand, ex: Throwable): Mono<CommandResult> {
-        logger.warn("Rate limit exceeded for ActivateProductCommand", ex)
-        return Mono.error(CommandRateLimitException("Too many requests. Please try again later."))
+        return handleRateLimitFallback("ActivateProductCommand", ex)
     }
 
     @Suppress("unused")
     private fun rateLimitFallbackDiscontinue(command: DiscontinueProductCommand, ex: Throwable): Mono<CommandResult> {
-        logger.warn("Rate limit exceeded for DiscontinueProductCommand", ex)
-        return Mono.error(CommandRateLimitException("Too many requests. Please try again later."))
+        return handleRateLimitFallback("DiscontinueProductCommand", ex)
     }
 
     @Suppress("unused")
     private fun rateLimitFallbackDelete(command: DeleteProductCommand, ex: Throwable): Mono<CommandResult> {
-        logger.warn("Rate limit exceeded for DeleteProductCommand", ex)
-        return Mono.error(CommandRateLimitException("Too many requests. Please try again later."))
+        return handleRateLimitFallback("DeleteProductCommand", ex)
+    }
+
+    /**
+     * Handle rate limit fallback by re-throwing domain exceptions
+     * and only wrapping in 429 for actual rate limit exceeded exceptions.
+     */
+    private fun handleRateLimitFallback(commandType: String, ex: Throwable): Mono<CommandResult> {
+        return when (ex) {
+            is io.github.resilience4j.ratelimiter.RequestNotPermitted -> {
+                logger.warn("Rate limit exceeded for $commandType", ex)
+                Mono.error(CommandRateLimitException("Too many requests. Please try again later."))
+            }
+            else -> {
+                logger.debug("Re-throwing exception from $commandType rate limiter: ${ex.javaClass.simpleName}")
+                Mono.error(ex)
+            }
+        }
     }
 
     @Suppress("unused")
@@ -474,38 +485,52 @@ class ProductCommandHandler(
 
     @Suppress("unused")
     private fun circuitBreakerFallbackCreate(command: CreateProductCommand, ex: Exception): Mono<CommandResult> {
-        logger.error("Circuit breaker open for CreateProductCommand", ex)
-        return Mono.error(CommandServiceUnavailableException("Service temporarily unavailable. Please try again later."))
+        return handleCircuitBreakerFallback("CreateProductCommand", ex)
     }
 
     @Suppress("unused")
     private fun circuitBreakerFallbackUpdate(command: UpdateProductCommand, ex: Exception): Mono<CommandResult> {
-        logger.error("Circuit breaker open for UpdateProductCommand", ex)
-        return Mono.error(CommandServiceUnavailableException("Service temporarily unavailable. Please try again later."))
+        return handleCircuitBreakerFallback("UpdateProductCommand", ex)
     }
 
     @Suppress("unused")
     private fun circuitBreakerFallbackChangePrice(command: ChangePriceCommand, ex: Exception): Mono<CommandResult> {
-        logger.error("Circuit breaker open for ChangePriceCommand", ex)
-        return Mono.error(CommandServiceUnavailableException("Service temporarily unavailable. Please try again later."))
+        return handleCircuitBreakerFallback("ChangePriceCommand", ex)
     }
 
     @Suppress("unused")
     private fun circuitBreakerFallbackActivate(command: ActivateProductCommand, ex: Exception): Mono<CommandResult> {
-        logger.error("Circuit breaker open for ActivateProductCommand", ex)
-        return Mono.error(CommandServiceUnavailableException("Service temporarily unavailable. Please try again later."))
+        return handleCircuitBreakerFallback("ActivateProductCommand", ex)
     }
 
     @Suppress("unused")
     private fun circuitBreakerFallbackDiscontinue(command: DiscontinueProductCommand, ex: Exception): Mono<CommandResult> {
-        logger.error("Circuit breaker open for DiscontinueProductCommand", ex)
-        return Mono.error(CommandServiceUnavailableException("Service temporarily unavailable. Please try again later."))
+        return handleCircuitBreakerFallback("DiscontinueProductCommand", ex)
     }
 
     @Suppress("unused")
     private fun circuitBreakerFallbackDelete(command: DeleteProductCommand, ex: Exception): Mono<CommandResult> {
-        logger.error("Circuit breaker open for DeleteProductCommand", ex)
-        return Mono.error(CommandServiceUnavailableException("Service temporarily unavailable. Please try again later."))
+        return handleCircuitBreakerFallback("DeleteProductCommand", ex)
+    }
+
+    /**
+     * Handle circuit breaker fallback by re-throwing domain exceptions
+     * and only wrapping infrastructure exceptions in 503.
+     */
+    private fun handleCircuitBreakerFallback(commandType: String, ex: Exception): Mono<CommandResult> {
+        // Only wrap in 503 if this is actually a circuit breaker open exception
+        // For all other exceptions (domain exceptions), re-throw them
+        return when (ex) {
+            is io.github.resilience4j.circuitbreaker.CallNotPermittedException -> {
+                logger.error("Circuit breaker open for $commandType", ex)
+                Mono.error(CommandServiceUnavailableException("Service temporarily unavailable. Please try again later."))
+            }
+            else -> {
+                // Re-throw domain exceptions so they get proper HTTP status codes
+                logger.debug("Re-throwing exception from $commandType: ${ex.javaClass.simpleName}")
+                Mono.error(ex)
+            }
+        }
     }
 }
 
