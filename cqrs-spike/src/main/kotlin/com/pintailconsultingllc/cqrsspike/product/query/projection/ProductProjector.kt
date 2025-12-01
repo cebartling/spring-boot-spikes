@@ -85,8 +85,8 @@ class ProductProjector(
      * Creates a new read model entry.
      */
     private fun handleProductCreated(event: ProductCreated, eventId: UUID): Mono<ProductReadModel> {
-        val readModel = ProductReadModel(
-            id = event.productId,
+        val readModel = ProductReadModel.newInstance(
+            productId = event.productId,
             sku = event.sku,
             name = event.name,
             description = event.description,

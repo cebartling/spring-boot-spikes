@@ -44,19 +44,25 @@ class EventObservationAspect(
             .start()
 
         @Suppress("UNCHECKED_CAST")
-        return (joinPoint.proceed() as Mono<*>)
-            .doOnSuccess {
-                val duration = Duration.between(startTime, Instant.now())
-                eventTypes.forEach { eventType ->
-                    eventMetrics.recordEventPublished(eventType, duration)
-                }
-                observation.stop()
-                logger.debug("Events published: types={}, duration={}ms", eventTypes, duration.toMillis())
-            }
+        val monoResult = joinPoint.proceed() as Mono<*>
+        var hasError = false
+
+        return monoResult
             .doOnError { error ->
+                hasError = true
                 observation.error(error)
                 observation.stop()
                 logger.error("Event publish failed: types={}, error={}", eventTypes, error.message)
+            }
+            .doOnTerminate {
+                if (!hasError) {
+                    val duration = Duration.between(startTime, Instant.now())
+                    eventTypes.forEach { eventType ->
+                        eventMetrics.recordEventPublished(eventType, duration)
+                    }
+                    observation.stop()
+                    logger.debug("Events published: types={}, duration={}ms", eventTypes, duration.toMillis())
+                }
             }
     }
 
@@ -71,23 +77,29 @@ class EventObservationAspect(
             .start()
 
         @Suppress("UNCHECKED_CAST")
-        return (joinPoint.proceed() as Mono<*>)
-            .doOnSuccess {
-                val duration = Duration.between(startTime, Instant.now())
-                val lagMs = if (joinPoint.args.isNotEmpty() && joinPoint.args[0] is ProductEvent) {
-                    val event = joinPoint.args[0] as ProductEvent
-                    Duration.between(event.occurredAt, Instant.now()).toMillis()
-                } else {
-                    -1L // Unknown lag
-                }
-                eventMetrics.recordEventConsumed(eventType, duration, lagMs)
-                observation.stop()
-                logger.debug("Event consumed: type={}, duration={}ms, lag={}ms", eventType, duration.toMillis(), lagMs)
-            }
+        val monoResult = joinPoint.proceed() as Mono<*>
+        var hasError = false
+
+        return monoResult
             .doOnError { error ->
+                hasError = true
                 observation.error(error)
                 observation.stop()
                 logger.error("Event consume failed: type={}, error={}", eventType, error.message)
+            }
+            .doOnTerminate {
+                if (!hasError) {
+                    val duration = Duration.between(startTime, Instant.now())
+                    val lagMs = if (joinPoint.args.isNotEmpty() && joinPoint.args[0] is ProductEvent) {
+                        val event = joinPoint.args[0] as ProductEvent
+                        Duration.between(event.occurredAt.toInstant(), Instant.now()).toMillis()
+                    } else {
+                        -1L // Unknown lag
+                    }
+                    eventMetrics.recordEventConsumed(eventType, duration, lagMs)
+                    observation.stop()
+                    logger.debug("Event consumed: type={}, duration={}ms, lag={}ms", eventType, duration.toMillis(), lagMs)
+                }
             }
     }
 

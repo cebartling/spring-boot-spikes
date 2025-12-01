@@ -569,8 +569,8 @@ class ProductProjectorTest {
         version: Long = 1,
         status: String = "ACTIVE"
     ): ProductReadModel {
-        return ProductReadModel(
-            id = productId,
+        return ProductReadModel.newInstance(
+            productId = productId,
             sku = "TEST-001",
             name = "Test Product",
             description = "A description",

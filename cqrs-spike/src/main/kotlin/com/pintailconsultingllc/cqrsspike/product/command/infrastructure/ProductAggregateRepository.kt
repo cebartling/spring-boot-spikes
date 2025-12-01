@@ -141,9 +141,9 @@ class ProductAggregateRepository(
         }
 
         return eventStoreRepository.saveEvents(events)
-            .doOnSuccess {
+            .then(Mono.fromRunnable {
                 logger.debug("Published ${events.size} events")
-            }
+            })
     }
 
     private fun reconstitute(entity: ProductEntity): Mono<ProductAggregate> {

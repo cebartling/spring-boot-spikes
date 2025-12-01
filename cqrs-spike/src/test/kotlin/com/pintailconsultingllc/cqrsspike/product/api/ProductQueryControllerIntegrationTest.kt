@@ -480,8 +480,8 @@ class ProductQueryControllerIntegrationTest {
         status: String = "ACTIVE"
     ): ProductReadModel {
         val now = OffsetDateTime.now()
-        val product = ProductReadModel(
-            id = UUID.randomUUID(),
+        val product = ProductReadModel.newInstance(
+            productId = UUID.randomUUID(),
             sku = sku,
             name = name,
             description = "Test description for $name",
