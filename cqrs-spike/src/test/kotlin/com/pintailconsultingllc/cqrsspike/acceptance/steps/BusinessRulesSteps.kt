@@ -220,15 +220,37 @@ class BusinessRulesSteps {
         val productId = testContext.currentProductId
             ?: throw IllegalStateException("No current product ID in context")
 
-        val request = mapOf(
-            "name" to "Updated Name",
-            "expectedVersion" to 0L // Outdated version
+        // First, update the product successfully to increment its version to 2
+        val firstUpdateRequest = mapOf(
+            "name" to "First Update",
+            "expectedVersion" to 1L
+        )
+
+        val firstResponse = webTestClient.put()
+            .uri("/api/products/{id}", productId)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(firstUpdateRequest)
+            .exchange()
+            .returnResult(String::class.java)
+
+        // Verify first update succeeded
+        if (!firstResponse.status.is2xxSuccessful) {
+            throw IllegalStateException(
+                "Failed to perform initial update. Status: ${firstResponse.status}, " +
+                "Body: ${firstResponse.responseBody.blockFirst()}"
+            )
+        }
+
+        // Now try to update with stale version 1 (product is now at version 2)
+        val staleRequest = mapOf(
+            "name" to "Stale Update",
+            "expectedVersion" to 1L // This is now outdated
         )
 
         val response = webTestClient.put()
             .uri("/api/products/{id}", productId)
             .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(request)
+            .bodyValue(staleRequest)
             .exchange()
             .returnResult(String::class.java)
 

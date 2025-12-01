@@ -94,6 +94,8 @@ class ProductQuerySteps {
 
         testContext.lastResponseStatus = response.status
         testContext.lastResponseBody = response.responseBody.blockFirst()
+        // Parse error response for error scenarios (e.g., invalid UUID)
+        responseParsingHelper.parseErrorResponse()
         parseProductResponse()
     }
 

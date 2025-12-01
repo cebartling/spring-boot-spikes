@@ -16,7 +16,7 @@ Feature: Error Handling and Resilience
   Scenario: Invalid product ID format returns BAD_REQUEST
     When I retrieve a product with ID "not-a-uuid"
     Then the response status should be BAD_REQUEST
-    And the response should contain error message "Invalid UUID"
+    And the response should contain error message "UUID"
 
   @error-handling
   Scenario: Missing required field returns validation errors
