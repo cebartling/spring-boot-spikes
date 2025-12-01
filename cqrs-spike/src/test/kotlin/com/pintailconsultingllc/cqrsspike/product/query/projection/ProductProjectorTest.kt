@@ -85,6 +85,10 @@ class ProductProjectorTest {
                 status = ProductStatus.DRAFT
             )
 
+            // Mock findById to return empty (product doesn't exist yet)
+            whenever(readModelRepository.findById(productId))
+                .thenReturn(Mono.empty())
+
             whenever(readModelRepository.save(any<ProductReadModel>()))
                 .thenAnswer { invocation -> Mono.just(invocation.getArgument<ProductReadModel>(0)) }
 
@@ -117,6 +121,10 @@ class ProductProjectorTest {
                 priceCents = 2999,
                 status = ProductStatus.DRAFT
             )
+
+            // Mock findById to return empty (product doesn't exist yet)
+            whenever(readModelRepository.findById(productId))
+                .thenReturn(Mono.empty())
 
             whenever(readModelRepository.save(any<ProductReadModel>()))
                 .thenAnswer { invocation -> Mono.just(invocation.getArgument<ProductReadModel>(0)) }
@@ -420,6 +428,10 @@ class ProductProjectorTest {
                 name = "Builder Test Product",
                 priceCents = 4999
             )
+
+            // Mock findById to return empty (product doesn't exist yet)
+            whenever(readModelRepository.findById(productId))
+                .thenReturn(Mono.empty())
 
             whenever(readModelRepository.save(any<ProductReadModel>()))
                 .thenAnswer { invocation -> Mono.just(invocation.getArgument<ProductReadModel>(0)) }

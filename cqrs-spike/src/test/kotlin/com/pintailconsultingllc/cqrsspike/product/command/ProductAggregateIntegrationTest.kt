@@ -3,10 +3,9 @@ package com.pintailconsultingllc.cqrsspike.product.command
 import com.pintailconsultingllc.cqrsspike.product.command.aggregate.ProductAggregate
 import com.pintailconsultingllc.cqrsspike.product.command.exception.DuplicateSkuException
 import com.pintailconsultingllc.cqrsspike.product.command.exception.ProductNotFoundException
+import com.pintailconsultingllc.cqrsspike.product.command.infrastructure.EventStoreRepository
 import com.pintailconsultingllc.cqrsspike.product.command.infrastructure.ProductAggregateRepository
-import com.pintailconsultingllc.cqrsspike.product.command.infrastructure.StubEventStoreRepository
 import com.pintailconsultingllc.cqrsspike.product.command.model.ProductStatus
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -32,13 +31,7 @@ class ProductAggregateIntegrationTest {
     private lateinit var repository: ProductAggregateRepository
 
     @Autowired
-    private lateinit var stubEventStore: StubEventStoreRepository
-
-    @BeforeEach
-    fun setup() {
-        // Clear the stub event store between tests
-        stubEventStore.clear()
-    }
+    private lateinit var eventStoreRepository: EventStoreRepository
 
     @Nested
     @DisplayName("Save Operations")
@@ -77,8 +70,8 @@ class ProductAggregateIntegrationTest {
                 .expectNextCount(1)
                 .verifyComplete()
 
-            // Verify events were saved
-            StepVerifier.create(stubEventStore.findEventsByAggregateId(aggregate.id))
+            // Verify events were saved to the real event store
+            StepVerifier.create(eventStoreRepository.findEventsByAggregateId(aggregate.id))
                 .expectNextCount(1)
                 .verifyComplete()
         }
