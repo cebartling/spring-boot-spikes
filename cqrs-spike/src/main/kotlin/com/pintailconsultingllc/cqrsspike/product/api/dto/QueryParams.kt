@@ -16,7 +16,7 @@ data class ProductListParams(
     @field:Max(100, message = "Size must be <= 100")
     val size: Int = 20,
 
-    @field:Pattern(regexp = "^(DRAFT|ACTIVE|DISCONTINUED)$", message = "Invalid status")
+    @field:Pattern(regexp = "^(?i)(DRAFT|ACTIVE|DISCONTINUED)$", message = "Invalid status")
     val status: String? = null,
 
     @field:Min(0, message = "minPrice must be >= 0")
@@ -25,10 +25,10 @@ data class ProductListParams(
     @field:Min(0, message = "maxPrice must be >= 0")
     val maxPrice: Int? = null,
 
-    @field:Pattern(regexp = "^(name|price|createdAt)$", message = "Invalid sort field")
+    @field:Pattern(regexp = "^(?i)(name|price|createdAt)$", message = "Invalid sort field")
     val sort: String? = null,
 
-    @field:Pattern(regexp = "^(asc|desc)$", message = "Invalid direction")
+    @field:Pattern(regexp = "^(?i)(asc|desc)$", message = "Invalid direction")
     val direction: String? = null
 )
 
@@ -42,7 +42,7 @@ data class ProductCursorParams(
     @field:Max(100, message = "Size must be <= 100")
     val size: Int = 20,
 
-    @field:Pattern(regexp = "^(name|price|createdAt)$", message = "Invalid sort field")
+    @field:Pattern(regexp = "^(?i)(name|price|createdAt)$", message = "Invalid sort field")
     val sort: String? = null
 )
 
@@ -57,7 +57,7 @@ data class ProductSearchParams(
     @field:Max(100, message = "Limit must be <= 100")
     val limit: Int = 50,
 
-    @field:Pattern(regexp = "^(DRAFT|ACTIVE|DISCONTINUED)$", message = "Invalid status")
+    @field:Pattern(regexp = "^(?i)(DRAFT|ACTIVE|DISCONTINUED)$", message = "Invalid status")
     val status: String? = null
 )
 

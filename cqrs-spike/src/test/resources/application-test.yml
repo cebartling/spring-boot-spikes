@@ -42,9 +42,9 @@ spring:
   flyway:
     enabled: false
 
-# Disable projection auto-start for tests
+# Enable projection auto-start for acceptance tests to populate read model
 projection:
-  auto-start: false
+  auto-start: true
 
 # Logging - reduced verbosity for tests
 logging:
@@ -53,12 +53,55 @@ logging:
     com.pintailconsultingllc.cqrsspike: INFO
     org.springframework.r2dbc: WARN
 
-# Actuator - minimal exposure for tests
+# Actuator - expose endpoints needed for observability tests
 management:
   endpoints:
     web:
       exposure:
-        include: health
+        include: health,prometheus,metrics
   tracing:
     sampling:
       probability: 0.0  # Disable tracing in tests
+
+# Resilience4j - Relaxed settings for testing
+# Disable circuit breakers and rate limiters to prevent test interference
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: false
+        slidingWindowSize: 100
+        minimumNumberOfCalls: 100
+        permittedNumberOfCallsInHalfOpenState: 50
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 1s
+        failureRateThreshold: 100
+        recordExceptions: []
+    instances:
+      productCommands:
+        baseConfig: default
+      productQueries:
+        baseConfig: default
+  retry:
+    configs:
+      default:
+        maxAttempts: 1
+        waitDuration: 10ms
+        retryExceptions: []
+    instances:
+      productCommands:
+        baseConfig: default
+      productQueries:
+        baseConfig: default
+  ratelimiter:
+    configs:
+      default:
+        limitForPeriod: 10000
+        limitRefreshPeriod: 1s
+        timeoutDuration: 60s
+        registerHealthIndicator: false
+    instances:
+      productCommands:
+        baseConfig: default
+      productQueries:
+        baseConfig: default

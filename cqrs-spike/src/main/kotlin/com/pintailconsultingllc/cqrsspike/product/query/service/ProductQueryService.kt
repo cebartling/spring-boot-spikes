@@ -63,6 +63,10 @@ class ProductQueryService(
         return repository.findByIdNotDeleted(id)
             .doOnNext { logger.debug("Found product: id={}, sku={}", id, it.sku) }
             .map { ProductResponse.from(it) }
+            .onErrorResume(NoSuchElementException::class.java) { ex ->
+                logger.debug("Product not found (NoSuchElementException): id={}", id)
+                Mono.empty()
+            }
             .switchIfEmpty(Mono.defer {
                 logger.debug("Product not found: id={}", id)
                 Mono.empty()
@@ -432,11 +436,21 @@ class ProductQueryService(
 
     /**
      * Rate limit fallback for findById.
+     * Re-throws domain exceptions to preserve proper HTTP status codes.
+     * Only wraps in 429 for actual rate limit exceeded exceptions.
      */
     @Suppress("unused")
     private fun rateLimitFallbackFindById(id: UUID, ex: Throwable): Mono<ProductResponse> {
-        logger.warn("Rate limit exceeded for findById: id={}", id, ex)
-        return Mono.error(QueryRateLimitException("Too many requests. Please try again later."))
+        return when (ex) {
+            is io.github.resilience4j.ratelimiter.RequestNotPermitted -> {
+                logger.warn("Rate limit exceeded for findById: id={}", id, ex)
+                Mono.error(QueryRateLimitException("Too many requests. Please try again later."))
+            }
+            else -> {
+                logger.debug("Re-throwing exception from findById rate limiter: ${ex.javaClass.simpleName}")
+                Mono.error(ex)
+            }
+        }
     }
 
     /**
@@ -450,20 +464,40 @@ class ProductQueryService(
 
     /**
      * Circuit breaker fallback for findById.
+     * Re-throws domain exceptions to preserve proper HTTP status codes.
+     * Only wraps in 503 for actual circuit breaker open exceptions.
      */
     @Suppress("unused")
     private fun circuitBreakerFallbackFindById(id: UUID, ex: Throwable): Mono<ProductResponse> {
-        logger.error("Circuit breaker open for findById: id={}", id, ex)
-        return Mono.error(QueryServiceUnavailableException("Query service temporarily unavailable. Please try again later."))
+        return when (ex) {
+            is io.github.resilience4j.circuitbreaker.CallNotPermittedException -> {
+                logger.error("Circuit breaker open for findById: id={}", id, ex)
+                Mono.error(QueryServiceUnavailableException("Query service temporarily unavailable. Please try again later."))
+            }
+            else -> {
+                logger.debug("Re-throwing exception from findById: ${ex.javaClass.simpleName}")
+                Mono.error(ex)
+            }
+        }
     }
 
     /**
      * Rate limit fallback for findAllPaginated.
+     * Re-throws domain exceptions to preserve proper HTTP status codes.
+     * Only wraps in 429 for actual rate limit exceeded exceptions.
      */
     @Suppress("unused")
     private fun rateLimitFallbackFindAllPaginated(page: Int, size: Int, ex: Throwable): Mono<ProductPageResponse> {
-        logger.warn("Rate limit exceeded for findAllPaginated: page={}, size={}", page, size, ex)
-        return Mono.error(QueryRateLimitException("Too many requests. Please try again later."))
+        return when (ex) {
+            is io.github.resilience4j.ratelimiter.RequestNotPermitted -> {
+                logger.warn("Rate limit exceeded for findAllPaginated: page={}, size={}", page, size, ex)
+                Mono.error(QueryRateLimitException("Too many requests. Please try again later."))
+            }
+            else -> {
+                logger.debug("Re-throwing exception from findAllPaginated rate limiter: ${ex.javaClass.simpleName}")
+                Mono.error(ex)
+            }
+        }
     }
 
     /**
@@ -477,20 +511,40 @@ class ProductQueryService(
 
     /**
      * Circuit breaker fallback for findAllPaginated.
+     * Re-throws domain exceptions to preserve proper HTTP status codes.
+     * Only wraps in 503 for actual circuit breaker open exceptions.
      */
     @Suppress("unused")
     private fun circuitBreakerFallbackFindAllPaginated(page: Int, size: Int, ex: Throwable): Mono<ProductPageResponse> {
-        logger.error("Circuit breaker open for findAllPaginated: page={}, size={}", page, size, ex)
-        return Mono.error(QueryServiceUnavailableException("Query service temporarily unavailable. Please try again later."))
+        return when (ex) {
+            is io.github.resilience4j.circuitbreaker.CallNotPermittedException -> {
+                logger.error("Circuit breaker open for findAllPaginated: page={}, size={}", page, size, ex)
+                Mono.error(QueryServiceUnavailableException("Query service temporarily unavailable. Please try again later."))
+            }
+            else -> {
+                logger.debug("Re-throwing exception from findAllPaginated: ${ex.javaClass.simpleName}")
+                Mono.error(ex)
+            }
+        }
     }
 
     /**
      * Rate limit fallback for search.
+     * Re-throws domain exceptions to preserve proper HTTP status codes.
+     * Only wraps in 429 for actual rate limit exceeded exceptions.
      */
     @Suppress("unused")
     private fun rateLimitFallbackSearch(query: String, limit: Int, ex: Throwable): Mono<ProductSearchResponse> {
-        logger.warn("Rate limit exceeded for search: query={}", query, ex)
-        return Mono.error(QueryRateLimitException("Too many requests. Please try again later."))
+        return when (ex) {
+            is io.github.resilience4j.ratelimiter.RequestNotPermitted -> {
+                logger.warn("Rate limit exceeded for search: query={}", query, ex)
+                Mono.error(QueryRateLimitException("Too many requests. Please try again later."))
+            }
+            else -> {
+                logger.debug("Re-throwing exception from search rate limiter: ${ex.javaClass.simpleName}")
+                Mono.error(ex)
+            }
+        }
     }
 
     /**
@@ -504,10 +558,20 @@ class ProductQueryService(
 
     /**
      * Circuit breaker fallback for search.
+     * Re-throws domain exceptions to preserve proper HTTP status codes.
+     * Only wraps in 503 for actual circuit breaker open exceptions.
      */
     @Suppress("unused")
     private fun circuitBreakerFallbackSearch(query: String, limit: Int, ex: Throwable): Mono<ProductSearchResponse> {
-        logger.error("Circuit breaker open for search: query={}", query, ex)
-        return Mono.error(QueryServiceUnavailableException("Query service temporarily unavailable. Please try again later."))
+        return when (ex) {
+            is io.github.resilience4j.circuitbreaker.CallNotPermittedException -> {
+                logger.error("Circuit breaker open for search: query={}", query, ex)
+                Mono.error(QueryServiceUnavailableException("Query service temporarily unavailable. Please try again later."))
+            }
+            else -> {
+                logger.debug("Re-throwing exception from search: ${ex.javaClass.simpleName}")
+                Mono.error(ex)
+            }
+        }
     }
 }

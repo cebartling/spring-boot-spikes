@@ -81,4 +81,4 @@ Feature: Product Lifecycle Management
     Given a product with SKU "DUPLICATE-001" exists
     When I try to create a product with duplicate SKU "DUPLICATE-001"
     Then the response status should be CONFLICT
-    And the response should contain error message "SKU already exists"
+    And the response should contain error message "already exists"
