@@ -53,12 +53,12 @@ logging:
     com.pintailconsultingllc.cqrsspike: INFO
     org.springframework.r2dbc: WARN
 
-# Actuator - minimal exposure for tests
+# Actuator - expose endpoints needed for observability tests
 management:
   endpoints:
     web:
       exposure:
-        include: health
+        include: health,prometheus,metrics
   tracing:
     sampling:
       probability: 0.0  # Disable tracing in tests
