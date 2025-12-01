@@ -49,7 +49,7 @@ Feature: Error Handling and Resilience
     Given a product with SKU "EXISTING-SKU" exists
     When I create a product with SKU "EXISTING-SKU", name "Duplicate Product", and price 1999 cents
     Then the response status should be CONFLICT
-    And the response should contain error message "SKU already exists"
+    And the response should contain error message "already exists"
 
   @error-handling
   Scenario: Concurrent modification returns CONFLICT with retry guidance

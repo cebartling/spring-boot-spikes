@@ -297,20 +297,53 @@ class ProductLifecycleSteps {
 
     @Then("the product should have name {string}")
     fun theProductShouldHaveName(expectedName: String) {
-        val body = testContext.lastResponseBody
+        // CommandSuccess response doesn't include name, so we need to fetch from read model
+        val productId = testContext.currentProductId
+            ?: throw IllegalStateException("No current product ID in context")
+
+        // Retry with exponential backoff for eventual consistency
+        val body = fetchProductWithRetry(productId)
         assertThat(body)
-            .describedAs("Response body")
+            .describedAs("Product response body")
             .isNotNull
             .contains("\"name\":\"$expectedName\"")
     }
 
     @Then("the product should have price {int} cents")
     fun theProductShouldHavePriceCents(expectedPriceCents: Int) {
-        val body = testContext.lastResponseBody
+        // CommandSuccess response doesn't include priceCents, so we need to fetch from read model
+        val productId = testContext.currentProductId
+            ?: throw IllegalStateException("No current product ID in context")
+
+        // Retry with exponential backoff for eventual consistency
+        val body = fetchProductWithRetry(productId)
         assertThat(body)
-            .describedAs("Response body")
+            .describedAs("Product response body")
             .isNotNull
             .contains("\"priceCents\":$expectedPriceCents")
+    }
+
+    /**
+     * Fetches a product from the read model with retry logic to handle eventual consistency.
+     */
+    private fun fetchProductWithRetry(productId: java.util.UUID): String? {
+        val maxAttempts = 5
+        val initialDelayMs = 100L
+
+        for (attempt in 1..maxAttempts) {
+            Thread.sleep(initialDelayMs * attempt)
+
+            val response = webTestClient.get()
+                .uri("/api/products/{id}", productId)
+                .exchange()
+                .returnResult(String::class.java)
+
+            val body = response.responseBody.blockFirst()
+            if (response.status.is2xxSuccessful && body != null && body.contains("\"id\":")) {
+                return body
+            }
+        }
+        return null
     }
 
     @Then("the product status should be {string}")
@@ -384,6 +417,15 @@ class ProductLifecycleSteps {
         responseParsingHelper.extractProductIdFromResponse()
         updateVersionFromResponse()
         pendingProductName = name
+
+        // Verify product was actually created - fail fast if not
+        if (testContext.currentProductId == null) {
+            throw IllegalStateException(
+                "Failed to create product with SKU '$sku'. " +
+                "Status: ${testContext.lastResponseStatus}, " +
+                "Body: ${testContext.lastResponseBody}"
+            )
+        }
     }
 
     private fun createProductAndStoreResponse(sku: String, name: String, description: String?, priceCents: Int) {

@@ -42,9 +42,9 @@ spring:
   flyway:
     enabled: false
 
-# Disable projection auto-start for tests
+# Enable projection auto-start for acceptance tests to populate read model
 projection:
-  auto-start: false
+  auto-start: true
 
 # Logging - reduced verbosity for tests
 logging:

@@ -330,6 +330,15 @@ class BusinessRulesSteps {
         testContext.lastResponseBody = response.responseBody.blockFirst()
         responseParsingHelper.extractProductIdFromResponse()
         updateVersionFromResponse()
+
+        // Verify product was actually created - fail fast if not
+        if (testContext.currentProductId == null) {
+            throw IllegalStateException(
+                "Failed to create product with SKU '$sku'. " +
+                "Status: ${testContext.lastResponseStatus}, " +
+                "Body: ${testContext.lastResponseBody}"
+            )
+        }
     }
 
     private fun createProductAndStoreResponse(sku: String, name: String, description: String?, priceCents: Int) {
