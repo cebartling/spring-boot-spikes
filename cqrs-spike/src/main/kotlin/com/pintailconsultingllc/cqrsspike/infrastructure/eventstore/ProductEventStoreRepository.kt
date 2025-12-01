@@ -79,12 +79,12 @@ class ProductEventStoreRepository(
         }
 
         return appendEventsUsingStoredProcedure(productId, expectedVersion, events, metadata)
-            .doOnSuccess {
-                logger.info("Saved ${events.size} events for Product $productId")
-            }
             .doOnError { error ->
                 logger.error("Failed to save events for Product $productId", error)
             }
+            .then(Mono.fromRunnable {
+                logger.info("Saved ${events.size} events for Product $productId")
+            })
     }
 
     /**
@@ -160,17 +160,31 @@ class ProductEventStoreRepository(
         metadata: EventMetadata?
     ): Mono<Void> {
         // Build JSON objects for each event using Jackson (safe serialization)
-        val eventsJsonArray: Array<io.r2dbc.postgresql.codec.Json> = events.map { event ->
-            io.r2dbc.postgresql.codec.Json.of(buildEventJsonObject(event, metadata))
-        }.toTypedArray()
+        // In Spring Data R2DBC 4.0, passing array of Json objects directly doesn't work
+        // So we build the array literal as a string and cast it in SQL
+        val eventsJsonStrings = events.map { event ->
+            buildEventJsonObject(event, metadata)
+        }
 
-        // Use parameterized query with proper array binding to prevent SQL injection
+        // Build PostgreSQL array literal: ARRAY['json1'::jsonb, 'json2'::jsonb, ...]
+        // This approach avoids R2DBC parameter binding issues with Json arrays
+        val eventsArrayLiteral = eventsJsonStrings.joinToString(
+            separator = "::jsonb, ",
+            prefix = "ARRAY[",
+            postfix = "::jsonb]::jsonb[]"
+        ) { jsonStr ->
+            // Escape single quotes for PostgreSQL string literals
+            "'" + jsonStr.replace("'", "''") + "'"
+        }
+
+        // Use parameterized query for scalar values, but embed the JSON array literal
+        // The JSON content is safely escaped through Jackson serialization and SQL escaping
         val sql = """
             SELECT event_store.append_events(
                 :aggregateType,
                 :aggregateId,
                 :expectedVersion,
-                :events
+                $eventsArrayLiteral
             )
         """.trimIndent()
 
@@ -178,7 +192,6 @@ class ProductEventStoreRepository(
             .bind("aggregateType", AGGREGATE_TYPE)
             .bind("aggregateId", aggregateId)
             .bind("expectedVersion", expectedVersion.toInt())
-            .bind("events", eventsJsonArray)
             .fetch()
             .rowsUpdated()
             .then()

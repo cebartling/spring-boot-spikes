@@ -37,8 +37,8 @@ class ProductQueryServiceResiliencyTest {
 
     private lateinit var service: ProductQueryService
 
-    private val testProduct = ProductReadModel(
-        id = UUID.randomUUID(),
+    private val testProduct = ProductReadModel.newInstance(
+        productId = UUID.randomUUID(),
         sku = "TEST-RESILIENCY-001",
         name = "Resiliency Test Product",
         description = "A product for testing resiliency",

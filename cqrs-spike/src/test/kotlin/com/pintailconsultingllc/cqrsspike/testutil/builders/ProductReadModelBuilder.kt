@@ -72,8 +72,8 @@ class ProductReadModelBuilder private constructor() {
     /**
      * Builds the ProductReadModel with the configured values.
      */
-    fun build(): ProductReadModel = ProductReadModel(
-        id = id,
+    fun build(): ProductReadModel = ProductReadModel.newInstance(
+        productId = id,
         sku = sku,
         name = name,
         description = description,

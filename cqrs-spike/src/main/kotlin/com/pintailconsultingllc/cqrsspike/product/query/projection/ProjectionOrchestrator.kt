@@ -217,9 +217,9 @@ class ProjectionOrchestrator(
 
     private fun resetProjectionPosition(): Mono<Void> {
         return positionRepository.deleteById(PROJECTION_NAME)
-            .doOnSuccess {
+            .then(Mono.fromRunnable {
                 logger.info("Reset projection position for: {}", PROJECTION_NAME)
-            }
+            })
     }
 
     private fun calculateLag(lastEventId: UUID?): Mono<Long> {
