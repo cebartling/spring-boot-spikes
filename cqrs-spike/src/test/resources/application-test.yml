@@ -62,3 +62,46 @@ management:
   tracing:
     sampling:
       probability: 0.0  # Disable tracing in tests
+
+# Resilience4j - Relaxed settings for testing
+# Disable circuit breakers and rate limiters to prevent test interference
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: false
+        slidingWindowSize: 100
+        minimumNumberOfCalls: 100
+        permittedNumberOfCallsInHalfOpenState: 50
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 1s
+        failureRateThreshold: 100
+        recordExceptions: []
+    instances:
+      productCommands:
+        baseConfig: default
+      productQueries:
+        baseConfig: default
+  retry:
+    configs:
+      default:
+        maxAttempts: 1
+        waitDuration: 10ms
+        retryExceptions: []
+    instances:
+      productCommands:
+        baseConfig: default
+      productQueries:
+        baseConfig: default
+  ratelimiter:
+    configs:
+      default:
+        limitForPeriod: 10000
+        limitRefreshPeriod: 1s
+        timeoutDuration: 60s
+        registerHealthIndicator: false
+    instances:
+      productCommands:
+        baseConfig: default
+      productQueries:
+        baseConfig: default
