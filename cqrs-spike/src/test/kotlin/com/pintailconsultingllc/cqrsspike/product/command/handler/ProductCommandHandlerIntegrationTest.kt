@@ -1,6 +1,5 @@
 package com.pintailconsultingllc.cqrsspike.product.command.handler
 
-import com.pintailconsultingllc.cqrsspike.product.command.infrastructure.IdempotencyRepository
 import com.pintailconsultingllc.cqrsspike.product.command.model.ActivateProductCommand
 import com.pintailconsultingllc.cqrsspike.product.command.model.ChangePriceCommand
 import com.pintailconsultingllc.cqrsspike.product.command.model.CommandAlreadyProcessed
@@ -9,7 +8,6 @@ import com.pintailconsultingllc.cqrsspike.product.command.model.CreateProductCom
 import com.pintailconsultingllc.cqrsspike.product.command.model.DeleteProductCommand
 import com.pintailconsultingllc.cqrsspike.product.command.model.DiscontinueProductCommand
 import com.pintailconsultingllc.cqrsspike.product.command.model.UpdateProductCommand
-import com.pintailconsultingllc.cqrsspike.product.command.service.IdempotencyService
 import com.pintailconsultingllc.cqrsspike.product.command.validation.CommandValidationException
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
@@ -40,12 +38,6 @@ class ProductCommandHandlerIntegrationTest {
 
     @Autowired
     private lateinit var commandHandler: ProductCommandHandler
-
-    @Autowired
-    private lateinit var idempotencyService: IdempotencyService
-
-    @Autowired
-    private lateinit var idempotencyRepository: IdempotencyRepository
 
     @Nested
     @DisplayName("CreateProductCommand")
@@ -209,15 +201,6 @@ class ProductCommandHandlerIntegrationTest {
 
             // First request
             val firstResult = commandHandler.handle(command).block() as CommandSuccess
-
-            // Verify the idempotency record was saved by querying the repository directly
-            val savedRecord = idempotencyRepository.findByIdempotencyKey(idempotencyKey).block()
-            println("DEBUG: Saved record from repository = $savedRecord")
-            println("DEBUG: First result productId = ${firstResult.productId}")
-
-            // Also verify via the service
-            val serviceCheckResult = idempotencyService.checkIdempotency(idempotencyKey).block()
-            println("DEBUG: Service check result = $serviceCheckResult")
 
             // Second request with same idempotency key
             StepVerifier.create(commandHandler.handle(command))

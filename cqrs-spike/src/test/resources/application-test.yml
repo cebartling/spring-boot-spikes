@@ -50,14 +50,12 @@ spring:
 projection:
   auto-start: true
 
-# Logging - with SQL debugging for tests
+# Logging - reduced verbosity for tests
 logging:
   level:
     root: WARN
-    com.pintailconsultingllc.cqrsspike: DEBUG
-    com.pintailconsultingllc.cqrsspike.product.command.service.IdempotencyService: DEBUG
-    org.springframework.r2dbc: DEBUG
-    io.r2dbc.postgresql.QUERY: DEBUG
+    com.pintailconsultingllc.cqrsspike: INFO
+    org.springframework.r2dbc: WARN
 
 # Actuator - expose endpoints needed for observability tests
 management:
