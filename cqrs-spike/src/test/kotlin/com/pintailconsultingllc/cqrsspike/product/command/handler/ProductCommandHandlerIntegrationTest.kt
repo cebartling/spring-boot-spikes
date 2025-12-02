@@ -9,9 +9,12 @@ import com.pintailconsultingllc.cqrsspike.product.command.model.DeleteProductCom
 import com.pintailconsultingllc.cqrsspike.product.command.model.DiscontinueProductCommand
 import com.pintailconsultingllc.cqrsspike.product.command.model.UpdateProductCommand
 import com.pintailconsultingllc.cqrsspike.product.command.validation.CommandValidationException
+import com.pintailconsultingllc.cqrsspike.testutil.TestDatabaseCleanup
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
@@ -33,11 +36,21 @@ import java.util.UUID
  */
 @SpringBootTest
 @ActiveProfiles("test")
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DisplayName("ProductCommandHandler Integration Tests")
 class ProductCommandHandlerIntegrationTest {
 
     @Autowired
     private lateinit var commandHandler: ProductCommandHandler
+
+    @Autowired
+    private lateinit var testDatabaseCleanup: TestDatabaseCleanup
+
+    @BeforeEach
+    fun setUp() {
+        // Clean all test data before each test for isolation
+        testDatabaseCleanup.cleanAllTestData().block()
+    }
 
     @Nested
     @DisplayName("CreateProductCommand")

@@ -7,10 +7,12 @@ import com.pintailconsultingllc.cqrsspike.product.command.exception.ProductInvar
 import com.pintailconsultingllc.cqrsspike.product.command.infrastructure.ProductAggregateRepository
 import com.pintailconsultingllc.cqrsspike.product.command.infrastructure.StubEventStoreRepository
 import com.pintailconsultingllc.cqrsspike.product.command.model.ProductStatus
+import com.pintailconsultingllc.cqrsspike.testutil.TestDatabaseCleanup
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
@@ -40,6 +42,7 @@ import kotlin.test.assertTrue
  */
 @SpringBootTest
 @ActiveProfiles("test")
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DisplayName("AC9 Business Rules Integration Tests")
 class BusinessRulesIntegrationTest {
 
@@ -55,9 +58,14 @@ class BusinessRulesIntegrationTest {
     @Autowired
     private lateinit var statusBasedValidator: StatusBasedValidator
 
+    @Autowired
+    private lateinit var testDatabaseCleanup: TestDatabaseCleanup
+
     @BeforeEach
     fun setup() {
+        // Clean both in-memory stub and database for full isolation
         stubEventStore.clear()
+        testDatabaseCleanup.cleanAllTestData().block()
     }
 
     @Nested
