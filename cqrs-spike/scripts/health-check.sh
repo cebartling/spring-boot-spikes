@@ -58,6 +58,7 @@ if curl -sf "http://localhost:3200/ready" > /dev/null 2>&1; then
     echo "✓ Healthy"
 else
     echo "⚠ Running (limited health check)"
+    all_healthy=false
 fi
 
 # Determine docker compose command
