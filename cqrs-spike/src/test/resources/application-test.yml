@@ -62,7 +62,10 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,prometheus,metrics
+        include: health,prometheus,metrics,info
+  endpoint:
+    health:
+      show-details: always
   tracing:
     sampling:
       probability: 0.0  # Disable tracing in tests
