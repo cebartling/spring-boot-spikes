@@ -45,6 +45,8 @@ make health
 | Vault UI | http://localhost:8200/ui | Token: `dev-root-token` |
 | Vault API | http://localhost:8200 | Token: `dev-root-token` |
 | PostgreSQL | localhost:5432 | User: `cqrs_user`, Password: `local_dev_password`, DB: `cqrs_db` |
+| Grafana UI | http://localhost:3000 | Anonymous access enabled (Admin role) |
+| Prometheus | http://localhost:9090 | N/A |
 | Application | http://localhost:8080 | N/A |
 | Health Check | http://localhost:8080/actuator/health | N/A |
 | Debug Port | localhost:5005 | JDWP |
@@ -55,6 +57,9 @@ make health
 |---------|--------------|---------|
 | Vault | http://vault:8200 | Application |
 | PostgreSQL | postgres:5432 | Application |
+| Prometheus | http://prometheus:9090 | Grafana |
+| Loki | http://loki:3100 | Grafana, Promtail |
+| Tempo | http://tempo:3200 | Grafana |
 
 ### Database Connection Strings
 
@@ -97,11 +102,67 @@ Navigate to http://localhost:8200/ui and login with token: `dev-root-token`
 make shell-vault
 ```
 
+### Grafana Access
+
+Grafana provides a unified observability UI for metrics, logs, and traces.
+
+**UI:**
+Navigate to http://localhost:3000
+
+**Authentication:**
+Anonymous access is enabled with Admin role - no login required for local development.
+
+If you need to log in (e.g., after disabling anonymous access):
+- Username: `admin`
+- Password: `admin` (you'll be prompted to change on first login)
+
+**Pre-configured Data Sources:**
+
+| Data Source | Type | Purpose |
+|-------------|------|---------|
+| Prometheus | Metrics | Application and JVM metrics from `/actuator/prometheus` |
+| Loki | Logs | Aggregated container logs with trace correlation |
+| Tempo | Traces | Distributed tracing with trace-to-logs linking |
+
+**Pre-configured Dashboards:**
+
+| Dashboard | Description |
+|-----------|-------------|
+| CQRS Spike - Application Metrics | Main application dashboard with key metrics |
+
+**Dashboard Panels:**
+
+The "CQRS Spike - Application Metrics" dashboard includes:
+
+| Panel | Description |
+|-------|-------------|
+| Request Rate | HTTP requests per second by method and URI |
+| Response Time (p95) | 95th percentile response latency |
+| JVM Memory | Heap and non-heap memory usage by area |
+| Database Connections | HikariCP connection pool status (active, idle, total) |
+| JVM Threads | Live and daemon thread counts |
+| CPU Usage | System and process CPU utilization |
+
+**Exploring Traces:**
+
+1. Go to **Explore** in the left sidebar
+2. Select **Tempo** as the data source
+3. Use TraceQL to search for traces, e.g., `{service.name="cqrs-spike"}`
+4. Click on a trace to see the full span timeline
+5. Click "Logs for this span" to see correlated logs in Loki
+
+**Exploring Logs:**
+
+1. Go to **Explore** in the left sidebar
+2. Select **Loki** as the data source
+3. Use LogQL to filter logs, e.g., `{container="cqrs-spike"} |= "error"`
+4. Click on a log line with a trace_id to jump to the trace in Tempo
+
 ## Common Tasks
 
 ### Infrastructure Management
 
-- `make start` - Start all infrastructure services (Vault, PostgreSQL)
+- `make start` - Start all infrastructure services (Vault, PostgreSQL, Grafana, Prometheus, Loki, Tempo)
 - `make stop` - Stop all services
 - `make restart` - Restart all services
 - `make clean` - Stop services and remove volumes (fresh start)
@@ -174,7 +235,7 @@ Database Schemas:
 - **Secrets Management:** HashiCorp Vault
 - **Migrations:** Flyway
 - **Resilience:** Resilience4j
-- **Observability:** OpenTelemetry
+- **Observability:** OpenTelemetry, Grafana, Prometheus, Loki, Tempo
 - **Testing:** JUnit 5, Mockito, StepVerifier, Cucumber BDD
 
 ## Architecture
