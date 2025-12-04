@@ -286,6 +286,39 @@ Acceptance tests are tagged for selective execution:
 ./gradlew test --tests '*AcceptanceTestRunner*' -Dcucumber.filter.tags="@smoke and @happy-path"
 ```
 
+#### Running Observability Tests
+
+The observability acceptance tests validate the monitoring and diagnostics capabilities of the system:
+
+```bash
+# Run all observability tests
+./gradlew test --tests '*AcceptanceTestRunner*' -Dcucumber.filter.tags="@observability"
+
+# Run observability smoke tests only
+./gradlew test --tests '*AcceptanceTestRunner*' -Dcucumber.filter.tags="@observability and @smoke"
+```
+
+**Observability Test Scenarios:**
+
+| Category | Test Scenarios |
+|----------|----------------|
+| Health Endpoints | System status verification, component details (db, diskSpace) |
+| Prometheus Metrics | Endpoint accessibility, JVM metrics, HTTP server metrics |
+| Custom Metrics | Product command metrics, product query metrics recording |
+| Actuator Metrics | Metrics list availability, individual metric retrieval |
+| Correlation IDs | ID propagation in success responses, ID propagation in error responses |
+| System Info | Application info endpoint availability |
+
+**Endpoints Tested:**
+
+| Endpoint | Purpose |
+|----------|---------|
+| `/actuator/health` | System health status and component details |
+| `/actuator/prometheus` | Prometheus-format metrics for scraping |
+| `/actuator/metrics` | List of available metrics |
+| `/actuator/metrics/{name}` | Individual metric details |
+| `/actuator/info` | Application information |
+
 #### Available Tags
 
 | Tag | Description |
@@ -297,6 +330,7 @@ Acceptance tests are tagged for selective execution:
 | `@product-queries` | Query, search, pagination, filtering |
 | `@business-rules` | Business rule validation |
 | `@event-sourcing` | Event store verification |
+| `@observability` | Observability platform (health, metrics, correlation IDs) |
 | `@edge-case` | Edge case and boundary scenarios |
 | `@wip` | Work in progress (excluded by default) |
 
@@ -320,6 +354,7 @@ src/test/resources/features/acceptance/
 ├── business-rules.feature      # Business rule validation scenarios
 ├── error-handling.feature      # Error handling scenarios
 ├── event-sourcing.feature      # Event sourcing verification
+├── observability.feature       # Observability platform tests
 ├── product-lifecycle.feature   # Product CRUD and status transitions
 └── product-queries.feature     # Query, search, and pagination
 ```
