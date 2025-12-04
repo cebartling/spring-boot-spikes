@@ -1,6 +1,6 @@
 #!/bin/bash
 # scripts/start-infrastructure.sh
-# Starts CQRS infrastructure services (Vault and PostgreSQL)
+# Starts CQRS infrastructure services including observability platform
 
 set -e
 
@@ -40,11 +40,11 @@ mkdir -p infrastructure/postgres/{config,init,data,backups}
 
 # Pull latest images
 echo "Pulling latest Docker images..."
-$DOCKER_COMPOSE pull --quiet vault postgres
+$DOCKER_COMPOSE pull --quiet
 
 # Start infrastructure services
 echo "Starting infrastructure services..."
-$DOCKER_COMPOSE up -d vault postgres
+$DOCKER_COMPOSE up -d
 
 # Wait for services to be healthy
 echo "Waiting for services to be ready..."
@@ -77,6 +77,48 @@ if ! $DOCKER_COMPOSE ps postgres | grep -q '(healthy)'; then
 fi
 echo "PostgreSQL is healthy ✓"
 
+# Wait for Prometheus (max 60 seconds)
+COUNTER=0
+until $DOCKER_COMPOSE ps prometheus | grep -q '(healthy)' || [ $COUNTER -eq 30 ]; do
+    sleep 2
+    COUNTER=$((COUNTER + 1))
+done
+
+if ! $DOCKER_COMPOSE ps prometheus | grep -q '(healthy)'; then
+    echo "Warning: Prometheus may not be fully ready yet"
+else
+    echo "Prometheus is healthy ✓"
+fi
+
+# Wait for Loki (max 60 seconds)
+COUNTER=0
+until $DOCKER_COMPOSE ps loki | grep -q '(healthy)' || [ $COUNTER -eq 30 ]; do
+    sleep 2
+    COUNTER=$((COUNTER + 1))
+done
+
+if ! $DOCKER_COMPOSE ps loki | grep -q '(healthy)'; then
+    echo "Warning: Loki may not be fully ready yet"
+else
+    echo "Loki is healthy ✓"
+fi
+
+# Wait for Grafana (max 60 seconds)
+COUNTER=0
+until $DOCKER_COMPOSE ps grafana | grep -q '(healthy)' || [ $COUNTER -eq 30 ]; do
+    sleep 2
+    COUNTER=$((COUNTER + 1))
+done
+
+if ! $DOCKER_COMPOSE ps grafana | grep -q '(healthy)'; then
+    echo "Warning: Grafana may not be fully ready yet"
+else
+    echo "Grafana is healthy ✓"
+fi
+
+# Note: Tempo uses distroless image without health check capability
+echo "Tempo is running (no health check available) ✓"
+
 # Initialize Vault
 echo "Initializing Vault with secrets..."
 $DOCKER_COMPOSE up vault-init
@@ -92,11 +134,19 @@ echo ""
 echo "========================================="
 echo "Infrastructure Ready!"
 echo "========================================="
-echo "Vault UI:       http://localhost:8200/ui"
-echo "Vault Token:    $(grep VAULT_ROOT_TOKEN .env 2>/dev/null | cut -d '=' -f2 || echo 'dev-root-token')"
-echo "PostgreSQL:     localhost:5432"
-echo "Database:       $(grep POSTGRES_DB .env 2>/dev/null | cut -d '=' -f2 || echo 'cqrs_db')"
-echo "User:           $(grep POSTGRES_USER .env 2>/dev/null | cut -d '=' -f2 || echo 'cqrs_user')"
+echo ""
+echo "Core Services:"
+echo "  Vault UI:       http://localhost:8200/ui"
+echo "  Vault Token:    $(grep VAULT_ROOT_TOKEN .env 2>/dev/null | cut -d '=' -f2 || echo 'dev-root-token')"
+echo "  PostgreSQL:     localhost:5432"
+echo "  Database:       $(grep POSTGRES_DB .env 2>/dev/null | cut -d '=' -f2 || echo 'cqrs_db')"
+echo "  User:           $(grep POSTGRES_USER .env 2>/dev/null | cut -d '=' -f2 || echo 'cqrs_user')"
+echo ""
+echo "Observability Platform:"
+echo "  Grafana:        http://localhost:3000 (anonymous access enabled)"
+echo "  Prometheus:     http://localhost:9090"
+echo "  Loki:           http://localhost:3100"
+echo "  Tempo:          http://localhost:3200"
 echo ""
 echo "To view logs:"
 echo "  $DOCKER_COMPOSE logs -f"

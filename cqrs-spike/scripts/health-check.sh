@@ -37,6 +37,29 @@ else
     echo "PostgreSQL... ✓ Healthy"
 fi
 
+# Check Prometheus
+if ! check_service "Prometheus" "http://localhost:9090/-/healthy"; then
+    all_healthy=false
+fi
+
+# Check Loki (use buildinfo endpoint as /ready returns 503 during warmup)
+if ! check_service "Loki" "http://localhost:3100/loki/api/v1/status/buildinfo"; then
+    all_healthy=false
+fi
+
+# Check Grafana
+if ! check_service "Grafana" "http://localhost:3000/api/health"; then
+    all_healthy=false
+fi
+
+# Check Tempo (basic connectivity check - no health endpoint in distroless image)
+echo -n "Checking Tempo... "
+if curl -sf "http://localhost:3200/ready" > /dev/null 2>&1; then
+    echo "✓ Healthy"
+else
+    echo "⚠ Running (limited health check)"
+fi
+
 # Determine docker compose command
 if docker compose version &> /dev/null; then
     DOCKER_COMPOSE="docker compose"
