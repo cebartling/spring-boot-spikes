@@ -1,6 +1,6 @@
 #!/bin/bash
 # scripts/start-infrastructure.sh
-# Starts CQRS infrastructure services (Vault and PostgreSQL)
+# Starts CQRS infrastructure services including observability platform
 
 set -e
 
@@ -40,42 +40,51 @@ mkdir -p infrastructure/postgres/{config,init,data,backups}
 
 # Pull latest images
 echo "Pulling latest Docker images..."
-$DOCKER_COMPOSE pull --quiet vault postgres
+$DOCKER_COMPOSE pull --quiet
 
 # Start infrastructure services
 echo "Starting infrastructure services..."
-$DOCKER_COMPOSE up -d vault postgres
+$DOCKER_COMPOSE up -d
+
+# Function to wait for a service to be healthy
+wait_for_service() {
+    local service_name=$1
+    local is_critical=${2:-false}
+    local max_attempts=30
+    local counter=0
+    
+    until $DOCKER_COMPOSE ps "$service_name" | grep -q '(healthy)' || [ $counter -eq $max_attempts ]; do
+        sleep 2
+        counter=$((counter + 1))
+    done
+    
+    if ! $DOCKER_COMPOSE ps "$service_name" | grep -q '(healthy)'; then
+        if [ "$is_critical" = "true" ]; then
+            echo "Error: $service_name failed to start"
+            $DOCKER_COMPOSE logs "$service_name"
+            exit 1
+        else
+            echo "Warning: $service_name may not be fully ready yet"
+        fi
+    else
+        echo "$service_name is healthy ✓"
+    fi
+}
 
 # Wait for services to be healthy
 echo "Waiting for services to be ready..."
 
-# Wait for Vault (max 60 seconds)
-COUNTER=0
-until $DOCKER_COMPOSE ps vault | grep -q '(healthy)' || [ $COUNTER -eq 30 ]; do
-    sleep 2
-    COUNTER=$((COUNTER + 1))
-done
+# Wait for critical services
+wait_for_service "vault" true
+wait_for_service "postgres" true
 
-if ! $DOCKER_COMPOSE ps vault | grep -q '(healthy)'; then
-    echo "Error: Vault failed to start"
-    $DOCKER_COMPOSE logs vault
-    exit 1
-fi
-echo "Vault is healthy ✓"
+# Wait for observability services (non-critical)
+wait_for_service "prometheus"
+wait_for_service "loki"
+wait_for_service "grafana"
 
-# Wait for PostgreSQL (max 60 seconds)
-COUNTER=0
-until $DOCKER_COMPOSE ps postgres | grep -q '(healthy)' || [ $COUNTER -eq 30 ]; do
-    sleep 2
-    COUNTER=$((COUNTER + 1))
-done
-
-if ! $DOCKER_COMPOSE ps postgres | grep -q '(healthy)'; then
-    echo "Error: PostgreSQL failed to start"
-    $DOCKER_COMPOSE logs postgres
-    exit 1
-fi
-echo "PostgreSQL is healthy ✓"
+# Note: Tempo uses distroless image without health check capability
+echo "Tempo is running (no health check available) ✓"
 
 # Initialize Vault
 echo "Initializing Vault with secrets..."
@@ -92,11 +101,19 @@ echo ""
 echo "========================================="
 echo "Infrastructure Ready!"
 echo "========================================="
-echo "Vault UI:       http://localhost:8200/ui"
-echo "Vault Token:    $(grep VAULT_ROOT_TOKEN .env 2>/dev/null | cut -d '=' -f2 || echo 'dev-root-token')"
-echo "PostgreSQL:     localhost:5432"
-echo "Database:       $(grep POSTGRES_DB .env 2>/dev/null | cut -d '=' -f2 || echo 'cqrs_db')"
-echo "User:           $(grep POSTGRES_USER .env 2>/dev/null | cut -d '=' -f2 || echo 'cqrs_user')"
+echo ""
+echo "Core Services:"
+echo "  Vault UI:       http://localhost:8200/ui"
+echo "  Vault Token:    [see .env file or use Vault CLI to retrieve token]"
+echo "  PostgreSQL:     localhost:5432"
+echo "  Database:       $(grep POSTGRES_DB .env 2>/dev/null | cut -d '=' -f2 || echo 'cqrs_db')"
+echo "  User:           $(grep POSTGRES_USER .env 2>/dev/null | cut -d '=' -f2 || echo 'cqrs_user')"
+echo ""
+echo "Observability Platform:"
+echo "  Grafana:        http://localhost:3000 (anonymous access enabled)"
+echo "  Prometheus:     http://localhost:9090"
+echo "  Loki:           http://localhost:3100"
+echo "  Tempo:          http://localhost:3200"
 echo ""
 echo "To view logs:"
 echo "  $DOCKER_COMPOSE logs -f"
