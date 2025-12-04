@@ -46,75 +46,42 @@ $DOCKER_COMPOSE pull --quiet
 echo "Starting infrastructure services..."
 $DOCKER_COMPOSE up -d
 
+# Function to wait for a service to be healthy
+wait_for_service() {
+    local service_name=$1
+    local is_critical=${2:-false}
+    local max_attempts=30
+    local counter=0
+    
+    until $DOCKER_COMPOSE ps "$service_name" | grep -q '(healthy)' || [ $counter -eq $max_attempts ]; do
+        sleep 2
+        counter=$((counter + 1))
+    done
+    
+    if ! $DOCKER_COMPOSE ps "$service_name" | grep -q '(healthy)'; then
+        if [ "$is_critical" = "true" ]; then
+            echo "Error: $service_name failed to start"
+            $DOCKER_COMPOSE logs "$service_name"
+            exit 1
+        else
+            echo "Warning: $service_name may not be fully ready yet"
+        fi
+    else
+        echo "$service_name is healthy ✓"
+    fi
+}
+
 # Wait for services to be healthy
 echo "Waiting for services to be ready..."
 
-# Wait for Vault (max 60 seconds)
-COUNTER=0
-until $DOCKER_COMPOSE ps vault | grep -q '(healthy)' || [ $COUNTER -eq 30 ]; do
-    sleep 2
-    COUNTER=$((COUNTER + 1))
-done
+# Wait for critical services
+wait_for_service "vault" true
+wait_for_service "postgres" true
 
-if ! $DOCKER_COMPOSE ps vault | grep -q '(healthy)'; then
-    echo "Error: Vault failed to start"
-    $DOCKER_COMPOSE logs vault
-    exit 1
-fi
-echo "Vault is healthy ✓"
-
-# Wait for PostgreSQL (max 60 seconds)
-COUNTER=0
-until $DOCKER_COMPOSE ps postgres | grep -q '(healthy)' || [ $COUNTER -eq 30 ]; do
-    sleep 2
-    COUNTER=$((COUNTER + 1))
-done
-
-if ! $DOCKER_COMPOSE ps postgres | grep -q '(healthy)'; then
-    echo "Error: PostgreSQL failed to start"
-    $DOCKER_COMPOSE logs postgres
-    exit 1
-fi
-echo "PostgreSQL is healthy ✓"
-
-# Wait for Prometheus (max 60 seconds)
-COUNTER=0
-until $DOCKER_COMPOSE ps prometheus | grep -q '(healthy)' || [ $COUNTER -eq 30 ]; do
-    sleep 2
-    COUNTER=$((COUNTER + 1))
-done
-
-if ! $DOCKER_COMPOSE ps prometheus | grep -q '(healthy)'; then
-    echo "Warning: Prometheus may not be fully ready yet"
-else
-    echo "Prometheus is healthy ✓"
-fi
-
-# Wait for Loki (max 60 seconds)
-COUNTER=0
-until $DOCKER_COMPOSE ps loki | grep -q '(healthy)' || [ $COUNTER -eq 30 ]; do
-    sleep 2
-    COUNTER=$((COUNTER + 1))
-done
-
-if ! $DOCKER_COMPOSE ps loki | grep -q '(healthy)'; then
-    echo "Warning: Loki may not be fully ready yet"
-else
-    echo "Loki is healthy ✓"
-fi
-
-# Wait for Grafana (max 60 seconds)
-COUNTER=0
-until $DOCKER_COMPOSE ps grafana | grep -q '(healthy)' || [ $COUNTER -eq 30 ]; do
-    sleep 2
-    COUNTER=$((COUNTER + 1))
-done
-
-if ! $DOCKER_COMPOSE ps grafana | grep -q '(healthy)'; then
-    echo "Warning: Grafana may not be fully ready yet"
-else
-    echo "Grafana is healthy ✓"
-fi
+# Wait for observability services (non-critical)
+wait_for_service "prometheus"
+wait_for_service "loki"
+wait_for_service "grafana"
 
 # Note: Tempo uses distroless image without health check capability
 echo "Tempo is running (no health check available) ✓"
