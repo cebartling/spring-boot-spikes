@@ -1,0 +1,25 @@
+spring:
+  cloud:
+    vault:
+      enabled: false
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/saga_db
+    username: saga_user
+    password: saga_password
+
+api:
+  encryption-key: test-encryption-key-32-bytes-long
+
+saga:
+  services:
+    inventory:
+      base-url: http://localhost:8081/api/inventory
+    payment:
+      base-url: http://localhost:8081/api/payments
+    shipping:
+      base-url: http://localhost:8081/api/shipments
+
+management:
+  health:
+    vault:
+      enabled: false

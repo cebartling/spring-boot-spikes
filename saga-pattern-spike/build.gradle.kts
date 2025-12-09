@@ -19,15 +19,22 @@ repositories {
 	mavenCentral()
 }
 
+extra["springCloudVersion"] = "2025.1.0"
 val cucumberVersion = "7.20.1"
 
 dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-webclient")
 	implementation("org.springframework.boot:spring-boot-starter-webflux")
+	implementation("org.springframework.boot:spring-boot-starter-actuator")
 	implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
 	implementation("tools.jackson.module:jackson-module-kotlin")
+
+	// Spring Cloud Vault for secret management
+	implementation("org.springframework.cloud:spring-cloud-starter-vault-config")
+	implementation("org.springframework.cloud:spring-cloud-vault-config-databases")
+
 	developmentOnly("org.springframework.boot:spring-boot-devtools")
 	testImplementation("org.springframework.boot:spring-boot-starter-webclient-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-webflux-test")
@@ -40,6 +47,12 @@ dependencies {
 	testImplementation("io.cucumber:cucumber-junit-platform-engine:$cucumberVersion")
 	testImplementation("io.cucumber:cucumber-spring:$cucumberVersion")
 	testImplementation("org.junit.platform:junit-platform-suite")
+}
+
+dependencyManagement {
+	imports {
+		mavenBom("org.springframework.cloud:spring-cloud-dependencies:${property("springCloudVersion")}")
+	}
 }
 
 kotlin {

@@ -1,5 +1,9 @@
 -- Saga Pattern Spike Database Schema
 
+-- Grant necessary permissions for Vault to create dynamic roles
+-- The saga_user needs CREATEROLE permission to allow Vault to manage database credentials
+ALTER USER saga_user CREATEROLE;
+
 -- Orders table
 CREATE TABLE orders (
     id UUID PRIMARY KEY,
