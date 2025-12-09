@@ -1,4 +1,6 @@
 spring:
+  application:
+    name: sagapattern-integration
   cloud:
     vault:
       enabled: false
@@ -19,20 +21,24 @@ saga:
     shipping:
       base-url: http://localhost:8081/api/shipments
 
+# Enable observability for integration tests
 management:
   health:
     vault:
       enabled: false
-  # Disable OpenTelemetry for tests
   tracing:
-    enabled: false
+    enabled: true
+    sampling:
+      probability: 1.0
   otlp:
     tracing:
-      export:
-        enabled: false
+      endpoint: http://localhost:4318/v1/traces
     metrics:
       export:
-        enabled: false
+        enabled: true
+        step: 10s
+        endpoint: http://localhost:4318/v1/metrics
     logging:
       export:
-        enabled: false
+        enabled: true
+        endpoint: http://localhost:4318/v1/logs

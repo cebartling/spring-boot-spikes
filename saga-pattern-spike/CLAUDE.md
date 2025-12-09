@@ -129,8 +129,9 @@ Reports generated at `build/reports/cucumber/cucumber-report.html`
 - **Spring Cloud Vault** for Vault integration
 - **WireMock 3.9** for external service mocks (via Docker)
 - **Cucumber 7.20** for acceptance testing
-- **OpenTelemetry** for distributed tracing and metrics (planned)
-- **SigNoz** for observability backend (planned)
+- **OpenTelemetry** for distributed tracing and metrics
+- **SigNoz** for observability backend
+- **Micrometer** for metrics and observation API
 
 ## Architecture
 
@@ -145,9 +146,9 @@ The project uses Spring WebFlux for non-blocking, reactive HTTP handling. Key pa
 - `docs/features/` - Feature specifications
 - `docs/implementation-plans/` - Implementation planning documents
 
-## Observability (Planned)
+## Observability (OpenTelemetry + SigNoz)
 
-The application will use OpenTelemetry with SigNoz for comprehensive observability:
+The application uses Spring Boot 4.0's native OpenTelemetry support with SigNoz for comprehensive observability.
 
 ### Telemetry Signals
 
@@ -155,19 +156,25 @@ The application will use OpenTelemetry with SigNoz for comprehensive observabili
 - **Metrics** - Saga execution metrics (duration, step latency, compensation rate)
 - **Logs** - Correlated logs with trace context for debugging
 
-### Key Ports (when observability stack is running)
+### Key Ports
 
 | Service | Port | Purpose |
 |---------|------|---------|
 | SigNoz Frontend | 3301 | Observability UI |
 | OTel Collector (gRPC) | 4317 | OTLP receiver |
 | OTel Collector (HTTP) | 4318 | OTLP receiver |
+| OTel Collector Health | 13133 | Health check endpoint |
+| ClickHouse HTTP | 8123 | ClickHouse interface |
+| ClickHouse Native | 9000 | ClickHouse protocol |
 
 ### Observability Commands
 
 ```bash
-# Start full stack including SigNoz (after implementation)
+# Start full stack including observability
 docker compose --profile observability up -d
+
+# Start only core services (without observability)
+docker compose up -d
 
 # Access SigNoz dashboard
 open http://localhost:3301
@@ -181,9 +188,33 @@ curl http://localhost:13133/
 
 ### Configuration
 
-- `otel.sdk.disabled=true` - Disable OpenTelemetry (for tests)
-- `management.tracing.enabled=false` - Disable tracing
-- See `docs/implementation-plans/INFRA-004-observability-integration.md` for full implementation details
+- **Development**: OTLP exports to localhost:4318
+- **Production**: Set `OTEL_EXPORTER_OTLP_ENDPOINT` environment variable
+- **Testing**: OTLP disabled via `management.tracing.enabled=false`
+
+### Custom Metrics
+
+The application exports custom saga metrics via OTLP:
+
+| Metric | Description |
+|--------|-------------|
+| `saga.started` | Number of sagas started |
+| `saga.completed` | Number of sagas completed successfully |
+| `saga.compensated` | Number of sagas requiring compensation |
+| `saga.duration` | Time to complete saga (success or compensation) |
+| `saga.step.duration` | Duration of individual saga steps |
+| `saga.step.failed` | Step failure count by step name |
+
+### Using @Observed Annotation
+
+Add observability to any method using the `@Observed` annotation:
+
+```kotlin
+@Observed(name = "saga.step", contextualName = "execute-step")
+suspend fun executeStep() { ... }
+```
+
+See `docs/implementation-plans/INFRA-004-observability-integration.md` for full implementation details.
 
 ## SDK Management
 

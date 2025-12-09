@@ -14,3 +14,16 @@ management:
   endpoint:
     health:
       show-details: always
+  # Production tracing - reduced sampling for performance
+  tracing:
+    sampling:
+      probability: 0.1
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+    metrics:
+      export:
+        endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+    logging:
+      export:
+        endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
