@@ -1,172 +1,191 @@
 package com.pintailconsultingllc.sagapattern.acceptance.steps
 
+import com.pintailconsultingllc.sagapattern.acceptance.config.TestContext
 import io.cucumber.datatable.DataTable
-import io.cucumber.java.en.And
+import io.cucumber.java.PendingException
 import io.cucumber.java.en.Given
 import io.cucumber.java.en.Then
 import io.cucumber.java.en.When
+import org.springframework.beans.factory.annotation.Autowired
 
 /**
  * Step definitions for SAGA-002: Automatic Rollback on Failure
+ *
+ * These steps are marked as pending until the saga pattern business logic is implemented.
+ * Infrastructure components (WireMock stubs, database schema) are in place.
  */
-class CompensationSteps {
+class CompensationSteps(
+    @Autowired private val testContext: TestContext
+) {
 
     // ==================== Given Steps ====================
 
     @Given("I have items in my cart that are out of stock")
     fun iHaveItemsInMyCartThatAreOutOfStock() {
         // Use WireMock trigger: productId = "out-of-stock-product"
-        TODO("Set up cart with out-of-stock items to trigger inventory failure")
+        testContext.cartItems.add(
+            mapOf(
+                "productId" to "out-of-stock-product",
+                "quantity" to 5,
+                "unitPrice" to 29.99
+            )
+        )
     }
 
     @Given("I have a payment method that will be declined")
     fun iHaveAPaymentMethodThatWillBeDeclined() {
         // Use WireMock trigger: paymentMethodId = "declined-card"
-        TODO("Set up payment method that triggers PAYMENT_DECLINED in WireMock")
+        testContext.paymentMethodId = "declined-card"
     }
 
     @Given("I have an invalid shipping address")
     fun iHaveAnInvalidShippingAddress() {
         // Use WireMock trigger: postalCode = "00000"
-        TODO("Set up shipping address that triggers INVALID_ADDRESS in WireMock")
+        testContext.shippingAddress = mapOf(
+            "street" to "123 Invalid St",
+            "city" to "Nowhereville",
+            "state" to "XX",
+            "postalCode" to "00000",
+            "country" to "US"
+        )
     }
 
     @Given("I have submitted an order that will fail at shipping")
     fun iHaveSubmittedAnOrderThatWillFailAtShipping() {
-        TODO("Submit order with invalid shipping address")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Given("I have an order that failed and was compensated")
     fun iHaveAnOrderThatFailedAndWasCompensated() {
-        TODO("Create order that failed and completed compensation")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Given("I have an order that failed due to payment decline")
     fun iHaveAnOrderThatFailedDueToPaymentDecline() {
-        TODO("Create order that failed at payment step")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Given("I have an order that failed after payment authorization")
     fun iHaveAnOrderThatFailedAfterPaymentAuthorization() {
-        TODO("Create order that passed payment but failed at shipping")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     // ==================== When Steps ====================
 
     @When("the shipping step fails")
     fun theShippingStepFails() {
-        TODO("Trigger or verify shipping step failure")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @When("compensation is triggered again")
     fun compensationIsTriggeredAgain() {
-        TODO("Attempt to trigger compensation on already-compensated order")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @When("I receive the failure notification")
     fun iReceiveTheFailureNotification() {
-        TODO("Capture failure notification from response or event")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @When("compensation completes")
     fun compensationCompletes() {
-        TODO("Wait for and verify compensation completion")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     // ==================== Then Steps ====================
 
     @Then("the inventory reservation step should fail")
     fun theInventoryReservationStepShouldFail() {
-        TODO("Verify inventory step has FAILED status")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Then("the payment authorization step should fail")
     fun thePaymentAuthorizationStepShouldFail() {
-        TODO("Verify payment step has FAILED status")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Then("the shipping arrangement step should fail")
     fun theShippingArrangementStepShouldFail() {
-        TODO("Verify shipping step has FAILED status")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Then("no compensation should be triggered")
     fun noCompensationShouldBeTriggered() {
-        TODO("Verify no compensation steps were executed")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Then("I should receive a failure notification")
     fun iShouldReceiveAFailureNotification() {
-        TODO("Verify failure notification was received")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Then("the failure reason should indicate {string}")
     fun theFailureReasonShouldIndicate(reason: String) {
-        TODO("Verify failure reason contains: $reason")
+        throw PendingException("Saga pattern business logic not yet implemented - verify reason: $reason")
     }
 
     @Then("the inventory reservation should be automatically released")
     fun theInventoryReservationShouldBeAutomaticallyReleased() {
-        TODO("Verify inventory release was called via WireMock verification")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Then("no inventory reservations should remain")
     fun noInventoryReservationsShouldRemain() {
-        TODO("Verify no active reservations exist for the order")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Then("the payment authorization should be automatically voided")
     fun thePaymentAuthorizationShouldBeAutomaticallyVoided() {
-        TODO("Verify payment void was called via WireMock verification")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Then("compensation should execute in reverse order:")
     fun compensationShouldExecuteInReverseOrder(dataTable: DataTable) {
-        TODO("Verify compensation order matches expected reverse sequence")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Then("each compensation step should be recorded")
     fun eachCompensationStepShouldBeRecorded() {
-        TODO("Query database for compensation step records")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Then("no duplicate reversals should occur")
     fun noDuplicateReversalsShouldOccur() {
-        TODO("Verify WireMock was called exactly once per compensation")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Then("the compensation result should indicate already compensated")
     fun theCompensationResultShouldIndicateAlreadyCompensated() {
-        TODO("Verify compensation returns 'already compensated' status")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Then("the notification should include the order ID")
     fun theNotificationShouldIncludeTheOrderId() {
-        TODO("Verify notification contains orderId")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Then("the notification should include the failed step name")
     fun theNotificationShouldIncludeTheFailedStepName() {
-        TODO("Verify notification contains failedStep")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Then("the notification should include a clear failure reason")
     fun theNotificationShouldIncludeAClearFailureReason() {
-        TODO("Verify notification contains human-readable reason")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Then("the notification should include suggested next steps")
     fun theNotificationShouldIncludeSuggestedNextSteps() {
-        TODO("Verify notification contains suggestions array")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Then("no payment charges should exist for the order")
     fun noPaymentChargesShouldExistForTheOrder() {
-        TODO("Verify no captured payments exist")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Then("no pending authorizations should exist for the order")
     fun noPendingAuthorizationsShouldExistForTheOrder() {
-        TODO("Verify all authorizations were voided")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 }

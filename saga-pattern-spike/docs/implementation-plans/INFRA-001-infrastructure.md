@@ -277,3 +277,40 @@ ports:
 1. Check admin UI: `http://localhost:8081/__admin`
 2. View near-misses: `http://localhost:8081/__admin/requests/unmatched/near-misses`
 3. Verify mappings loaded: `curl http://localhost:8081/__admin/mappings`
+
+## Integration Testing
+
+Infrastructure integration tests are available to verify the setup:
+
+### Run Integration Tests
+
+```bash
+# Run all integration tests (requires Docker services running)
+./gradlew test --tests "*IntegrationTest"
+
+# Run WireMock integration tests only
+./gradlew test --tests "*WireMockIntegrationTest"
+
+# Run PostgreSQL integration tests only
+./gradlew test --tests "*PostgresIntegrationTest"
+```
+
+### Test Coverage
+
+| Test Class | What it Verifies |
+|------------|------------------|
+| `WireMockIntegrationTest` | WireMock admin API, inventory/payment/shipping stub mappings |
+| `PostgresIntegrationTest` | Database connectivity, schema tables, indexes, triggers |
+
+**Note:** Integration tests will be skipped automatically if Docker services are not running.
+
+## Implementation Status
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Docker Compose | ✅ Complete | PostgreSQL, WireMock, Vault |
+| PostgreSQL Schema | ✅ Complete | All tables, indexes, triggers |
+| WireMock Stubs | ✅ Complete | Inventory, Payment, Shipping |
+| Application Config | ✅ Complete | R2DBC, Vault, Service URLs |
+| Integration Tests | ✅ Complete | Infrastructure verification |
+| Cucumber Steps | ✅ Complete | Pending saga logic implementation |
