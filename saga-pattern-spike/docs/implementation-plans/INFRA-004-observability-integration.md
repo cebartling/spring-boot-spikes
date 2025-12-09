@@ -1,8 +1,20 @@
 # Observability Integration: OpenTelemetry and SigNoz
 
+## Status: ✅ COMPLETED
+
+**Implementation Date:** December 2024
+
 ## Overview
 
 This document describes the implementation plan for integrating OpenTelemetry and SigNoz into the saga pattern spike application for comprehensive observability. This integration provides distributed tracing, metrics collection, and log correlation across the application and its external service interactions.
+
+### Implementation Notes
+
+The implementation uses **Spring Boot 4.0's native OpenTelemetry support** via `spring-boot-starter-opentelemetry` instead of the OpenTelemetry instrumentation library (`opentelemetry-spring-boot-starter`). This provides:
+
+- Native integration with Micrometer's Observation API
+- Automatic OTLP export configuration via `management.otlp.*` properties
+- Seamless WebClient instrumentation
 
 ## Goals
 
