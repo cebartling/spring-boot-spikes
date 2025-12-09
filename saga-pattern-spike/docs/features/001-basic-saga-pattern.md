@@ -18,6 +18,8 @@ Implement a basic saga pattern to coordinate multi-step business operations that
 - When all steps in the order process complete successfully
 - Then I receive a single confirmation that my order is complete
 - And all related records reflect the completed state
+- And a distributed trace is created spanning all saga steps
+- And metrics are recorded for saga completion time and step durations
 
 ---
 
@@ -34,6 +36,9 @@ Implement a basic saga pattern to coordinate multi-step business operations that
 - Then all previously completed steps are automatically reversed
 - And I receive notification of the failure with a clear reason
 - And no partial charges or reservations remain
+- And the trace includes compensation step spans with failure context
+- And a compensation metric is incremented identifying the failed step
+- And logs are correlated with the trace ID for debugging
 
 ---
 
@@ -50,6 +55,7 @@ Implement a basic saga pattern to coordinate multi-step business operations that
 - Then I can see which step is currently in progress
 - And I can see which steps have completed
 - And I can see if any step has failed
+- And the trace ID is available for correlation with observability tools
 
 ---
 
@@ -65,6 +71,8 @@ Implement a basic saga pattern to coordinate multi-step business operations that
 - When I choose to retry the order after resolving the issue
 - Then the order process resumes from the failed step
 - And previously successful steps are not repeated unnecessarily
+- And a new trace is created linking to the original failed trace
+- And retry metrics are recorded for monitoring retry patterns
 
 ---
 
@@ -81,6 +89,7 @@ Implement a basic saga pattern to coordinate multi-step business operations that
 - Then I can see a timeline of all processing steps
 - And each step shows its outcome (success, failed, compensated)
 - And failed steps include the reason for failure
+- And the trace ID is displayed for cross-referencing with observability dashboards
 
 ---
 
@@ -96,3 +105,6 @@ Implement a basic saga pattern to coordinate multi-step business operations that
 - Orders that fail mid-process are fully rolled back with no orphaned state
 - Customers can track order progress in real-time
 - Failed orders can be retried without data loss
+- All saga executions are traceable end-to-end via distributed tracing
+- Saga performance metrics (duration, step latency, compensation rate) are available in dashboards
+- Logs are correlated with traces for efficient debugging
