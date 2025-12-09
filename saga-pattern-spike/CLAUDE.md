@@ -61,6 +61,9 @@ curl http://localhost:8081/__admin/mappings
 ./gradlew test -Dcucumber.filter.tags="@happy-path"
 ./gradlew test -Dcucumber.filter.tags="@compensation"
 
+# Run observability scenarios
+./gradlew test -Dcucumber.filter.tags="@observability"
+
 # Exclude integration tests
 ./gradlew test -Dcucumber.filter.tags="@saga and not @integration"
 ```
@@ -77,6 +80,8 @@ Reports generated at `build/reports/cucumber/cucumber-report.html`
 - **PostgreSQL 17** for persistence (via Docker)
 - **WireMock 3.9** for external service mocks (via Docker)
 - **Cucumber 7.20** for acceptance testing
+- **OpenTelemetry** for distributed tracing and metrics (planned)
+- **SigNoz** for observability backend (planned)
 
 ## Architecture
 
@@ -90,6 +95,46 @@ The project uses Spring WebFlux for non-blocking, reactive HTTP handling. Key pa
 
 - `docs/features/` - Feature specifications
 - `docs/implementation-plans/` - Implementation planning documents
+
+## Observability (Planned)
+
+The application will use OpenTelemetry with SigNoz for comprehensive observability:
+
+### Telemetry Signals
+
+- **Traces** - Distributed tracing across saga steps and external service calls
+- **Metrics** - Saga execution metrics (duration, step latency, compensation rate)
+- **Logs** - Correlated logs with trace context for debugging
+
+### Key Ports (when observability stack is running)
+
+| Service | Port | Purpose |
+|---------|------|---------|
+| SigNoz Frontend | 3301 | Observability UI |
+| OTel Collector (gRPC) | 4317 | OTLP receiver |
+| OTel Collector (HTTP) | 4318 | OTLP receiver |
+
+### Observability Commands
+
+```bash
+# Start full stack including SigNoz (after implementation)
+docker compose --profile observability up -d
+
+# Access SigNoz dashboard
+open http://localhost:3301
+
+# Check OTel Collector health
+curl http://localhost:13133/
+
+# Query traces by service
+# Navigate to SigNoz UI > Traces > Filter by service "sagapattern"
+```
+
+### Configuration
+
+- `otel.sdk.disabled=true` - Disable OpenTelemetry (for tests)
+- `management.tracing.enabled=false` - Disable tracing
+- See `docs/implementation-plans/INFRA-004-observability-integration.md` for full implementation details
 
 ## SDK Management
 

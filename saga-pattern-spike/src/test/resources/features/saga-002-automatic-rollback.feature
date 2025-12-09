@@ -85,3 +85,51 @@ Feature: SAGA-002 - Automatic Rollback on Failure
     When compensation completes
     Then no payment charges should exist for the order
     And no pending authorizations should exist for the order
+
+  @observability @compensation-tracing
+  Scenario: Compensation steps are traced with failure context
+    Given I have a valid customer account
+    And I have items in my cart with available inventory
+    And I have a valid payment method on file
+    And I have an invalid shipping address
+    When I submit my order
+    And the shipping step fails
+    Then the trace should include spans for compensation steps:
+      | span                          | status |
+      | Payment Void                  | OK     |
+      | Inventory Release             | OK     |
+    And the failed shipping span should include error attributes
+    And the trace should show the failure reason in span events
+
+  @observability @compensation-metrics
+  Scenario: Compensation metrics identify the failed step
+    Given I have a valid customer account
+    And I have items in my cart with available inventory
+    And I have a payment method that will be declined
+    And I have a valid shipping address
+    When I submit my order
+    And the payment step fails
+    Then the saga.compensated counter should be incremented
+    And the saga.step.failed metric should identify "Payment Processing" as the failed step
+    And compensation duration metrics should be recorded
+
+  @observability @log-correlation
+  Scenario: Logs are correlated with trace ID for debugging
+    Given I have an order that will fail at the payment step
+    When I submit my order
+    And compensation occurs
+    Then all application logs for this saga should include the trace ID
+    And all application logs should include the span ID
+    And I should be able to query logs by trace ID in the observability platform
+
+  @observability @failure-events
+  Scenario: Trace events capture failure details
+    Given I have an order that failed due to payment decline
+    When I view the trace in the observability platform
+    Then the trace should include an error event with:
+      | attribute       | present |
+      | error.type      | yes     |
+      | error.message   | yes     |
+      | saga.step       | yes     |
+      | saga.order_id   | yes     |
+    And the compensation spans should be linked to the failed step

@@ -60,3 +60,49 @@ Feature: SAGA-001 - Complete a Multi-Step Order Process
       | Payment Processing      | 2     |
       | Shipping Arrangement    | 3     |
     And each step result should be recorded in the database
+
+  @observability @tracing
+  Scenario: Distributed trace is created for successful order
+    Given I have a valid customer account
+    And I have items in my cart with available inventory
+    And I have a valid payment method on file
+    And I have a valid shipping address
+    When I submit my order
+    And the order completes successfully
+    Then a distributed trace should be created for the saga execution
+    And the trace should contain a parent span for the saga
+    And the trace should contain child spans for each step:
+      | step                    |
+      | Inventory Reservation   |
+      | Payment Processing      |
+      | Shipping Arrangement    |
+    And the trace ID should be included in the order response
+
+  @observability @metrics
+  Scenario: Metrics are recorded for successful saga completion
+    Given I have a valid customer account
+    And I have items in my cart with available inventory
+    And I have a valid payment method on file
+    And I have a valid shipping address
+    When I submit my order
+    And the order completes successfully
+    Then the saga.started counter should be incremented
+    And the saga.completed counter should be incremented
+    And the saga.duration metric should record the total execution time
+    And step duration metrics should be recorded for:
+      | step                    |
+      | Inventory Reservation   |
+      | Payment Processing      |
+      | Shipping Arrangement    |
+
+  @observability @trace-propagation
+  Scenario: Trace context is propagated to external service calls
+    Given I have a valid customer account
+    And I have items in my cart with available inventory
+    And I have a valid payment method on file
+    And I have a valid shipping address
+    When I submit my order
+    Then the inventory service call should include trace headers
+    And the payment service call should include trace headers
+    And the shipping service call should include trace headers
+    And all external calls should appear as child spans in the trace
