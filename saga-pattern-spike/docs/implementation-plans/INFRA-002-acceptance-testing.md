@@ -309,3 +309,43 @@ acceptance-tests:
 | SAGA-003 | saga-003-view-order-status.feature |
 | SAGA-004 | saga-004-retry-failed-orders.feature |
 | SAGA-005 | saga-005-order-history.feature |
+
+## Implementation Status
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| CucumberTestRunner | ✅ Complete | JUnit Platform Suite with glue paths and report plugins |
+| cucumber.properties | ✅ Complete | Spring factory, glue paths, snippet type, report plugins |
+| AcceptanceTestConfig | ✅ Complete | WebClient beans for app, WireMock, and admin API |
+| TestContext | ✅ Complete | Shared scenario state with reset capability |
+| ScenarioHooks | ✅ Complete | Infrastructure health checks, tag-specific hooks, logging |
+| CommonSteps | ✅ Complete | Shared step definitions with PendingException pattern |
+| Feature Files | ✅ Complete | All 5 feature files with comprehensive scenarios |
+| Step Definitions | 🔄 Pending | Await saga implementation (SAGA-001 through SAGA-005) |
+
+### Implemented Features
+
+- **Test Runner Configuration**
+  - JUnit Platform Suite integration
+  - Glue paths for steps and hooks packages
+  - HTML and JSON report generation
+  - CamelCase snippet type for step generation
+
+- **Scenario Hooks**
+  - `@Before(order = 0)` - Reset test context and log scenario start
+  - `@After(order = 0)` - Log scenario completion and failure details
+  - `@Before("@integration", order = 1)` - Infrastructure health checks (PostgreSQL, WireMock)
+  - `@After("@compensation", order = 1)` - Clear WireMock request journal
+  - `@Before("@observability", order = 1)` - Log tracing context info
+  - `@Before("@retry", order = 1)` - Reset retry-specific context
+
+- **Test Configuration**
+  - `wireMockWebClient` - Calls WireMock stub endpoints
+  - `applicationWebClient` - Calls application under test
+  - `wireMockAdminClient` - WireMock admin API operations
+  - Trigger constants for failure scenarios (out-of-stock, declined-card, fraud, etc.)
+
+- **Infrastructure Verification**
+  - Socket-based port checks for PostgreSQL (5432) and WireMock (8081)
+  - WireMock health endpoint verification
+  - JUnit Assumptions for graceful test skipping when infrastructure unavailable
