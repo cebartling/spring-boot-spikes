@@ -83,11 +83,34 @@ services:
       - clickhouse_data:/var/lib/clickhouse
       - ./docker/clickhouse/config.xml:/etc/clickhouse-server/config.d/config.xml
       - ./docker/clickhouse/users.xml:/etc/clickhouse-server/users.d/users.xml
+      - ./docker/clickhouse/docker_related_config.xml:/etc/clickhouse-server/config.d/docker_related_config.xml
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8123/ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # ClickHouse database initialization
+  clickhouse-init:
+    image: clickhouse/clickhouse-server:24.1.2-alpine
+    container_name: saga-clickhouse-init
+    profiles:
+      - observability
+    volumes:
+      - ./docker/clickhouse/init-db.sql:/init-db.sql
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        until wget -q -O- http://clickhouse:8123/ping 2>/dev/null | grep -q "Ok"; do
+          echo "Waiting for ClickHouse..."
+          sleep 2
+        done
+        echo "ClickHouse is ready, creating databases..."
+        cat /init-db.sql | clickhouse-client --host clickhouse --multiquery
+        echo "Databases created successfully"
+    depends_on:
+      clickhouse:
+        condition: service_healthy
 
   # ZooKeeper for ClickHouse coordination
   zookeeper:
@@ -95,6 +118,8 @@ services:
     container_name: saga-zookeeper
     profiles:
       - observability
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
     volumes:
       - zookeeper_data:/data
       - zookeeper_datalog:/datalog
@@ -121,6 +146,8 @@ services:
     depends_on:
       clickhouse:
         condition: service_healthy
+      clickhouse-init:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:13133/"]
       interval: 10s
@@ -129,16 +156,18 @@ services:
 
   # SigNoz (unified query-service + frontend + alertmanager)
   signoz:
-    image: signoz/signoz:0.69.0
+    image: signoz/signoz:latest
     container_name: saga-signoz
     profiles:
       - observability
     ports:
       - "3301:8080"
     environment:
-      - ClickHouseUrl=tcp://clickhouse:9000
+      - SIGNOZ_TELEMETRYSTORE_CLICKHOUSE_DSN=tcp://clickhouse:9000
       - STORAGE=clickhouse
       - GODEBUG=netdns=go
+    volumes:
+      - signoz_data:/var/lib/signoz
     depends_on:
       clickhouse:
         condition: service_healthy
@@ -155,3 +184,4 @@ volumes:
   clickhouse_data:
   zookeeper_data:
   zookeeper_datalog:
+  signoz_data:
