@@ -96,6 +96,26 @@ class SagaMetrics(private val meterRegistry: MeterRegistry) {
     }
 
     /**
+     * Time a suspend saga step execution and record the duration.
+     *
+     * @param stepName The name of the step being executed
+     * @param block The suspend step logic to execute
+     * @return The result of the step execution
+     */
+    suspend fun <T : Any> timeStepSuspend(stepName: String, block: suspend () -> T): T {
+        val timer = Timer.builder("saga.step.duration")
+            .tag("step", stepName)
+            .description("Duration of individual saga steps")
+            .register(meterRegistry)
+        val sample = Timer.start(meterRegistry)
+        return try {
+            block()
+        } finally {
+            sample.stop(timer)
+        }
+    }
+
+    /**
      * Record a successful step completion.
      *
      * @param stepName The name of the completed step

@@ -75,7 +75,7 @@ class OrderSagaOrchestrator(
             sagaExecutionRepository.updateCurrentStep(sagaExecution.id, index + 1)
 
             // Execute the step
-            val result = sagaMetrics.timeStep(step.getStepName()) {
+            val result = sagaMetrics.timeStepSuspend(step.getStepName()) {
                 step.execute(context)
             }
 
