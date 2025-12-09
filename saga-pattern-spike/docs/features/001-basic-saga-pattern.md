@@ -6,7 +6,7 @@ Implement a basic saga pattern to coordinate multi-step business operations that
 
 ## User Stories
 
-### US-001: Complete a Multi-Step Order Process
+### SAGA-001: Complete a Multi-Step Order Process
 
 **As a** customer
 **I want** my order to be processed through all required steps (inventory reservation, payment, shipping)
@@ -21,7 +21,7 @@ Implement a basic saga pattern to coordinate multi-step business operations that
 
 ---
 
-### US-002: Automatic Rollback on Failure
+### SAGA-002: Automatic Rollback on Failure
 
 **As a** customer
 **I want** my order to be automatically cancelled if any step fails
@@ -37,7 +37,7 @@ Implement a basic saga pattern to coordinate multi-step business operations that
 
 ---
 
-### US-003: View Order Status During Processing
+### SAGA-003: View Order Status During Processing
 
 **As a** customer
 **I want** to see the current status of my order while it is being processed
@@ -53,7 +53,7 @@ Implement a basic saga pattern to coordinate multi-step business operations that
 
 ---
 
-### US-004: Retry Failed Orders
+### SAGA-004: Retry Failed Orders
 
 **As a** customer
 **I want** to retry a failed order without re-entering all my information
@@ -68,7 +68,7 @@ Implement a basic saga pattern to coordinate multi-step business operations that
 
 ---
 
-### US-005: Order History Includes Saga Details
+### SAGA-005: Order History Includes Saga Details
 
 **As a** customer
 **I want** to see the full history of my order processing
