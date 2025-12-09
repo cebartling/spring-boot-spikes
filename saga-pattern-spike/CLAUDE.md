@@ -47,6 +47,26 @@ docker compose logs -f
 curl http://localhost:8081/__admin/mappings
 ```
 
+## Acceptance Tests (Cucumber)
+
+```bash
+# Run all acceptance tests
+./gradlew test --tests "*.CucumberTestRunner"
+
+# Run by user story tag
+./gradlew test -Dcucumber.filter.tags="@saga-001"
+./gradlew test -Dcucumber.filter.tags="@saga-002"
+
+# Run by scenario type
+./gradlew test -Dcucumber.filter.tags="@happy-path"
+./gradlew test -Dcucumber.filter.tags="@compensation"
+
+# Exclude integration tests
+./gradlew test -Dcucumber.filter.tags="@saga and not @integration"
+```
+
+Reports generated at `build/reports/cucumber/cucumber-report.html`
+
 ## Tech Stack
 
 - **Kotlin 2.2** with JVM 24 (Amazon Corretto)
@@ -56,6 +76,7 @@ curl http://localhost:8081/__admin/mappings
 - **Jackson** for JSON serialization
 - **PostgreSQL 17** for persistence (via Docker)
 - **WireMock 3.9** for external service mocks (via Docker)
+- **Cucumber 7.20** for acceptance testing
 
 ## Architecture
 

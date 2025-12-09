@@ -19,6 +19,8 @@ repositories {
 	mavenCentral()
 }
 
+val cucumberVersion = "7.20.1"
+
 dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-webclient")
 	implementation("org.springframework.boot:spring-boot-starter-webflux")
@@ -32,6 +34,12 @@ dependencies {
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 	testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+	// Cucumber for acceptance testing
+	testImplementation("io.cucumber:cucumber-java:$cucumberVersion")
+	testImplementation("io.cucumber:cucumber-junit-platform-engine:$cucumberVersion")
+	testImplementation("io.cucumber:cucumber-spring:$cucumberVersion")
+	testImplementation("org.junit.platform:junit-platform-suite")
 }
 
 kotlin {
