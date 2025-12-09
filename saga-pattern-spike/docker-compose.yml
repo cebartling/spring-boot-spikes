@@ -70,5 +70,83 @@ services:
       timeout: 5s
       retries: 5
 
+  # ClickHouse for SigNoz telemetry storage
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.1.2-alpine
+    container_name: saga-clickhouse
+    profiles:
+      - observability
+    ports:
+      - "9000:9000"
+      - "8123:8123"
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - ./docker/clickhouse/config.xml:/etc/clickhouse-server/config.d/config.xml
+      - ./docker/clickhouse/users.xml:/etc/clickhouse-server/users.d/users.xml
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # SigNoz OpenTelemetry Collector
+  otel-collector:
+    image: signoz/signoz-otel-collector:0.111.10
+    container_name: saga-otel-collector
+    profiles:
+      - observability
+    command:
+      - "--config=/etc/otel-collector-config.yaml"
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "13133:13133"
+    volumes:
+      - ./docker/otel-collector/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:13133/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # SigNoz Query Service
+  signoz-query-service:
+    image: signoz/query-service:0.51.2
+    container_name: saga-signoz-query
+    profiles:
+      - observability
+    ports:
+      - "8085:8080"
+    environment:
+      - ClickHouseUrl=tcp://clickhouse:9000
+      - STORAGE=clickhouse
+      - GODEBUG=netdns=go
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+      otel-collector:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/api/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # SigNoz Frontend UI
+  signoz-frontend:
+    image: signoz/frontend:0.51.2
+    container_name: saga-signoz-frontend
+    profiles:
+      - observability
+    ports:
+      - "3301:3301"
+    depends_on:
+      signoz-query-service:
+        condition: service_healthy
+
 volumes:
   postgres_data:
+  clickhouse_data:
