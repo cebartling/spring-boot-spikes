@@ -89,9 +89,24 @@ services:
       timeout: 5s
       retries: 5
 
+  # ZooKeeper for ClickHouse coordination
+  zookeeper:
+    image: signoz/zookeeper:3.7.1
+    container_name: saga-zookeeper
+    profiles:
+      - observability
+    volumes:
+      - zookeeper_data:/data
+      - zookeeper_datalog:/datalog
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # SigNoz OpenTelemetry Collector
   otel-collector:
-    image: signoz/signoz-otel-collector:0.111.10
+    image: signoz/signoz-otel-collector:0.111.24
     container_name: saga-otel-collector
     profiles:
       - observability
@@ -112,14 +127,14 @@ services:
       timeout: 5s
       retries: 5
 
-  # SigNoz Query Service
-  signoz-query-service:
-    image: signoz/query-service:0.51.2
-    container_name: saga-signoz-query
+  # SigNoz (unified query-service + frontend + alertmanager)
+  signoz:
+    image: signoz/signoz:0.69.0
+    container_name: saga-signoz
     profiles:
       - observability
     ports:
-      - "8085:8080"
+      - "3301:8080"
     environment:
       - ClickHouseUrl=tcp://clickhouse:9000
       - STORAGE=clickhouse
@@ -135,18 +150,8 @@ services:
       timeout: 5s
       retries: 5
 
-  # SigNoz Frontend UI
-  signoz-frontend:
-    image: signoz/frontend:0.51.2
-    container_name: saga-signoz-frontend
-    profiles:
-      - observability
-    ports:
-      - "3301:3301"
-    depends_on:
-      signoz-query-service:
-        condition: service_healthy
-
 volumes:
   postgres_data:
   clickhouse_data:
+  zookeeper_data:
+  zookeeper_datalog:
