@@ -31,13 +31,13 @@ This is a Spring Boot 4.0 spike project exploring the **saga pattern** for distr
 ## Infrastructure Commands
 
 ```bash
-# Start PostgreSQL and WireMock
+# Start all services (PostgreSQL, Vault, WireMock)
 docker compose up -d
 
 # Stop services
 docker compose down
 
-# Reset database (destroys data)
+# Reset database and Vault (destroys data)
 docker compose down -v && docker compose up -d
 
 # View logs
@@ -46,6 +46,53 @@ docker compose logs -f
 # Check WireMock mappings
 curl http://localhost:8081/__admin/mappings
 ```
+
+## HashiCorp Vault (Secret Management)
+
+The application uses HashiCorp Vault for centralized secret management with dynamic database credentials.
+
+### Key Ports
+
+| Service | Port | Purpose |
+|---------|------|---------|
+| Vault | 8200 | Vault API and UI |
+
+### Vault Commands
+
+```bash
+# Check Vault status
+curl http://localhost:8200/v1/sys/health
+
+# Read KV secrets (using dev root token)
+docker exec saga-vault vault kv get secret/sagapattern/application
+
+# Generate dynamic database credentials
+docker exec saga-vault vault read database/creds/sagapattern-readwrite
+
+# Get AppRole Role ID (for production use)
+docker exec saga-vault vault read auth/approle/role/sagapattern/role-id
+
+# Generate a Secret ID
+docker exec saga-vault vault write -f auth/approle/role/sagapattern/secret-id
+```
+
+### Configuration
+
+- **Development**: Uses token authentication with `dev-root-token`
+- **Production**: Uses AppRole authentication (set `VAULT_ROLE_ID` and `VAULT_SECRET_ID` env vars)
+- **Testing**: Vault is disabled via `spring.cloud.vault.enabled=false`
+
+### Secret Paths
+
+| Path | Description |
+|------|-------------|
+| `secret/sagapattern/application` | Common application secrets (API keys, encryption keys) |
+| `secret/sagapattern/dev` | Development profile secrets |
+| `secret/sagapattern/prod` | Production profile secrets |
+| `database/creds/sagapattern-readwrite` | Dynamic PostgreSQL credentials (1h TTL) |
+| `database/creds/sagapattern-readonly` | Read-only PostgreSQL credentials (1h TTL) |
+
+See `docs/implementation-plans/INFRA-003-vault-integration.md` for full implementation details.
 
 ## Acceptance Tests (Cucumber)
 
@@ -78,6 +125,8 @@ Reports generated at `build/reports/cucumber/cucumber-report.html`
 - **Coroutines** via kotlinx-coroutines-reactor
 - **Jackson** for JSON serialization
 - **PostgreSQL 17** for persistence (via Docker)
+- **HashiCorp Vault 1.15** for secret management (via Docker)
+- **Spring Cloud Vault** for Vault integration
 - **WireMock 3.9** for external service mocks (via Docker)
 - **Cucumber 7.20** for acceptance testing
 - **OpenTelemetry** for distributed tracing and metrics (planned)
