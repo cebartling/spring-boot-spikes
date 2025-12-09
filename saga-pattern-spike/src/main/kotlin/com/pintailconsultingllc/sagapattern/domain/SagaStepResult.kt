@@ -1,0 +1,90 @@
+package com.pintailconsultingllc.sagapattern.domain
+
+import org.springframework.data.annotation.Id
+import org.springframework.data.relational.core.mapping.Column
+import org.springframework.data.relational.core.mapping.Table
+import java.time.Instant
+import java.util.UUID
+
+/**
+ * Represents the result of an individual saga step execution.
+ * Persisted to the database for tracking and auditing.
+ */
+@Table("saga_step_results")
+data class SagaStepResult(
+    @Id
+    val id: UUID = UUID.randomUUID(),
+
+    @Column("saga_execution_id")
+    val sagaExecutionId: UUID,
+
+    @Column("step_name")
+    val stepName: String,
+
+    @Column("step_order")
+    val stepOrder: Int,
+
+    val status: StepStatus,
+
+    @Column("step_data")
+    val stepData: String? = null,
+
+    @Column("error_message")
+    val errorMessage: String? = null,
+
+    @Column("started_at")
+    val startedAt: Instant? = null,
+
+    @Column("completed_at")
+    val completedAt: Instant? = null
+) {
+    companion object {
+        /**
+         * Create a pending step result record.
+         */
+        fun pending(
+            sagaExecutionId: UUID,
+            stepName: String,
+            stepOrder: Int
+        ): SagaStepResult = SagaStepResult(
+            sagaExecutionId = sagaExecutionId,
+            stepName = stepName,
+            stepOrder = stepOrder,
+            status = StepStatus.PENDING
+        )
+    }
+
+    /**
+     * Mark the step as in progress.
+     */
+    fun start(): SagaStepResult = copy(
+        status = StepStatus.IN_PROGRESS,
+        startedAt = Instant.now()
+    )
+
+    /**
+     * Mark the step as completed with optional data.
+     */
+    fun complete(data: String? = null): SagaStepResult = copy(
+        status = StepStatus.COMPLETED,
+        stepData = data,
+        completedAt = Instant.now()
+    )
+
+    /**
+     * Mark the step as failed with an error message.
+     */
+    fun fail(error: String): SagaStepResult = copy(
+        status = StepStatus.FAILED,
+        errorMessage = error,
+        completedAt = Instant.now()
+    )
+
+    /**
+     * Mark the step as compensated.
+     */
+    fun compensate(): SagaStepResult = copy(
+        status = StepStatus.COMPENSATED,
+        completedAt = Instant.now()
+    )
+}

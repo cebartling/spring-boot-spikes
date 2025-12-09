@@ -35,7 +35,8 @@ dependencies {
 	implementation("org.springframework.cloud:spring-cloud-starter-vault-config")
 	implementation("org.springframework.cloud:spring-cloud-vault-config-databases")
 
-	// R2DBC PostgreSQL driver for reactive database access
+	// R2DBC for reactive database access
+	implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
 	implementation("org.postgresql:r2dbc-postgresql")
 
 	// OpenTelemetry (Spring Boot 4.0 native support)
