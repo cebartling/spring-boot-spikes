@@ -1,10 +1,10 @@
 package com.pintailconsultingllc.sagapattern.acceptance
 
+import io.cucumber.junit.platform.engine.Constants
 import org.junit.platform.suite.api.ConfigurationParameter
 import org.junit.platform.suite.api.IncludeEngines
 import org.junit.platform.suite.api.SelectClasspathResource
 import org.junit.platform.suite.api.Suite
-import io.cucumber.junit.platform.engine.Constants
 
 /**
  * Cucumber test runner for acceptance tests.
@@ -13,7 +13,7 @@ import io.cucumber.junit.platform.engine.Constants
  *   ./gradlew test --tests "*.CucumberTestRunner"
  *
  * Run specific feature by tag:
- *   ./gradlew test --tests "*.CucumberTestRunner" -Dcucumber.filter.tags="@saga-001"
+ *   ./gradlew test -Dcucumber.filter.tags="@saga-001"
  *
  * Available tags:
  *   @saga         - All saga pattern tests
@@ -26,14 +26,19 @@ import io.cucumber.junit.platform.engine.Constants
  *   @compensation - Compensation/rollback tests
  *   @retry        - Retry functionality tests
  *   @history      - History/timeline tests
+ *   @observability - Observability/tracing tests
  *   @integration  - Integration tests requiring infrastructure
+ *
+ * Combine tags:
+ *   ./gradlew test -Dcucumber.filter.tags="@saga-001 and @happy-path"
+ *   ./gradlew test -Dcucumber.filter.tags="@saga and not @integration"
  */
 @Suite
 @IncludeEngines("cucumber")
 @SelectClasspathResource("features")
 @ConfigurationParameter(
     key = Constants.GLUE_PROPERTY_NAME,
-    value = "com.pintailconsultingllc.sagapattern.acceptance.steps"
+    value = "com.pintailconsultingllc.sagapattern.acceptance.steps,com.pintailconsultingllc.sagapattern.acceptance.hooks"
 )
 @ConfigurationParameter(
     key = Constants.PLUGIN_PROPERTY_NAME,
@@ -42,5 +47,9 @@ import io.cucumber.junit.platform.engine.Constants
 @ConfigurationParameter(
     key = Constants.PLUGIN_PUBLISH_QUIET_PROPERTY_NAME,
     value = "true"
+)
+@ConfigurationParameter(
+    key = Constants.SNIPPET_TYPE_PROPERTY_NAME,
+    value = "camelcase"
 )
 class CucumberTestRunner
