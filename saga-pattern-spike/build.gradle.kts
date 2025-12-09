@@ -38,6 +38,12 @@ dependencies {
 	// R2DBC PostgreSQL driver for reactive database access
 	implementation("org.postgresql:r2dbc-postgresql")
 
+	// OpenTelemetry (Spring Boot 4.0 native support)
+	implementation("org.springframework.boot:spring-boot-starter-opentelemetry")
+
+	// AspectJ for @Observed annotation support
+	implementation("org.springframework.boot:spring-boot-starter-aspectj")
+
 	developmentOnly("org.springframework.boot:spring-boot-devtools")
 	testImplementation("org.springframework.boot:spring-boot-starter-webclient-test")
 	testImplementation("io.projectreactor:reactor-test")

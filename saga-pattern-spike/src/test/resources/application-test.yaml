@@ -23,3 +23,16 @@ management:
   health:
     vault:
       enabled: false
+  # Disable OpenTelemetry for tests
+  tracing:
+    enabled: false
+  otlp:
+    tracing:
+      export:
+        enabled: false
+    metrics:
+      export:
+        enabled: false
+    logging:
+      export:
+        enabled: false

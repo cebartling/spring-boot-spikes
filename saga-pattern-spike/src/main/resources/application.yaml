@@ -40,10 +40,37 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,prometheus
   health:
     vault:
       enabled: true
   endpoint:
     health:
       show-details: when_authorized
+  # OpenTelemetry Configuration (Spring Boot 4.0 native support)
+  tracing:
+    enabled: true
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/traces
+    metrics:
+      export:
+        enabled: true
+        step: 10s
+        endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/metrics
+    logging:
+      export:
+        enabled: true
+        endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/logs
+
+# OpenTelemetry SDK configuration
+otel:
+  service:
+    name: sagapattern
+  resource:
+    attributes:
+      deployment.environment: ${DEPLOYMENT_ENV:development}
+      service.namespace: saga-spike
+      service.version: ${APP_VERSION:0.0.1-SNAPSHOT}
