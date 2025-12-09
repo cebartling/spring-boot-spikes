@@ -4,6 +4,29 @@
 
 Implement compensation logic that automatically reverses all previously completed steps when any step in the saga fails, ensuring no partial charges or orphaned state remains.
 
+## Infrastructure
+
+> **Prerequisites:** See [000-infrastructure.md](./000-infrastructure.md) for Docker Compose setup.
+
+### Compensation Endpoints (WireMock)
+
+Each saga step's compensation calls reversal endpoints on the external services:
+
+| Step | Compensation Action | Endpoint |
+|------|---------------------|----------|
+| InventoryReservationStep | Release reservation | `DELETE /api/inventory/reservations/{id}` |
+| PaymentProcessingStep | Void authorization | `POST /api/payments/authorizations/{id}/void` |
+| ShippingArrangementStep | Cancel shipment | `POST /api/shipments/{id}/cancel` |
+
+### Database Tables
+
+Compensation state tracked in PostgreSQL:
+
+| Table | Compensation Fields |
+|-------|---------------------|
+| `saga_executions` | `failed_step`, `failure_reason`, `compensation_started_at`, `compensation_completed_at` |
+| `saga_step_results` | `status` (COMPENSATED), `completed_at` |
+
 ## Compensation Flow
 
 ```mermaid

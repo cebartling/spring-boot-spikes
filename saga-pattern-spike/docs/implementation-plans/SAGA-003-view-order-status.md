@@ -4,6 +4,29 @@
 
 Implement real-time order status visibility allowing customers to see which saga step is currently in progress, which steps have completed, and if any step has failed.
 
+## Infrastructure
+
+> **Prerequisites:** See [000-infrastructure.md](./000-infrastructure.md) for Docker Compose setup.
+
+### Database Tables
+
+Order progress is tracked in PostgreSQL:
+
+| Table | Status Fields |
+|-------|---------------|
+| `orders` | `status` (overall order status) |
+| `saga_executions` | `current_step`, `status` |
+| `saga_step_results` | `step_name`, `status`, `started_at`, `completed_at` |
+
+### Status Data Flow
+
+```mermaid
+flowchart LR
+    App[Application] -->|R2DBC| PG[(PostgreSQL)]
+    App -->|WebClient| WM[WireMock]
+    PG -->|Query| Status[Status API]
+```
+
 ## Status Model
 
 ```mermaid

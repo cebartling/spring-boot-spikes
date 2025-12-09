@@ -1,0 +1,104 @@
+{
+  "mappings": [
+    {
+      "name": "Reserve Inventory - Success",
+      "request": {
+        "method": "POST",
+        "urlPath": "/api/inventory/reservations",
+        "headers": {
+          "Content-Type": {
+            "equalTo": "application/json"
+          }
+        }
+      },
+      "response": {
+        "status": 201,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "reservationId": "{{randomValue type='UUID'}}",
+          "status": "RESERVED",
+          "expiresAt": "{{now offset='30 minutes' format='yyyy-MM-dd\\'T\\'HH:mm:ss.SSS\\'Z\\''}}"
+        },
+        "transformers": ["response-template"]
+      }
+    },
+    {
+      "name": "Reserve Inventory - Out of Stock",
+      "request": {
+        "method": "POST",
+        "urlPath": "/api/inventory/reservations",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": "$.items[?(@.productId == 'out-of-stock-product')]"
+          }
+        ]
+      },
+      "response": {
+        "status": 409,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "error": "INVENTORY_UNAVAILABLE",
+          "message": "Insufficient stock for requested items",
+          "details": {
+            "productId": "out-of-stock-product",
+            "requested": 5,
+            "available": 0
+          }
+        }
+      },
+      "priority": 1
+    },
+    {
+      "name": "Release Inventory Reservation - Success",
+      "request": {
+        "method": "DELETE",
+        "urlPathPattern": "/api/inventory/reservations/[a-f0-9-]+"
+      },
+      "response": {
+        "status": 204
+      }
+    },
+    {
+      "name": "Get Reservation Status",
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/api/inventory/reservations/[a-f0-9-]+"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "reservationId": "{{request.pathSegments.[3]}}",
+          "status": "RESERVED",
+          "expiresAt": "{{now offset='30 minutes' format='yyyy-MM-dd\\'T\\'HH:mm:ss.SSS\\'Z\\''}}"
+        },
+        "transformers": ["response-template"]
+      }
+    },
+    {
+      "name": "Check Product Availability",
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/api/inventory/products/[a-f0-9-]+/availability"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "productId": "{{request.pathSegments.[3]}}",
+          "available": true,
+          "quantity": 100
+        },
+        "transformers": ["response-template"]
+      }
+    }
+  ]
+}

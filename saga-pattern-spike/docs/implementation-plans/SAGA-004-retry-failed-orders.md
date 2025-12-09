@@ -4,6 +4,30 @@
 
 Implement the ability for customers to retry failed orders without re-entering information, resuming the saga from the failed step while avoiding unnecessary repetition of successful steps.
 
+## Infrastructure
+
+> **Prerequisites:** See [000-infrastructure.md](./000-infrastructure.md) for Docker Compose setup.
+
+### Validity Check Endpoints (WireMock)
+
+Before retry, the system checks if previous step results are still valid:
+
+| Step | Validity Check | Endpoint |
+|------|----------------|----------|
+| InventoryReservationStep | Reservation not expired | `GET /api/inventory/reservations/{id}` |
+| PaymentProcessingStep | Authorization not expired | `GET /api/payments/authorizations/{id}` |
+| ShippingArrangementStep | Quote still valid | `GET /api/shipments/{id}` |
+
+### Database Tables
+
+Retry state tracked in PostgreSQL:
+
+| Table | Purpose |
+|-------|---------|
+| `retry_attempts` | Tracks all retry attempts per order |
+| `saga_executions` | New execution created for each retry |
+| `saga_step_results` | Records skipped vs re-executed steps |
+
 ## Retry Flow
 
 ```mermaid

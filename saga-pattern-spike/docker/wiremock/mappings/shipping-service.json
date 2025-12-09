@@ -1,0 +1,156 @@
+{
+  "mappings": [
+    {
+      "name": "Create Shipment - Success",
+      "request": {
+        "method": "POST",
+        "urlPath": "/api/shipments",
+        "headers": {
+          "Content-Type": {
+            "equalTo": "application/json"
+          }
+        }
+      },
+      "response": {
+        "status": 201,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "shipmentId": "{{randomValue type='UUID'}}",
+          "status": "PENDING",
+          "carrier": "STANDARD",
+          "trackingNumber": "TRK{{randomValue length=10 type='ALPHANUMERIC'}}",
+          "estimatedDelivery": "{{now offset='5 days' format='yyyy-MM-dd'}}",
+          "createdAt": "{{now format='yyyy-MM-dd\\'T\\'HH:mm:ss.SSS\\'Z\\''}}"
+        },
+        "transformers": ["response-template"]
+      }
+    },
+    {
+      "name": "Create Shipment - Invalid Address",
+      "request": {
+        "method": "POST",
+        "urlPath": "/api/shipments",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": "$.shippingAddress.postalCode",
+            "equalTo": "00000"
+          }
+        ]
+      },
+      "response": {
+        "status": 400,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "error": "INVALID_ADDRESS",
+          "message": "The provided shipping address could not be validated",
+          "details": {
+            "field": "postalCode",
+            "reason": "Invalid postal code"
+          },
+          "retryable": true
+        }
+      },
+      "priority": 1
+    },
+    {
+      "name": "Create Shipment - Undeliverable",
+      "request": {
+        "method": "POST",
+        "urlPath": "/api/shipments",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": "$.shippingAddress.country",
+            "equalTo": "XX"
+          }
+        ]
+      },
+      "response": {
+        "status": 422,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "error": "SHIPPING_UNAVAILABLE",
+          "message": "We cannot ship to the specified location",
+          "retryable": false
+        }
+      },
+      "priority": 1
+    },
+    {
+      "name": "Cancel Shipment - Success",
+      "request": {
+        "method": "POST",
+        "urlPathPattern": "/api/shipments/[a-f0-9-]+/cancel"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "shipmentId": "{{request.pathSegments.[2]}}",
+          "status": "CANCELLED",
+          "cancelledAt": "{{now format='yyyy-MM-dd\\'T\\'HH:mm:ss.SSS\\'Z\\''}}"
+        },
+        "transformers": ["response-template"]
+      }
+    },
+    {
+      "name": "Get Shipment Status",
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/api/shipments/[a-f0-9-]+"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "shipmentId": "{{request.pathSegments.[2]}}",
+          "status": "PENDING",
+          "carrier": "STANDARD",
+          "estimatedDelivery": "{{now offset='5 days' format='yyyy-MM-dd'}}"
+        },
+        "transformers": ["response-template"]
+      }
+    },
+    {
+      "name": "Get Shipping Rates",
+      "request": {
+        "method": "POST",
+        "urlPath": "/api/shipments/rates"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "rates": [
+            {
+              "carrier": "STANDARD",
+              "price": 5.99,
+              "estimatedDays": 5
+            },
+            {
+              "carrier": "EXPRESS",
+              "price": 12.99,
+              "estimatedDays": 2
+            },
+            {
+              "carrier": "OVERNIGHT",
+              "price": 24.99,
+              "estimatedDays": 1
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

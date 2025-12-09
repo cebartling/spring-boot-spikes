@@ -4,6 +4,32 @@
 
 Implement comprehensive order history tracking that captures a full timeline of all saga processing steps, their outcomes, and failure reasons, enabling customers to understand exactly what happened during order processing.
 
+## Infrastructure
+
+> **Prerequisites:** See [000-infrastructure.md](./000-infrastructure.md) for Docker Compose setup.
+
+### Database Tables
+
+Order history persisted in PostgreSQL:
+
+| Table | History Purpose |
+|-------|-----------------|
+| `order_events` | Immutable event log for each order |
+| `saga_executions` | Execution attempts (original + retries) |
+| `saga_step_results` | Step-level outcomes |
+| `retry_attempts` | Retry history |
+
+### Event Storage Schema
+
+```sql
+-- Each significant action recorded as an event
+SELECT * FROM order_events
+WHERE order_id = :orderId
+ORDER BY timestamp;
+```
+
+Events include: `ORDER_CREATED`, `SAGA_STARTED`, `STEP_STARTED`, `STEP_COMPLETED`, `STEP_FAILED`, `STEP_COMPENSATED`, `SAGA_COMPLETED`, `SAGA_FAILED`, `RETRY_INITIATED`
+
 ## History Model
 
 ```mermaid

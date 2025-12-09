@@ -1,0 +1,139 @@
+{
+  "mappings": [
+    {
+      "name": "Authorize Payment - Success",
+      "request": {
+        "method": "POST",
+        "urlPath": "/api/payments/authorize",
+        "headers": {
+          "Content-Type": {
+            "equalTo": "application/json"
+          }
+        }
+      },
+      "response": {
+        "status": 201,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "authorizationId": "{{randomValue type='UUID'}}",
+          "status": "AUTHORIZED",
+          "amount": "{{jsonPath request.body '$.amount'}}",
+          "currency": "USD",
+          "expiresAt": "{{now offset='7 days' format='yyyy-MM-dd\\'T\\'HH:mm:ss.SSS\\'Z\\''}}"
+        },
+        "transformers": ["response-template"]
+      }
+    },
+    {
+      "name": "Authorize Payment - Declined",
+      "request": {
+        "method": "POST",
+        "urlPath": "/api/payments/authorize",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": "$.paymentMethodId",
+            "equalTo": "declined-card"
+          }
+        ]
+      },
+      "response": {
+        "status": 402,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "error": "PAYMENT_DECLINED",
+          "message": "Your card was declined by your bank",
+          "declineCode": "insufficient_funds",
+          "retryable": true
+        }
+      },
+      "priority": 1
+    },
+    {
+      "name": "Authorize Payment - Fraud Detected",
+      "request": {
+        "method": "POST",
+        "urlPath": "/api/payments/authorize",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": "$.paymentMethodId",
+            "equalTo": "fraud-card"
+          }
+        ]
+      },
+      "response": {
+        "status": 403,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "error": "FRAUD_DETECTED",
+          "message": "Transaction flagged for potential fraud",
+          "retryable": false
+        }
+      },
+      "priority": 1
+    },
+    {
+      "name": "Void Authorization - Success",
+      "request": {
+        "method": "POST",
+        "urlPathPattern": "/api/payments/authorizations/[a-f0-9-]+/void"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "authorizationId": "{{request.pathSegments.[3]}}",
+          "status": "VOIDED",
+          "voidedAt": "{{now format='yyyy-MM-dd\\'T\\'HH:mm:ss.SSS\\'Z\\''}}"
+        },
+        "transformers": ["response-template"]
+      }
+    },
+    {
+      "name": "Capture Payment - Success",
+      "request": {
+        "method": "POST",
+        "urlPathPattern": "/api/payments/authorizations/[a-f0-9-]+/capture"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "captureId": "{{randomValue type='UUID'}}",
+          "authorizationId": "{{request.pathSegments.[3]}}",
+          "status": "CAPTURED",
+          "capturedAt": "{{now format='yyyy-MM-dd\\'T\\'HH:mm:ss.SSS\\'Z\\''}}"
+        },
+        "transformers": ["response-template"]
+      }
+    },
+    {
+      "name": "Get Authorization Status",
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/api/payments/authorizations/[a-f0-9-]+"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "authorizationId": "{{request.pathSegments.[3]}}",
+          "status": "AUTHORIZED",
+          "expiresAt": "{{now offset='7 days' format='yyyy-MM-dd\\'T\\'HH:mm:ss.SSS\\'Z\\''}}"
+        },
+        "transformers": ["response-template"]
+      }
+    }
+  ]
+}

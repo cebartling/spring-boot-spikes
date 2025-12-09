@@ -1,0 +1,37 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: saga-postgres
+    environment:
+      POSTGRES_USER: saga_user
+      POSTGRES_PASSWORD: saga_password
+      POSTGRES_DB: saga_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U saga_user -d saga_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  wiremock:
+    image: wiremock/wiremock:3.9.2
+    container_name: saga-wiremock
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./docker/wiremock:/home/wiremock
+    command: >
+      --verbose
+      --global-response-templating
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/__admin/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

@@ -12,20 +12,29 @@ flowchart TB
         A[Order Request]
     end
 
-    subgraph Saga Orchestrator
-        B[OrderSagaOrchestrator]
-        C[SagaStateManager]
+    subgraph Application
+        subgraph Saga Orchestrator
+            B[OrderSagaOrchestrator]
+            C[SagaStateManager]
+        end
+
+        subgraph Saga Steps
+            D[InventoryReservationStep]
+            E[PaymentProcessingStep]
+            F[ShippingArrangementStep]
+        end
     end
 
-    subgraph Saga Steps
-        D[InventoryReservationStep]
-        E[PaymentProcessingStep]
-        F[ShippingArrangementStep]
-    end
+    subgraph Infrastructure
+        subgraph Database
+            PG[(PostgreSQL)]
+        end
 
-    subgraph Domain
-        G[Order Aggregate]
-        H[SagaExecution Record]
+        subgraph External Services - WireMock
+            INV[Inventory API]
+            PAY[Payment API]
+            SHIP[Shipping API]
+        end
     end
 
     A --> B
@@ -33,9 +42,36 @@ flowchart TB
     B --> D
     B --> E
     B --> F
-    C --> H
-    D & E & F --> G
+    C --> PG
+    D --> INV
+    E --> PAY
+    F --> SHIP
 ```
+
+## Infrastructure
+
+> **Prerequisites:** See [000-infrastructure.md](./000-infrastructure.md) for Docker Compose setup.
+
+### External Services (WireMock)
+
+Each saga step integrates with external services mocked via WireMock at `http://localhost:8081`:
+
+| Step | Service | Endpoint |
+|------|---------|----------|
+| InventoryReservationStep | Inventory API | `POST /api/inventory/reservations` |
+| PaymentProcessingStep | Payment API | `POST /api/payments/authorize` |
+| ShippingArrangementStep | Shipping API | `POST /api/shipments` |
+
+### Database (PostgreSQL)
+
+Saga state is persisted to PostgreSQL at `localhost:5432/saga_db`:
+
+| Table | Purpose |
+|-------|---------|
+| `orders` | Order records |
+| `order_items` | Line items |
+| `saga_executions` | Saga execution tracking |
+| `saga_step_results` | Step outcomes |
 
 ## Implementation Steps
 
@@ -306,16 +342,28 @@ src/main/kotlin/com/pintailconsultingllc/sagapattern/
 ### Unit Tests
 
 - Each saga step tested in isolation
-- Mock external services
+- Mock WebClient calls to external services
 - Test success and failure paths
 - Verify context data propagation
 
 ### Integration Tests
 
-- Full saga execution with in-memory repositories
-- Verify order status transitions
+Run with Docker Compose infrastructure (`docker compose up -d`):
+
+- Full saga execution against PostgreSQL
+- WireMock stubs for external service responses
+- Verify order status transitions in database
 - Confirm all steps execute in order
 - Validate response structure
+
+### Test Scenarios with WireMock
+
+| Scenario | WireMock Trigger | Expected Outcome |
+|----------|------------------|------------------|
+| Happy path | Default stubs | Order COMPLETED |
+| Inventory failure | `productId: out-of-stock-product` | Order FAILED, no steps to compensate |
+| Payment failure | `paymentMethodId: declined-card` | Order COMPENSATED, inventory released |
+| Shipping failure | `postalCode: 00000` | Order COMPENSATED, inventory + payment reversed |
 
 ## Dependencies on Other Stories
 

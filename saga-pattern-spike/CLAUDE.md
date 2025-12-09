@@ -28,6 +28,25 @@ This is a Spring Boot 4.0 spike project exploring the **saga pattern** for distr
 ./gradlew clean build
 ```
 
+## Infrastructure Commands
+
+```bash
+# Start PostgreSQL and WireMock
+docker compose up -d
+
+# Stop services
+docker compose down
+
+# Reset database (destroys data)
+docker compose down -v && docker compose up -d
+
+# View logs
+docker compose logs -f
+
+# Check WireMock mappings
+curl http://localhost:8081/__admin/mappings
+```
+
 ## Tech Stack
 
 - **Kotlin 2.2** with JVM 24 (Amazon Corretto)
@@ -35,6 +54,8 @@ This is a Spring Boot 4.0 spike project exploring the **saga pattern** for distr
 - **Gradle 9.2** (Kotlin DSL)
 - **Coroutines** via kotlinx-coroutines-reactor
 - **Jackson** for JSON serialization
+- **PostgreSQL 17** for persistence (via Docker)
+- **WireMock 3.9** for external service mocks (via Docker)
 
 ## Architecture
 
