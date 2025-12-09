@@ -1,205 +1,219 @@
 package com.pintailconsultingllc.sagapattern.acceptance.steps
 
+import com.pintailconsultingllc.sagapattern.acceptance.config.TestContext
 import io.cucumber.datatable.DataTable
-import io.cucumber.java.en.And
+import io.cucumber.java.PendingException
 import io.cucumber.java.en.Given
 import io.cucumber.java.en.Then
 import io.cucumber.java.en.When
+import org.springframework.beans.factory.annotation.Autowired
 
 /**
  * Step definitions for SAGA-004: Retry Failed Orders
+ *
+ * These steps are marked as pending until the saga pattern business logic is implemented.
+ * Infrastructure components (WireMock stubs, database schema) are in place.
  */
-class RetrySteps {
+class RetrySteps(
+    @Autowired private val testContext: TestContext
+) {
 
     // ==================== Given Steps ====================
 
     @Given("I have an order that failed due to fraud detection")
     fun iHaveAnOrderThatFailedDueToFraudDetection() {
-        // Use WireMock trigger: paymentMethodId = "fraud-card"
-        TODO("Create order that failed with FRAUD_DETECTED (non-retryable)")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Given("I have updated my payment method")
     fun iHaveUpdatedMyPaymentMethod() {
-        TODO("Update test customer's payment method to valid card")
+        // Update to valid payment method
+        testContext.paymentMethodId = "valid-card"
     }
 
     @Given("I have an order that failed at the shipping step")
     fun iHaveAnOrderThatFailedAtTheShippingStep() {
-        TODO("Create order that failed at shipping")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Given("I have corrected my shipping address")
     fun iHaveCorrectedMyShippingAddress() {
-        TODO("Update shipping address to valid address")
+        // Update to valid shipping address
+        testContext.shippingAddress = mapOf(
+            "street" to "456 Valid St",
+            "city" to "Goodtown",
+            "state" to "CA",
+            "postalCode" to "90210",
+            "country" to "US"
+        )
     }
 
     @Given("I have an order that failed at payment")
     fun iHaveAnOrderThatFailedAtPayment() {
-        TODO("Create order that failed at payment step")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Given("the original inventory reservation has expired")
     fun theOriginalInventoryReservationHasExpired() {
-        TODO("Simulate expired reservation in WireMock")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Given("I have an order that has been retried {int} times")
     fun iHaveAnOrderThatHasBeenRetriedTimes(retryCount: Int) {
-        TODO("Create order with $retryCount retry attempts")
+        throw PendingException("Saga pattern business logic not yet implemented - $retryCount retries")
     }
 
     @Given("I have an order that just failed")
     fun iHaveAnOrderThatJustFailed() {
-        TODO("Create recently failed order (within cooldown period)")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Given("I have an order with multiple retry attempts")
     fun iHaveAnOrderWithMultipleRetryAttempts() {
-        TODO("Create order with retry history")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Given("I have an order with a retry in progress")
     fun iHaveAnOrderWithARetryInProgress() {
-        TODO("Create order with active retry execution")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Given("the item prices have increased since the original order")
     fun theItemPricesHaveIncreasedSinceTheOriginalOrder() {
-        TODO("Modify WireMock to return higher prices")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     // ==================== When Steps ====================
 
     @When("I check if the order is eligible for retry")
     fun iCheckIfTheOrderIsEligibleForRetry() {
-        TODO("GET /api/orders/{orderId}/retry-eligibility")
+        throw PendingException("Saga pattern business logic not yet implemented - GET /api/orders/{orderId}/retry-eligibility")
     }
 
     @When("I retry the order")
     fun iRetryTheOrder() {
-        TODO("POST /api/orders/{orderId}/retry")
+        throw PendingException("Saga pattern business logic not yet implemented - POST /api/orders/{orderId}/retry")
     }
 
     @When("I attempt to retry the order again")
     fun iAttemptToRetryTheOrderAgain() {
-        TODO("POST /api/orders/{orderId}/retry after max attempts")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @When("I attempt to retry immediately")
     fun iAttemptToRetryImmediately() {
-        TODO("POST /api/orders/{orderId}/retry during cooldown")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @When("I view the retry history")
     fun iViewTheRetryHistory() {
-        TODO("GET /api/orders/{orderId}/retry-history")
+        throw PendingException("Saga pattern business logic not yet implemented - GET /api/orders/{orderId}/retry-history")
     }
 
     @When("I attempt to start another retry")
     fun iAttemptToStartAnotherRetry() {
-        TODO("POST /api/orders/{orderId}/retry while retry in progress")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @When("I attempt to retry the order")
     fun iAttemptToRetryTheOrder() {
-        TODO("POST /api/orders/{orderId}/retry")
+        throw PendingException("Saga pattern business logic not yet implemented - POST /api/orders/{orderId}/retry")
     }
 
     // ==================== Then Steps ====================
 
     @Then("the order should be eligible for retry")
     fun theOrderShouldBeEligibleForRetry() {
-        TODO("Verify response.eligible == true")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Then("the required action should be {string}")
     fun theRequiredActionShouldBe(action: String) {
-        TODO("Verify requiredActions contains $action")
+        throw PendingException("Saga pattern business logic not yet implemented - verify action: $action")
     }
 
     @Then("the order should not be eligible for retry")
     fun theOrderShouldNotBeEligibleForRetry() {
-        TODO("Verify response.eligible == false")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Then("the reason should indicate {string}")
     fun theReasonShouldIndicate(reason: String) {
-        TODO("Verify response.reason contains $reason")
+        throw PendingException("Saga pattern business logic not yet implemented - verify reason: $reason")
     }
 
     @Then("the retry should be initiated successfully")
     fun theRetryShouldBeInitiatedSuccessfully() {
-        TODO("Verify response.success == true")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Then("the order should resume from the payment step")
     fun theOrderShouldResumeFromThePaymentStep() {
-        TODO("Verify resumedFromStep == 'Payment Processing'")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Then("the inventory reservation should not be repeated")
     fun theInventoryReservationShouldNotBeRepeated() {
-        TODO("Verify inventory step was skipped in retry execution")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Then("the inventory step should be skipped")
     fun theInventoryStepShouldBeSkipped() {
-        TODO("Verify inventory in skippedSteps")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Then("the payment step should be skipped")
     fun thePaymentStepShouldBeSkipped() {
-        TODO("Verify payment in skippedSteps")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Then("the shipping step should execute with the new address")
     fun theShippingStepShouldExecuteWithTheNewAddress() {
-        TODO("Verify shipping executed with updated address")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Then("a new inventory reservation should be created")
     fun aNewInventoryReservationShouldBeCreated() {
-        TODO("Verify new reservation request via WireMock")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Then("the payment step should execute")
     fun thePaymentStepShouldExecute() {
-        TODO("Verify payment step executed")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Then("the retry should be rejected")
     fun theRetryShouldBeRejected() {
-        TODO("Verify response.success == false")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Then("I should see when the next retry will be available")
     fun iShouldSeeWhenTheNextRetryWillBeAvailable() {
-        TODO("Verify nextAvailableRetry timestamp in response")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Then("I should see all retry attempts")
     fun iShouldSeeAllRetryAttempts() {
-        TODO("Verify attempts array is populated")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Then("each attempt should show:")
     fun eachAttemptShouldShow(dataTable: DataTable) {
-        TODO("Verify each attempt contains expected fields")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Then("the second retry should be rejected")
     fun theSecondRetryShouldBeRejected() {
-        TODO("Verify second retry returns error")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Then("the retry should require acknowledgment of the price change")
     fun theRetryShouldRequireAcknowledgmentOfThePriceChange() {
-        TODO("Verify response requires price change acknowledgment")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 
     @Then("I should see the original and new prices")
     fun iShouldSeeTheOriginalAndNewPrices() {
-        TODO("Verify price comparison in response")
+        throw PendingException("Saga pattern business logic not yet implemented")
     }
 }
