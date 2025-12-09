@@ -134,7 +134,7 @@ curl http://localhost:13133/
 
 - `otel.sdk.disabled=true` - Disable OpenTelemetry (for tests)
 - `management.tracing.enabled=false` - Disable tracing
-- See `docs/implementation-plans/observability-integration.md` for full implementation details
+- See `docs/implementation-plans/INFRA-004-observability-integration.md` for full implementation details
 
 ## SDK Management
 
