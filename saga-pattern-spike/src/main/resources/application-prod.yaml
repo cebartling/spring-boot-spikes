@@ -1,0 +1,16 @@
+spring:
+  cloud:
+    vault:
+      scheme: https
+      authentication: APPROLE
+      app-role:
+        role-id: ${VAULT_ROLE_ID}
+        secret-id: ${VAULT_SECRET_ID}
+      ssl:
+        trust-store: ${VAULT_TRUST_STORE:classpath:vault-truststore.jks}
+        trust-store-password: ${VAULT_TRUST_STORE_PASSWORD}
+
+management:
+  endpoint:
+    health:
+      show-details: always

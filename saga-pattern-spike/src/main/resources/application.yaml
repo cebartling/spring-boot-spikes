@@ -1,3 +1,49 @@
 spring:
   application:
     name: sagapattern
+  config:
+    import: optional:vault://
+  cloud:
+    vault:
+      enabled: true
+      host: localhost
+      port: 8200
+      scheme: http
+      authentication: TOKEN
+      token: dev-root-token
+      kv:
+        enabled: true
+        backend: secret
+        default-context: sagapattern
+        profile-separator: /
+      database:
+        enabled: true
+        role: sagapattern-readwrite
+        backend: database
+        username-property: spring.r2dbc.username
+        password-property: spring.r2dbc.password
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/saga_db
+    # username and password are injected by Vault's database secrets engine
+    # For local development without Vault, these can be overridden via environment variables
+
+saga:
+  services:
+    inventory:
+      base-url: http://localhost:8081/api/inventory
+    payment:
+      base-url: http://localhost:8081/api/payments
+    shipping:
+      base-url: http://localhost:8081/api/shipments
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  health:
+    vault:
+      enabled: true
+  endpoint:
+    health:
+      show-details: when_authorized
