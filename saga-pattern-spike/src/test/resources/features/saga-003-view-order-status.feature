@@ -78,3 +78,19 @@ Feature: SAGA-003 - View Order Status During Processing
     Then each completed step should show a startedAt timestamp
     And each completed step should show a completedAt timestamp
     And the in-progress step should show only a startedAt timestamp
+
+  @observability @trace-id-availability
+  Scenario: Trace ID is available in order status for observability correlation
+    Given I have placed an order
+    When I request the order status via API
+    Then the response should include the trace ID
+    And the trace ID should be in W3C trace context format
+    And I should be able to use the trace ID to find the trace in observability tools
+
+  @observability @status-api-tracing
+  Scenario: Status API includes trace context in response headers
+    Given I have placed an order
+    When I request the order status via API
+    Then the response headers should include "traceparent"
+    And the response headers should include "tracestate"
+    And the trace ID in the body should match the traceparent header

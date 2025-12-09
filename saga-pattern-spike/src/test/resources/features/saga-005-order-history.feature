@@ -117,3 +117,42 @@ Feature: SAGA-005 - Order History Includes Saga Details
       | timestamp  |
       | stepName   |
       | details    |
+
+  @observability @trace-id-display
+  Scenario: Trace ID is displayed in order history for dashboard cross-referencing
+    Given I have a completed order
+    When I view the order history
+    Then the order history should display the trace ID
+    And the trace ID should be clickable or copyable
+    And I should be able to use the trace ID to navigate to the observability dashboard
+
+  @observability @history-api-trace-id
+  Scenario: History API includes trace ID in response
+    Given I have a completed order
+    When I request the order history via API
+    Then the response should include:
+      | field          | type    |
+      | orderId        | UUID    |
+      | traceId        | String  |
+      | orderNumber    | String  |
+      | createdAt      | ISO8601 |
+      | completedAt    | ISO8601 |
+      | finalStatus    | String  |
+      | timeline       | Array   |
+      | executionCount | Integer |
+    And each execution attempt should include its trace ID
+
+  @observability @multi-execution-traces
+  Scenario: Multiple execution attempts each have their own trace ID
+    Given I have an order with 2 saga execution attempts
+    When I view the order history
+    Then I should see execution summaries for each attempt
+    And each execution should include:
+      | field           |
+      | executionId     |
+      | traceId         |
+      | attemptNumber   |
+      | outcome         |
+      | stepsCompleted  |
+    And each trace ID should be unique
+    And traces should be linked showing the retry relationship

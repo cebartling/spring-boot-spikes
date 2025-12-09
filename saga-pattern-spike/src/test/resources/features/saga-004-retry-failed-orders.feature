@@ -94,3 +94,37 @@ Feature: SAGA-004 - Retry Failed Orders
     When I attempt to retry the order
     Then the retry should require acknowledgment of the price change
     And I should see the original and new prices
+
+  @observability @retry-trace-linking
+  Scenario: Retry creates a new trace linked to the original failed trace
+    Given I have an order that failed due to payment decline
+    And the original trace ID is recorded
+    And I have updated my payment method
+    When I retry the order
+    Then a new trace should be created for the retry execution
+    And the new trace should include a link to the original failed trace
+    And the link should be visible in the observability platform
+    And the retry trace should include an attribute "saga.original_trace_id"
+
+  @observability @retry-metrics
+  Scenario: Retry metrics are recorded for monitoring retry patterns
+    Given I have an order that failed due to payment decline
+    And I have updated my payment method
+    When I retry the order
+    Then the saga.retry.initiated counter should be incremented
+    And the saga.retry.success counter should be incremented on success
+    And the retry metrics should include tags for:
+      | tag               |
+      | failed_step       |
+      | retry_attempt     |
+      | original_order_id |
+
+  @observability @retry-failure-tracking
+  Scenario: Failed retry attempts are tracked in metrics
+    Given I have an order that failed due to payment decline
+    And I have not fixed the payment issue
+    When I retry the order
+    And the retry fails
+    Then the saga.retry.failed counter should be incremented
+    And the retry trace should include error attributes
+    And both original and retry traces should be queryable together
