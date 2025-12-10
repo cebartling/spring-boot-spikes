@@ -69,7 +69,7 @@ data class StepProgress(
         fun skipped(stepName: String, stepOrder: Int): StepProgress = StepProgress(
             stepName = stepName,
             stepOrder = stepOrder,
-            status = StepStatus.PENDING // We'll use PENDING for skipped as well
+            status = StepStatus.SKIPPED // Use SKIPPED to distinguish skipped steps
         )
     }
 
