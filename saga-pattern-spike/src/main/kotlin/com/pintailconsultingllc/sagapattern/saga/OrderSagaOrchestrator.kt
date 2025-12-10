@@ -226,13 +226,14 @@ class OrderSagaOrchestrator(
             )
             orderRepository.updateStatus(context.order.id, OrderStatus.FAILED)
 
-            SagaResult.Failed(
+            // Return a result indicating partial compensation
+            SagaResult.forPartialCompensation(
                 order = context.order.withStatus(OrderStatus.FAILED),
                 failedStep = failedStep.getStepName(),
                 failureReason = failureResult.errorMessage ?: "Unknown error",
-                errorCode = failureResult.errorCode
+                compensatedSteps = compensationSummary.compensatedSteps,
+                failedCompensations = compensationSummary.failedCompensations
             )
-        }
     }
 
     /**
