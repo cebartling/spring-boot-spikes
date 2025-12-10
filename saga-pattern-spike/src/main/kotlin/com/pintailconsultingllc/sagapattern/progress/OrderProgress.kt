@@ -120,7 +120,7 @@ data class OrderProgress(
                 execution.compensationCompletedAt
             )
 
-            return (stepTimestamps + executionTimestamps).maxOrNull() ?: execution.startedAt
+            return (stepTimestamps + executionTimestamps).maxOrNull() ?: Instant.now()
         }
     }
 
