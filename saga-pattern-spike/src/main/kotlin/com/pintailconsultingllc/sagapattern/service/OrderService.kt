@@ -92,6 +92,10 @@ class OrderService(
                 logger.warn("Order ${savedOrder.id} compensated: ${result.failureReason}")
                 OrderCreationResult.Failure(OrderFailureResponse.fromCompensated(result))
             }
+            is SagaResult.PartiallyCompensated -> {
+                logger.error("Order ${savedOrder.id} partially compensated: ${result.failureReason}")
+                OrderCreationResult.Failure(OrderFailureResponse.fromPartiallyCompensated(result))
+            }
         }
     }
 

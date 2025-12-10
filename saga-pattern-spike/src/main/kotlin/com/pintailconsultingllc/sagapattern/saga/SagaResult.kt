@@ -46,6 +46,19 @@ sealed class SagaResult {
         val status: OrderStatus = OrderStatus.FAILED
     }
 
+    /**
+     * Saga failed with partial compensation (some compensations failed).
+     */
+    data class PartiallyCompensated(
+        val order: Order,
+        val failedStep: String,
+        val failureReason: String,
+        val compensatedSteps: List<String>,
+        val failedCompensations: List<String>
+    ) : SagaResult() {
+        val status: OrderStatus = OrderStatus.FAILED
+    }
+
     companion object {
         /**
          * Generate a unique confirmation number for successful orders.
@@ -55,5 +68,22 @@ sealed class SagaResult {
             val random = UUID.randomUUID().toString().take(8).uppercase()
             return "ORD-$year-$random"
         }
+
+        /**
+         * Create a result for partial compensation failure.
+         */
+        fun forPartialCompensation(
+            order: Order,
+            failedStep: String,
+            failureReason: String,
+            compensatedSteps: List<String>,
+            failedCompensations: List<String>
+        ): PartiallyCompensated = PartiallyCompensated(
+            order = order,
+            failedStep = failedStep,
+            failureReason = failureReason,
+            compensatedSteps = compensatedSteps,
+            failedCompensations = failedCompensations
+        )
     }
 }

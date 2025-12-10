@@ -3,6 +3,7 @@ package com.pintailconsultingllc.sagapattern.api.dto
 import com.pintailconsultingllc.sagapattern.domain.Order
 import com.pintailconsultingllc.sagapattern.domain.OrderStatus
 import com.pintailconsultingllc.sagapattern.saga.SagaResult
+import com.pintailconsultingllc.sagapattern.util.ErrorSuggestions
 import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
@@ -87,35 +88,65 @@ data class OrderFailureResponse(
     val status: OrderStatus,
 
     /**
-     * The saga step that failed.
+     * Error details for the failure.
      */
-    val failedStep: String,
+    val error: ErrorDetails,
 
     /**
-     * Reason for the failure.
+     * Compensation details (what was rolled back).
      */
-    val failureReason: String,
+    val compensation: CompensationDetails,
 
     /**
-     * Machine-readable error code.
+     * Suggested actions for the customer.
      */
-    val errorCode: String? = null,
-
-    /**
-     * Steps that were compensated (rolled back).
-     */
-    val compensatedSteps: List<String> = emptyList()
+    val suggestions: List<String>
 ) {
+    /**
+     * Error details structure.
+     */
+    data class ErrorDetails(
+        val code: String?,
+        val message: String,
+        val failedStep: String,
+        val retryable: Boolean
+    )
+
+    /**
+     * Compensation status structure.
+     */
+    data class CompensationDetails(
+        val status: CompensationStatus,
+        val reversedSteps: List<String>
+    )
+
+    /**
+     * Compensation status enum.
+     */
+    enum class CompensationStatus {
+        NOT_NEEDED,
+        COMPLETED,
+        PARTIAL
+    }
+
     companion object {
         /**
-         * Create response from a failed saga result.
+         * Create response from a failed saga result (first step failed, no compensation).
          */
         fun fromFailed(result: SagaResult.Failed): OrderFailureResponse = OrderFailureResponse(
             orderId = result.order.id,
             status = result.status,
-            failedStep = result.failedStep,
-            failureReason = result.failureReason,
-            errorCode = result.errorCode
+            error = ErrorDetails(
+                code = result.errorCode,
+                message = result.failureReason,
+                failedStep = result.failedStep,
+                retryable = isRetryable(result.errorCode)
+            ),
+            compensation = CompensationDetails(
+                status = CompensationStatus.NOT_NEEDED,
+                reversedSteps = emptyList()
+            ),
+            suggestions = ErrorSuggestions.suggestionsForError(result.errorCode)
         )
 
         /**
@@ -124,9 +155,50 @@ data class OrderFailureResponse(
         fun fromCompensated(result: SagaResult.Compensated): OrderFailureResponse = OrderFailureResponse(
             orderId = result.order.id,
             status = result.status,
-            failedStep = result.failedStep,
-            failureReason = result.failureReason,
-            compensatedSteps = result.compensatedSteps
+            error = ErrorDetails(
+                code = null,
+                message = result.failureReason,
+                failedStep = result.failedStep,
+                retryable = false
+            ),
+            compensation = CompensationDetails(
+                status = CompensationStatus.COMPLETED,
+                reversedSteps = result.compensatedSteps
+            ),
+            suggestions = listOf(
+                "Please try again",
+                "Contact customer support if the issue persists"
+            )
         )
+
+        /**
+         * Create response from a partially compensated saga result.
+         */
+        fun fromPartiallyCompensated(result: SagaResult.PartiallyCompensated): OrderFailureResponse = OrderFailureResponse(
+            orderId = result.order.id,
+            status = result.status,
+            error = ErrorDetails(
+                code = null,
+                message = result.failureReason,
+                failedStep = result.failedStep,
+                retryable = false
+            ),
+            compensation = CompensationDetails(
+                status = CompensationStatus.PARTIAL,
+                reversedSteps = result.compensatedSteps
+            ),
+            suggestions = listOf(
+                "Contact customer support immediately",
+                "Reference order ID: ${result.order.id}"
+            )
+        )
+
+        private fun isRetryable(errorCode: String?): Boolean = when (errorCode) {
+            "PAYMENT_DECLINED" -> true
+            "INVALID_ADDRESS" -> true
+            "PAYMENT_TIMEOUT" -> true
+            "SERVICE_ERROR" -> true
+            else -> false
+        }
     }
 }

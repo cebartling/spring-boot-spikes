@@ -48,7 +48,7 @@ class OrderController(
                         .body(result.response as Any)
                 }
                 is OrderCreationResult.Failure -> {
-                    logger.warn("Order creation failed: ${result.response.failureReason}")
+                    logger.warn("Order creation failed: ${result.response.error.message}")
                     ResponseEntity
                         .status(HttpStatus.UNPROCESSABLE_ENTITY)
                         .body(result.response as Any)

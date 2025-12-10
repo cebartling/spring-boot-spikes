@@ -1,15 +1,17 @@
 package com.pintailconsultingllc.sagapattern.saga
 
-import com.pintailconsultingllc.sagapattern.domain.Order
 import com.pintailconsultingllc.sagapattern.domain.OrderStatus
 import com.pintailconsultingllc.sagapattern.domain.SagaExecution
-import com.pintailconsultingllc.sagapattern.domain.SagaStepResult
 import com.pintailconsultingllc.sagapattern.domain.SagaStatus
-import com.pintailconsultingllc.sagapattern.domain.StepStatus
+import com.pintailconsultingllc.sagapattern.domain.SagaStepResult
+import com.pintailconsultingllc.sagapattern.event.DomainEventPublisher
+import com.pintailconsultingllc.sagapattern.event.SagaCompensationCompleted
+import com.pintailconsultingllc.sagapattern.event.SagaCompensationStarted
 import com.pintailconsultingllc.sagapattern.metrics.SagaMetrics
 import com.pintailconsultingllc.sagapattern.repository.OrderRepository
 import com.pintailconsultingllc.sagapattern.repository.SagaExecutionRepository
 import com.pintailconsultingllc.sagapattern.repository.SagaStepResultRepository
+import com.pintailconsultingllc.sagapattern.saga.compensation.CompensationSummary
 import io.micrometer.observation.annotation.Observed
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
@@ -31,7 +33,8 @@ class OrderSagaOrchestrator(
     private val orderRepository: OrderRepository,
     private val sagaExecutionRepository: SagaExecutionRepository,
     private val sagaStepResultRepository: SagaStepResultRepository,
-    private val sagaMetrics: SagaMetrics
+    private val sagaMetrics: SagaMetrics,
+    private val domainEventPublisher: DomainEventPublisher
 ) {
     private val logger = LoggerFactory.getLogger(OrderSagaOrchestrator::class.java)
     private val objectMapper = jacksonObjectMapper()
@@ -185,6 +188,7 @@ class OrderSagaOrchestrator(
             // First step failed, no compensation needed
             logger.info("First step failed, no compensation needed")
             orderRepository.updateStatus(context.order.id, OrderStatus.FAILED)
+            sagaMetrics.sagaCompensated(failedStep.getStepName())
 
             return SagaResult.Failed(
                 order = context.order.withStatus(OrderStatus.FAILED),
@@ -194,16 +198,143 @@ class OrderSagaOrchestrator(
             )
         }
 
-        // Compensation needed - will be handled by SAGA-002
-        // For now, mark as failed and record metrics
-        sagaMetrics.sagaCompensated(failedStep.getStepName())
-        orderRepository.updateStatus(context.order.id, OrderStatus.FAILED)
+        // Execute compensation for completed steps
+        val compensationSummary = executeCompensation(
+            context = context,
+            sagaExecution = sagaExecution,
+            completedSteps = completedSteps,
+            failedStep = failedStep,
+            failureReason = failureResult.errorMessage ?: "Unknown error"
+        )
 
-        return SagaResult.Failed(
-            order = context.order.withStatus(OrderStatus.FAILED),
+        // Record metrics
+        sagaMetrics.sagaCompensated(failedStep.getStepName())
+
+        return if (compensationSummary.allCompensationsSuccessful) {
+            // All compensations successful - mark order as compensated
+            orderRepository.updateStatus(context.order.id, OrderStatus.COMPENSATED)
+            sagaExecutionRepository.markCompensationCompleted(sagaExecution.id, Instant.now())
+
+            SagaResult.Compensated(
+                order = context.order.withStatus(OrderStatus.COMPENSATED),
+                failedStep = failedStep.getStepName(),
+                failureReason = failureResult.errorMessage ?: "Unknown error",
+                compensatedSteps = compensationSummary.compensatedSteps
+            )
+        } else {
+            // Some compensations failed - mark order as failed (partial compensation)
+            logger.error(
+                "Partial compensation failure: succeeded={}, failed={}",
+                compensationSummary.compensatedSteps,
+                compensationSummary.failedCompensations
+            )
+            orderRepository.updateStatus(context.order.id, OrderStatus.FAILED)
+
+            // Return a result indicating partial compensation
+            SagaResult.forPartialCompensation(
+                order = context.order.withStatus(OrderStatus.FAILED),
+                failedStep = failedStep.getStepName(),
+                failureReason = failureResult.errorMessage ?: "Unknown error",
+                compensatedSteps = compensationSummary.compensatedSteps,
+                failedCompensations = compensationSummary.failedCompensations
+            )
+        }
+    }
+
+    /**
+     * Execute compensation for all completed steps in reverse order.
+     *
+     * @param context The saga context
+     * @param sagaExecution The saga execution record
+     * @param completedSteps Steps that completed successfully and need compensation
+     * @param failedStep The step that failed
+     * @param failureReason The reason for the failure
+     * @return Summary of the compensation execution
+     */
+    @Observed(name = "saga.compensation", contextualName = "execute-compensation")
+    private suspend fun executeCompensation(
+        context: SagaContext,
+        sagaExecution: SagaExecution,
+        completedSteps: List<SagaStep>,
+        failedStep: SagaStep,
+        failureReason: String
+    ): CompensationSummary {
+        logger.info("Starting compensation for {} completed steps", completedSteps.size)
+
+        // Mark compensation as started
+        sagaExecutionRepository.markCompensationStarted(sagaExecution.id, Instant.now())
+        orderRepository.updateStatus(context.order.id, OrderStatus.COMPENSATING)
+
+        // Publish compensation started event
+        domainEventPublisher.publishCompensationStarted(
+            SagaCompensationStarted(
+                orderId = context.order.id,
+                failedStep = failedStep.getStepName(),
+                stepsToCompensate = completedSteps.map { it.getStepName() }
+            )
+        )
+
+        // Execute compensations in reverse order
+        val stepResults = mutableMapOf<String, CompensationResult>()
+
+        for (step in completedSteps.reversed()) {
+            logger.info("Compensating step: {}", step.getStepName())
+
+            // Find the step result record
+            val stepResultRecord = sagaStepResultRepository
+                .findBySagaExecutionIdAndStepName(sagaExecution.id, step.getStepName())
+
+            val compensationResult = try {
+                // Execute compensation with timing
+                val result = sagaMetrics.timeStepSuspend("${step.getStepName()}-compensate") {
+                    step.compensate(context)
+                }
+
+                // Record compensation metrics
+                sagaMetrics.compensationExecuted(step.getStepName())
+
+                // Update step result status
+                if (result.success && stepResultRecord != null) {
+                    sagaStepResultRepository.markCompensated(stepResultRecord.id, Instant.now())
+                }
+
+                result
+            } catch (e: Exception) {
+                logger.error("Compensation failed for step {}: {}", step.getStepName(), e.message, e)
+                CompensationResult.failure("Unexpected error: ${e.message}")
+            }
+
+            stepResults[step.getStepName()] = compensationResult
+
+            if (compensationResult.success) {
+                logger.info("Successfully compensated step: {}", step.getStepName())
+            } else {
+                logger.error(
+                    "Failed to compensate step {}: {}",
+                    step.getStepName(),
+                    compensationResult.message
+                )
+            }
+        }
+
+        logger.info("Compensation completed. Results: {}", stepResults)
+
+        // Publish compensation completed event
+        val compensatedSteps = stepResults.filter { it.value.success }.map { it.key }
+        val failedCompensations = stepResults.filter { !it.value.success }.map { it.key }
+        domainEventPublisher.publishCompensationCompleted(
+            SagaCompensationCompleted(
+                orderId = context.order.id,
+                compensatedSteps = compensatedSteps,
+                failedCompensations = failedCompensations,
+                allSuccessful = failedCompensations.isEmpty()
+            )
+        )
+
+        return CompensationSummary.fromResults(
             failedStep = failedStep.getStepName(),
-            failureReason = failureResult.errorMessage ?: "Unknown error",
-            errorCode = failureResult.errorCode
+            failureReason = failureReason,
+            stepResults = stepResults
         )
     }
 }
