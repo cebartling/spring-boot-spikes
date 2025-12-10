@@ -3,7 +3,10 @@ package com.pintailconsultingllc.sagapattern.event
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
 import reactor.core.publisher.Sinks
+import reactor.core.scheduler.Schedulers
+import java.time.Duration
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
@@ -44,8 +47,20 @@ class OrderStatusEventPublisher {
         if (event.eventType == StatusEventType.SAGA_COMPLETED ||
             event.eventType == StatusEventType.SAGA_FAILED
         ) {
-            // Allow a brief delay for final event delivery before cleanup
-            sink.tryEmitComplete()
+            // Allow a brief delay for final event delivery before completing the stream
+            // This ensures slow subscribers or those with network latency receive the final event
+            Mono.delay(Duration.ofMillis(100))
+                .subscribeOn(Schedulers.boundedElastic())
+                .doOnNext {
+                    val completeResult = sink.tryEmitComplete()
+                    if (completeResult.isFailure) {
+                        logger.warn("Failed to complete sink for order {}: {}", event.orderId, completeResult)
+                    }
+                }
+                .doOnError { error ->
+                    logger.error("Error during delayed sink completion for order {}", event.orderId, error)
+                }
+                .subscribe()
         }
     }
 

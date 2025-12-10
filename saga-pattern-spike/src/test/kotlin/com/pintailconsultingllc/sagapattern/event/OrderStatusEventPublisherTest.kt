@@ -178,6 +178,29 @@ class OrderStatusEventPublisherTest {
             .verifyComplete()
     }
 
+    @Test
+    fun `completion is delayed allowing final event delivery`() {
+        val orderId = UUID.randomUUID()
+        val completeEvent = createEvent(orderId, StatusEventType.SAGA_COMPLETED)
+
+        // Subscribe before publishing
+        val flux = publisher.subscribe(orderId)
+
+        // Record start time and publish
+        val startTime = System.currentTimeMillis()
+        publisher.publish(completeEvent)
+
+        // Verify the event is received and stream completes
+        StepVerifier.create(flux)
+            .expectNext(completeEvent)
+            .verifyComplete()
+
+        // Verify that some time has passed (delay should be at least 100ms)
+        // We allow some tolerance for execution time
+        val elapsed = System.currentTimeMillis() - startTime
+        assertTrue(elapsed >= 50, "Expected at least 50ms delay but got ${elapsed}ms")
+    }
+
     private fun createEvent(
         orderId: UUID,
         eventType: StatusEventType,
