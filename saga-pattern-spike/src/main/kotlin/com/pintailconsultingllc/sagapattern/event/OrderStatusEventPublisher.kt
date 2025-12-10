@@ -100,8 +100,11 @@ class OrderStatusEventPublisher {
     private fun cleanupIfNoSubscribers(orderId: UUID) {
         val sink = orderSinks[orderId]
         if (sink != null && sink.currentSubscriberCount() == 0) {
-            orderSinks.remove(orderId)
-            logger.debug("Cleaned up sink for order {} (no subscribers)", orderId)
+            // Atomically remove only if the sink is still present and has zero subscribers
+            val removed = orderSinks.remove(orderId, sink)
+            if (removed) {
+                logger.debug("Cleaned up sink for order {} (no subscribers)", orderId)
+            }
         }
     }
 
