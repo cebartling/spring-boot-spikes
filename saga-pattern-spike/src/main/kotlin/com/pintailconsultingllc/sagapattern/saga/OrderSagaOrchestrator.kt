@@ -238,6 +238,7 @@ class OrderSagaOrchestrator(
                 compensatedSteps = compensationSummary.compensatedSteps,
                 failedCompensations = compensationSummary.failedCompensations
             )
+        }
     }
 
     /**

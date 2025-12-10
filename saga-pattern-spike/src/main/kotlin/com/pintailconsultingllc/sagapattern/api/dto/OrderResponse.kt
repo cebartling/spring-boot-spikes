@@ -171,6 +171,28 @@ data class OrderFailureResponse(
             )
         )
 
+        /**
+         * Create response from a partially compensated saga result.
+         */
+        fun fromPartiallyCompensated(result: SagaResult.PartiallyCompensated): OrderFailureResponse = OrderFailureResponse(
+            orderId = result.order.id,
+            status = result.status,
+            error = ErrorDetails(
+                code = null,
+                message = result.failureReason,
+                failedStep = result.failedStep,
+                retryable = false
+            ),
+            compensation = CompensationDetails(
+                status = CompensationStatus.PARTIAL,
+                reversedSteps = result.compensatedSteps
+            ),
+            suggestions = listOf(
+                "Contact customer support immediately",
+                "Reference order ID: ${result.order.id}"
+            )
+        )
+
         private fun isRetryable(errorCode: String?): Boolean = when (errorCode) {
             "PAYMENT_DECLINED" -> true
             "INVALID_ADDRESS" -> true
