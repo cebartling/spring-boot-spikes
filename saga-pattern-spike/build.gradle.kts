@@ -35,7 +35,8 @@ dependencies {
 	implementation("org.springframework.cloud:spring-cloud-starter-vault-config")
 	implementation("org.springframework.cloud:spring-cloud-vault-config-databases")
 
-	// R2DBC PostgreSQL driver for reactive database access
+	// R2DBC for reactive database access
+	implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
 	implementation("org.postgresql:r2dbc-postgresql")
 
 	// OpenTelemetry (Spring Boot 4.0 native support)
@@ -50,6 +51,7 @@ dependencies {
 	testImplementation("org.springframework.boot:spring-boot-starter-webflux-test")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 	testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
+	testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
 	// Cucumber for acceptance testing
