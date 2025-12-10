@@ -15,6 +15,9 @@ class SagaStepRegistry(
 ) {
     // Sort steps by their order on initialization
     private val orderedSteps: List<SagaStep> = steps.sortedBy { it.getStepOrder() }
+    
+    // Cache step lookup by name for efficient O(1) access
+    private val stepsByName: Map<String, SagaStep> = orderedSteps.associateBy { it.getStepName() }
 
     /**
      * Get the ordered list of step names.
@@ -41,7 +44,7 @@ class SagaStepRegistry(
      * @return The step if found, null otherwise
      */
     fun getStepByName(stepName: String): SagaStep? {
-        return orderedSteps.find { it.getStepName() == stepName }
+        return stepsByName[stepName]
     }
 
     /**

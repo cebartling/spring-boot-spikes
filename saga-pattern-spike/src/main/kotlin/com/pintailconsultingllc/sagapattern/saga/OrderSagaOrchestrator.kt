@@ -39,9 +39,8 @@ class OrderSagaOrchestrator(
     private val logger = LoggerFactory.getLogger(OrderSagaOrchestrator::class.java)
     private val objectMapper = jacksonObjectMapper()
 
-    // Get ordered steps from the registry
-    private val orderedSteps: List<SagaStep>
-        get() = sagaStepRegistry.getOrderedSteps()
+    // Cache ordered steps from the registry (steps are static at runtime)
+    private val orderedSteps: List<SagaStep> = sagaStepRegistry.getOrderedSteps()
 
     /**
      * Start and execute the saga for an order.
