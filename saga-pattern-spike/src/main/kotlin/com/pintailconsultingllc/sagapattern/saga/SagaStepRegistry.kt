@@ -18,8 +18,9 @@ class SagaStepRegistry(
     
     // Cache step lookup by name for efficient O(1) access
     private val stepsByName: Map<String, SagaStep> = run {
-        val duplicates = orderedSteps.groupBy { it.getStepName() }
-            .filter { it.value.size > 1 }
+        val duplicates = orderedSteps.groupingBy { it.getStepName() }
+            .eachCount()
+            .filterValues { it > 1 }
             .keys
         
         if (duplicates.isNotEmpty()) {
