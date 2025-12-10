@@ -51,57 +51,90 @@ class RetrySteps(
 
     // ==================== Given Steps ====================
 
-    @Given("I have an order that failed due to payment decline")
-    fun iHaveAnOrderThatFailedDueToPaymentDecline() = runBlocking {
-        // Create a failed order with payment decline failure
+    // NOTE: "I have an order that failed due to payment decline" is defined in CompensationSteps.kt
+    // We use that step for retry scenarios as well
+
+    /**
+     * Helper method to create a failed order with execution records for retry testing.
+     * Used by retry-specific scenarios that need saga execution data in the database.
+     */
+    private suspend fun createFailedOrderWithExecutionRecords(
+        failureReason: String,
+        failedStep: Int = 2,
+        failedStepName: String = "Payment Processing"
+    ) {
         val customerId = testContext.customerId ?: UUID.randomUUID().also { testContext.customerId = it }
-        val orderId = UUID.randomUUID()
+        val orderId = testContext.orderId ?: UUID.randomUUID().also { testContext.orderId = it }
         val sagaExecutionId = UUID.randomUUID()
 
-        // Create the order
-        val order = Order(
-            id = orderId,
-            customerId = customerId,
-            totalAmountInCents = 5000,
-            status = OrderStatus.FAILED
-        )
-        orderRepository.save(order)
-        testContext.orderId = orderId
+        // Create the order if not already exists
+        val existingOrder = orderRepository.findById(orderId)
+        if (existingOrder == null) {
+            val order = Order(
+                id = orderId,
+                customerId = customerId,
+                totalAmountInCents = 5000,
+                status = OrderStatus.FAILED
+            )
+            orderRepository.save(order)
+        }
 
-        // Create saga execution
-        val sagaExecution = SagaExecution(
-            id = sagaExecutionId,
-            orderId = orderId,
-            status = SagaStatus.FAILED,
-            startedAt = Instant.now().minusSeconds(60),
-            currentStep = 2,
-            failedStep = 2,
-            failureReason = "Payment declined: Card was declined"
-        )
-        sagaExecutionRepository.save(sagaExecution)
+        // Create saga execution if not already exists
+        val existingExecution = sagaExecutionRepository.findByOrderId(orderId)
+        if (existingExecution == null) {
+            val sagaExecution = SagaExecution(
+                id = sagaExecutionId,
+                orderId = orderId,
+                status = SagaStatus.FAILED,
+                startedAt = Instant.now().minusSeconds(60),
+                currentStep = failedStep,
+                failedStep = failedStep,
+                failureReason = failureReason
+            )
+            sagaExecutionRepository.save(sagaExecution)
 
-        // Create step results - inventory succeeded, payment failed
-        val inventoryStep = SagaStepResult(
-            sagaExecutionId = sagaExecutionId,
-            stepName = "Inventory Reservation",
-            stepOrder = 1,
-            status = StepStatus.COMPLETED,
-            startedAt = Instant.now().minusSeconds(55),
-            completedAt = Instant.now().minusSeconds(50),
-            stepData = """{"reservationId": "${UUID.randomUUID()}"}"""
-        )
-        sagaStepResultRepository.save(inventoryStep)
+            // Create step results based on failed step
+            if (failedStep >= 1) {
+                val inventoryStep = SagaStepResult(
+                    sagaExecutionId = sagaExecutionId,
+                    stepName = "Inventory Reservation",
+                    stepOrder = 1,
+                    status = StepStatus.COMPLETED,
+                    startedAt = Instant.now().minusSeconds(55),
+                    completedAt = Instant.now().minusSeconds(50),
+                    stepData = """{"reservationId": "${UUID.randomUUID()}"}"""
+                )
+                sagaStepResultRepository.save(inventoryStep)
+            }
 
-        val paymentStep = SagaStepResult(
-            sagaExecutionId = sagaExecutionId,
-            stepName = "Payment Processing",
-            stepOrder = 2,
-            status = StepStatus.FAILED,
-            startedAt = Instant.now().minusSeconds(45),
-            completedAt = Instant.now().minusSeconds(30),
-            errorMessage = "Payment declined: Card was declined"
-        )
-        sagaStepResultRepository.save(paymentStep)
+            if (failedStep >= 2) {
+                val paymentStatus = if (failedStepName == "Payment Processing") StepStatus.FAILED else StepStatus.COMPLETED
+                val paymentStep = SagaStepResult(
+                    sagaExecutionId = sagaExecutionId,
+                    stepName = "Payment Processing",
+                    stepOrder = 2,
+                    status = paymentStatus,
+                    startedAt = Instant.now().minusSeconds(45),
+                    completedAt = Instant.now().minusSeconds(40),
+                    errorMessage = if (paymentStatus == StepStatus.FAILED) failureReason else null,
+                    stepData = if (paymentStatus == StepStatus.COMPLETED) """{"transactionId": "${UUID.randomUUID()}"}""" else null
+                )
+                sagaStepResultRepository.save(paymentStep)
+            }
+
+            if (failedStep >= 3 && failedStepName == "Shipping Arrangement") {
+                val shippingStep = SagaStepResult(
+                    sagaExecutionId = sagaExecutionId,
+                    stepName = "Shipping Arrangement",
+                    stepOrder = 3,
+                    status = StepStatus.FAILED,
+                    startedAt = Instant.now().minusSeconds(35),
+                    completedAt = Instant.now().minusSeconds(30),
+                    errorMessage = failureReason
+                )
+                sagaStepResultRepository.save(shippingStep)
+            }
+        }
     }
 
     @Given("I have an order that failed due to fraud detection")
@@ -211,8 +244,12 @@ class RetrySteps(
     }
 
     @Given("I have an order that failed at payment")
-    fun iHaveAnOrderThatFailedAtPayment() {
-        iHaveAnOrderThatFailedDueToPaymentDecline()
+    fun iHaveAnOrderThatFailedAtPayment() = runBlocking {
+        createFailedOrderWithExecutionRecords(
+            failureReason = "Payment declined: Card was declined",
+            failedStep = 2,
+            failedStepName = "Payment Processing"
+        )
     }
 
     @Given("the original inventory reservation has expired")
@@ -239,8 +276,12 @@ class RetrySteps(
 
     @Given("I have an order that has been retried {int} times")
     fun iHaveAnOrderThatHasBeenRetriedTimes(retryCount: Int) = runBlocking {
-        // First create a failed order
-        iHaveAnOrderThatFailedDueToPaymentDecline()
+        // First create a failed order with execution records
+        createFailedOrderWithExecutionRecords(
+            failureReason = "Payment declined: Card was declined",
+            failedStep = 2,
+            failedStepName = "Payment Processing"
+        )
 
         val orderId = testContext.orderId ?: return@runBlocking
         val sagaExecution = sagaExecutionRepository.findByOrderId(orderId) ?: return@runBlocking
@@ -263,12 +304,12 @@ class RetrySteps(
 
     @Given("I have an order that just failed")
     fun iHaveAnOrderThatJustFailed() = runBlocking {
-        iHaveAnOrderThatFailedDueToPaymentDecline()
-
-        // Update the order to have failed very recently (within cooldown)
-        val orderId = testContext.orderId ?: return@runBlocking
-        val order = orderRepository.findById(orderId) ?: return@runBlocking
-        // Order failed in the last minute, which is within the 5-minute cooldown
+        createFailedOrderWithExecutionRecords(
+            failureReason = "Payment declined: Card was declined",
+            failedStep = 2,
+            failedStepName = "Payment Processing"
+        )
+        // Order failed recently, within cooldown period
     }
 
     @Given("I have an order with multiple retry attempts")
@@ -278,7 +319,11 @@ class RetrySteps(
 
     @Given("I have an order with a retry in progress")
     fun iHaveAnOrderWithARetryInProgress() = runBlocking {
-        iHaveAnOrderThatFailedDueToPaymentDecline()
+        createFailedOrderWithExecutionRecords(
+            failureReason = "Payment declined: Card was declined",
+            failedStep = 2,
+            failedStepName = "Payment Processing"
+        )
 
         val orderId = testContext.orderId ?: return@runBlocking
         val sagaExecution = sagaExecutionRepository.findByOrderId(orderId) ?: return@runBlocking
