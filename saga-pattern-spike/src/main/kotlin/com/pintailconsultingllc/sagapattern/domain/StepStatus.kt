@@ -32,5 +32,10 @@ enum class StepStatus {
     /**
      * Step compensation completed.
      */
-    COMPENSATED
+    COMPENSATED,
+
+    /**
+     * Step was skipped (not applicable to this saga execution).
+     */
+    SKIPPED
 }
