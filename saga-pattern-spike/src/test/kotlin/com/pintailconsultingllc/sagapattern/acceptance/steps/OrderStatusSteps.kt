@@ -1,156 +1,477 @@
 package com.pintailconsultingllc.sagapattern.acceptance.steps
 
 import com.pintailconsultingllc.sagapattern.acceptance.config.TestContext
+import com.pintailconsultingllc.sagapattern.domain.Order
+import com.pintailconsultingllc.sagapattern.domain.OrderStatus
+import com.pintailconsultingllc.sagapattern.domain.SagaExecution
+import com.pintailconsultingllc.sagapattern.domain.SagaStatus
+import com.pintailconsultingllc.sagapattern.domain.SagaStepResult
+import com.pintailconsultingllc.sagapattern.domain.StepStatus
+import com.pintailconsultingllc.sagapattern.repository.OrderRepository
+import com.pintailconsultingllc.sagapattern.repository.SagaExecutionRepository
+import com.pintailconsultingllc.sagapattern.repository.SagaStepResultRepository
 import io.cucumber.datatable.DataTable
-import io.cucumber.java.PendingException
 import io.cucumber.java.en.Given
 import io.cucumber.java.en.Then
 import io.cucumber.java.en.When
+import kotlinx.coroutines.runBlocking
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.http.MediaType
+import org.springframework.web.reactive.function.client.WebClient
+import java.time.Instant
+import java.util.UUID
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /**
  * Step definitions for SAGA-003: View Order Status During Processing
- *
- * These steps are marked as pending until the saga pattern business logic is implemented.
- * Infrastructure components (WireMock stubs, database schema) are in place.
  */
 class OrderStatusSteps(
-    @Autowired private val testContext: TestContext
+    @Autowired private val testContext: TestContext,
+    @Autowired private val orderRepository: OrderRepository,
+    @Autowired private val sagaExecutionRepository: SagaExecutionRepository,
+    @Autowired private val sagaStepResultRepository: SagaStepResultRepository
 ) {
+    @Value("\${local.server.port:8080}")
+    private var serverPort: Int = 8080
+
+    private val webClient: WebClient by lazy {
+        WebClient.builder()
+            .baseUrl("http://localhost:$serverPort")
+            .build()
+    }
 
     // ==================== Given Steps ====================
 
     @Given("I have placed an order that is currently processing")
-    fun iHavePlacedAnOrderThatIsCurrentlyProcessing() {
-        throw PendingException("Saga pattern business logic not yet implemented")
+    fun iHavePlacedAnOrderThatIsCurrentlyProcessing() = runBlocking {
+        val order = createTestOrder(OrderStatus.PROCESSING)
+        testContext.orderId = order.id
+        testContext.customerId = order.customerId
+
+        // Create saga execution in progress
+        val sagaExecution = createSagaExecution(order.id, SagaStatus.IN_PROGRESS)
+
+        // Create step results - first completed, second in progress, third pending
+        createStepResult(sagaExecution.id, "Inventory Reservation", 1, StepStatus.COMPLETED)
+        createStepResult(sagaExecution.id, "Payment Processing", 2, StepStatus.IN_PROGRESS)
+        createStepResult(sagaExecution.id, "Shipping Arrangement", 3, StepStatus.PENDING)
     }
 
     @Given("I have an order where inventory and payment steps are complete")
-    fun iHaveAnOrderWhereInventoryAndPaymentStepsAreComplete() {
-        throw PendingException("Saga pattern business logic not yet implemented")
+    fun iHaveAnOrderWhereInventoryAndPaymentStepsAreComplete() = runBlocking {
+        val order = createTestOrder(OrderStatus.PROCESSING)
+        testContext.orderId = order.id
+        testContext.customerId = order.customerId
+
+        // Create saga execution in progress
+        val sagaExecution = createSagaExecution(order.id, SagaStatus.IN_PROGRESS)
+
+        // Create step results
+        createStepResult(sagaExecution.id, "Inventory Reservation", 1, StepStatus.COMPLETED)
+        createStepResult(sagaExecution.id, "Payment Processing", 2, StepStatus.COMPLETED)
     }
 
     @Given("the shipping step is in progress")
-    fun theShippingStepIsInProgress() {
-        throw PendingException("Saga pattern business logic not yet implemented")
+    fun theShippingStepIsInProgress() = runBlocking {
+        val sagaExecution = sagaExecutionRepository.findByOrderId(testContext.orderId!!)
+        assertNotNull(sagaExecution, "Saga execution should exist")
+
+        createStepResult(sagaExecution.id, "Shipping Arrangement", 3, StepStatus.IN_PROGRESS)
     }
 
     @Given("I have an order where the payment step failed")
-    fun iHaveAnOrderWhereThePaymentStepFailed() {
-        throw PendingException("Saga pattern business logic not yet implemented")
+    fun iHaveAnOrderWhereThePaymentStepFailed() = runBlocking {
+        val order = createTestOrder(OrderStatus.FAILED)
+        testContext.orderId = order.id
+        testContext.customerId = order.customerId
+
+        // Create saga execution in failed state
+        val sagaExecution = createSagaExecution(
+            order.id,
+            SagaStatus.FAILED,
+            failedStep = 1,
+            failureReason = "Card declined"
+        )
+
+        // Create step results
+        createStepResult(sagaExecution.id, "Inventory Reservation", 1, StepStatus.COMPLETED)
+        createStepResult(
+            sagaExecution.id, "Payment Processing", 2, StepStatus.FAILED,
+            errorMessage = "Card declined"
+        )
+        createStepResult(sagaExecution.id, "Shipping Arrangement", 3, StepStatus.PENDING)
     }
 
     @Given("I have an order that is currently being compensated")
-    fun iHaveAnOrderThatIsCurrentlyBeingCompensated() {
-        throw PendingException("Saga pattern business logic not yet implemented")
+    fun iHaveAnOrderThatIsCurrentlyBeingCompensated() = runBlocking {
+        val order = createTestOrder(OrderStatus.PROCESSING)
+        testContext.orderId = order.id
+        testContext.customerId = order.customerId
+
+        // Create saga execution in compensating state
+        val sagaExecution = createSagaExecution(
+            order.id,
+            SagaStatus.COMPENSATING,
+            compensationStartedAt = Instant.now()
+        )
+
+        // Create step results with compensation in progress
+        createStepResult(sagaExecution.id, "Inventory Reservation", 1, StepStatus.COMPENSATING)
+        createStepResult(
+            sagaExecution.id, "Payment Processing", 2, StepStatus.FAILED,
+            errorMessage = "Card declined"
+        )
+        createStepResult(sagaExecution.id, "Shipping Arrangement", 3, StepStatus.PENDING)
     }
 
     @Given("I have a successfully completed order")
-    fun iHaveASuccessfullyCompletedOrder() {
-        throw PendingException("Saga pattern business logic not yet implemented")
+    fun iHaveASuccessfullyCompletedOrder() = runBlocking {
+        val order = createTestOrder(OrderStatus.COMPLETED)
+        testContext.orderId = order.id
+        testContext.customerId = order.customerId
+
+        // Create completed saga execution
+        val sagaExecution = createSagaExecution(
+            order.id,
+            SagaStatus.COMPLETED,
+            completedAt = Instant.now()
+        )
+
+        // All steps completed
+        createStepResult(sagaExecution.id, "Inventory Reservation", 1, StepStatus.COMPLETED)
+        createStepResult(sagaExecution.id, "Payment Processing", 2, StepStatus.COMPLETED)
+        createStepResult(sagaExecution.id, "Shipping Arrangement", 3, StepStatus.COMPLETED)
     }
 
     @Given("I have placed an order")
-    fun iHavePlacedAnOrder() {
-        throw PendingException("Saga pattern business logic not yet implemented")
+    fun iHavePlacedAnOrder() = runBlocking {
+        val order = createTestOrder(OrderStatus.PROCESSING)
+        testContext.orderId = order.id
+        testContext.customerId = order.customerId
+
+        // Create in-progress saga execution
+        val sagaExecution = createSagaExecution(order.id, SagaStatus.IN_PROGRESS)
+
+        // Create step results
+        createStepResult(sagaExecution.id, "Inventory Reservation", 1, StepStatus.COMPLETED)
+        createStepResult(sagaExecution.id, "Payment Processing", 2, StepStatus.IN_PROGRESS)
+        createStepResult(sagaExecution.id, "Shipping Arrangement", 3, StepStatus.PENDING)
     }
 
     @Given("I have an order in progress")
-    fun iHaveAnOrderInProgress() {
-        throw PendingException("Saga pattern business logic not yet implemented")
+    fun iHaveAnOrderInProgress() = runBlocking {
+        iHavePlacedAnOrderThatIsCurrentlyProcessing()
     }
 
     // ==================== When Steps ====================
 
     @When("I check my order status")
     fun iCheckMyOrderStatus() {
-        throw PendingException("Saga pattern business logic not yet implemented - GET /api/orders/{orderId}/status")
+        iRequestTheOrderStatusViaApi()
     }
 
     @When("I request the order status via API")
     fun iRequestTheOrderStatusViaApi() {
-        throw PendingException("Saga pattern business logic not yet implemented - GET /api/orders/{orderId}/status")
+        assertNotNull(testContext.orderId, "Order ID should be set")
+
+        @Suppress("UNCHECKED_CAST")
+        val response = webClient.get()
+            .uri("/api/orders/${testContext.orderId}/status")
+            .accept(MediaType.APPLICATION_JSON)
+            .retrieve()
+            .bodyToMono(Map::class.java)
+            .block() as? Map<String, Any>
+
+        testContext.statusResponse = response
     }
 
     // ==================== Then Steps ====================
 
     @Then("I should see the overall status as {string}")
-    fun iShouldSeeTheOverallStatusAs(status: String) {
-        throw PendingException("Saga pattern business logic not yet implemented - verify status: $status")
+    fun iShouldSeeTheOverallStatusAs(expectedStatus: String) {
+        val response = testContext.statusResponse
+        assertNotNull(response, "Status response should exist")
+        assertEquals(expectedStatus, response["overallStatus"], "Overall status should match")
     }
 
     @Then("I should see which step is currently in progress")
     fun iShouldSeeWhichStepIsCurrentlyInProgress() {
-        throw PendingException("Saga pattern business logic not yet implemented")
+        val response = testContext.statusResponse
+        assertNotNull(response, "Status response should exist")
+        assertNotNull(response["currentStep"], "Current step should be set when in progress")
     }
 
     @Then("I should see which steps have completed")
     fun iShouldSeeWhichStepsHaveCompleted() {
-        throw PendingException("Saga pattern business logic not yet implemented")
+        val response = testContext.statusResponse
+        assertNotNull(response, "Status response should exist")
+
+        @Suppress("UNCHECKED_CAST")
+        val steps = response["steps"] as? List<Map<String, Any>>
+        assertNotNull(steps, "Steps should exist")
+
+        val completedSteps = steps.filter { it["status"] == "COMPLETED" }
+        assertTrue(completedSteps.isNotEmpty(), "Should have at least one completed step")
     }
 
     @Then("I should see which steps are pending")
     fun iShouldSeeWhichStepsArePending() {
-        throw PendingException("Saga pattern business logic not yet implemented")
+        val response = testContext.statusResponse
+        assertNotNull(response, "Status response should exist")
+
+        @Suppress("UNCHECKED_CAST")
+        val steps = response["steps"] as? List<Map<String, Any>>
+        assertNotNull(steps, "Steps should exist")
+
+        val pendingSteps = steps.filter { it["status"] == "PENDING" }
+        assertTrue(pendingSteps.isNotEmpty(), "Should have at least one pending step")
     }
 
     @Then("I should see the following step statuses:")
     fun iShouldSeeTheFollowingStepStatuses(dataTable: DataTable) {
-        throw PendingException("Saga pattern business logic not yet implemented")
+        val response = testContext.statusResponse
+        assertNotNull(response, "Status response should exist")
+
+        @Suppress("UNCHECKED_CAST")
+        val steps = response["steps"] as? List<Map<String, Any>>
+        assertNotNull(steps, "Steps should exist")
+
+        val expectedStatuses = dataTable.asMaps()
+        for (expected in expectedStatuses) {
+            val stepName = expected["step"]
+            val expectedStatus = expected["status"]
+
+            val step = steps.find { it["name"] == stepName }
+            assertNotNull(step, "Step '$stepName' should exist")
+            assertEquals(expectedStatus, step["status"], "Status for '$stepName' should match")
+        }
     }
 
     @Then("I should see the payment step marked as {string}")
-    fun iShouldSeeThePaymentStepMarkedAs(status: String) {
-        throw PendingException("Saga pattern business logic not yet implemented - verify status: $status")
+    fun iShouldSeeThePaymentStepMarkedAs(expectedStatus: String) {
+        val response = testContext.statusResponse
+        assertNotNull(response, "Status response should exist")
+
+        @Suppress("UNCHECKED_CAST")
+        val steps = response["steps"] as? List<Map<String, Any>>
+        assertNotNull(steps, "Steps should exist")
+
+        val paymentStep = steps.find { it["name"] == "Payment Processing" }
+        assertNotNull(paymentStep, "Payment step should exist")
+        assertEquals(expectedStatus, paymentStep["status"], "Payment step status should match")
     }
 
     @Then("I should see the failure reason for the payment step")
     fun iShouldSeeTheFailureReasonForThePaymentStep() {
-        throw PendingException("Saga pattern business logic not yet implemented")
+        val response = testContext.statusResponse
+        assertNotNull(response, "Status response should exist")
+
+        @Suppress("UNCHECKED_CAST")
+        val steps = response["steps"] as? List<Map<String, Any>>
+        assertNotNull(steps, "Steps should exist")
+
+        val paymentStep = steps.find { it["name"] == "Payment Processing" }
+        assertNotNull(paymentStep, "Payment step should exist")
+        assertNotNull(paymentStep["errorMessage"], "Payment step should have error message")
     }
 
     @Then("I should see which steps are being compensated")
     fun iShouldSeeWhichStepsAreBeingCompensated() {
-        throw PendingException("Saga pattern business logic not yet implemented")
+        val response = testContext.statusResponse
+        assertNotNull(response, "Status response should exist")
+
+        @Suppress("UNCHECKED_CAST")
+        val steps = response["steps"] as? List<Map<String, Any>>
+        assertNotNull(steps, "Steps should exist")
+
+        val compensatingSteps = steps.filter { it["status"] == "COMPENSATING" }
+        assertTrue(compensatingSteps.isNotEmpty(), "Should have at least one compensating step")
     }
 
     @Then("I should see which steps have been compensated")
     fun iShouldSeeWhichStepsHaveBeenCompensated() {
-        throw PendingException("Saga pattern business logic not yet implemented")
+        val response = testContext.statusResponse
+        assertNotNull(response, "Status response should exist")
+
+        @Suppress("UNCHECKED_CAST")
+        val steps = response["steps"] as? List<Map<String, Any>>
+        assertNotNull(steps, "Steps should exist")
+
+        // During compensation, steps might still be COMPENSATING or already COMPENSATED
+        val compensatedSteps = steps.filter {
+            it["status"] == "COMPENSATED" || it["status"] == "COMPENSATING"
+        }
+        assertTrue(compensatedSteps.isNotEmpty(), "Should have steps in compensation")
     }
 
     @Then("all steps should show status {string}")
-    fun allStepsShouldShowStatus(status: String) {
-        throw PendingException("Saga pattern business logic not yet implemented - verify status: $status")
+    fun allStepsShouldShowStatus(expectedStatus: String) {
+        val response = testContext.statusResponse
+        assertNotNull(response, "Status response should exist")
+
+        @Suppress("UNCHECKED_CAST")
+        val steps = response["steps"] as? List<Map<String, Any>>
+        assertNotNull(steps, "Steps should exist")
+        assertTrue(steps.isNotEmpty(), "Should have steps")
+
+        for (step in steps) {
+            assertEquals(expectedStatus, step["status"], "Step '${step["name"]}' should have status $expectedStatus")
+        }
     }
 
     @Then("I should see the completion timestamp")
     fun iShouldSeeTheCompletionTimestamp() {
-        throw PendingException("Saga pattern business logic not yet implemented")
+        val response = testContext.statusResponse
+        assertNotNull(response, "Status response should exist")
+        assertNotNull(response["lastUpdated"], "Should have lastUpdated timestamp")
     }
 
     @Then("the response should include:")
     fun theResponseShouldInclude(dataTable: DataTable) {
-        throw PendingException("Saga pattern business logic not yet implemented")
+        val response = testContext.statusResponse
+        assertNotNull(response, "Status response should exist")
+
+        val expectedFields = dataTable.asMaps()
+        for (field in expectedFields) {
+            val fieldName = field["field"]
+            val fieldType = field["type"]
+
+            assertTrue(response.containsKey(fieldName), "Response should include '$fieldName'")
+
+            val value = response[fieldName]
+            when (fieldType) {
+                "UUID" -> assertNotNull(value, "$fieldName should have a value (UUID)")
+                "String" -> assertTrue(value == null || value is String, "$fieldName should be String or null")
+                "ISO8601" -> assertNotNull(value, "$fieldName should have a timestamp value")
+                "Array" -> assertTrue(value is List<*>, "$fieldName should be an array")
+            }
+        }
     }
 
     @Then("each step in the response should include:")
     fun eachStepInTheResponseShouldInclude(dataTable: DataTable) {
-        throw PendingException("Saga pattern business logic not yet implemented")
+        val response = testContext.statusResponse
+        assertNotNull(response, "Status response should exist")
+
+        @Suppress("UNCHECKED_CAST")
+        val steps = response["steps"] as? List<Map<String, Any>>
+        assertNotNull(steps, "Steps should exist")
+        assertTrue(steps.isNotEmpty(), "Should have steps")
+
+        val expectedFields = dataTable.asMaps()
+        for (step in steps) {
+            for (field in expectedFields) {
+                val fieldName = field["field"]
+                assertTrue(step.containsKey(fieldName), "Step should include '$fieldName'")
+            }
+        }
     }
 
     @Then("each completed step should show a startedAt timestamp")
     fun eachCompletedStepShouldShowAStartedAtTimestamp() {
-        throw PendingException("Saga pattern business logic not yet implemented")
+        val response = testContext.statusResponse
+        assertNotNull(response, "Status response should exist")
+
+        @Suppress("UNCHECKED_CAST")
+        val steps = response["steps"] as? List<Map<String, Any>>
+        assertNotNull(steps, "Steps should exist")
+
+        val completedSteps = steps.filter { it["status"] == "COMPLETED" }
+        for (step in completedSteps) {
+            assertNotNull(step["startedAt"], "Completed step '${step["name"]}' should have startedAt")
+        }
     }
 
     @Then("each completed step should show a completedAt timestamp")
     fun eachCompletedStepShouldShowACompletedAtTimestamp() {
-        throw PendingException("Saga pattern business logic not yet implemented")
+        val response = testContext.statusResponse
+        assertNotNull(response, "Status response should exist")
+
+        @Suppress("UNCHECKED_CAST")
+        val steps = response["steps"] as? List<Map<String, Any>>
+        assertNotNull(steps, "Steps should exist")
+
+        val completedSteps = steps.filter { it["status"] == "COMPLETED" }
+        for (step in completedSteps) {
+            assertNotNull(step["completedAt"], "Completed step '${step["name"]}' should have completedAt")
+        }
     }
 
     @Then("the in-progress step should show only a startedAt timestamp")
     fun theInProgressStepShouldShowOnlyAStartedAtTimestamp() {
-        throw PendingException("Saga pattern business logic not yet implemented")
+        val response = testContext.statusResponse
+        assertNotNull(response, "Status response should exist")
+
+        @Suppress("UNCHECKED_CAST")
+        val steps = response["steps"] as? List<Map<String, Any>>
+        assertNotNull(steps, "Steps should exist")
+
+        val inProgressSteps = steps.filter { it["status"] == "IN_PROGRESS" }
+        for (step in inProgressSteps) {
+            assertNotNull(step["startedAt"], "In-progress step '${step["name"]}' should have startedAt")
+            assertNull(step["completedAt"], "In-progress step '${step["name"]}' should not have completedAt")
+        }
+    }
+
+    // ==================== Helper Methods ====================
+
+    private suspend fun createTestOrder(status: OrderStatus): Order {
+        val order = Order(
+            id = UUID.randomUUID(),
+            customerId = UUID.randomUUID(),
+            totalAmountInCents = 9999L,
+            status = status
+        )
+        return orderRepository.save(order)
+    }
+
+    private suspend fun createSagaExecution(
+        orderId: UUID,
+        status: SagaStatus,
+        failedStep: Int? = null,
+        failureReason: String? = null,
+        completedAt: Instant? = null,
+        compensationStartedAt: Instant? = null
+    ): SagaExecution {
+        val execution = SagaExecution(
+            id = UUID.randomUUID(),
+            orderId = orderId,
+            status = status,
+            failedStep = failedStep,
+            failureReason = failureReason,
+            startedAt = Instant.now(),
+            completedAt = completedAt,
+            compensationStartedAt = compensationStartedAt
+        )
+        return sagaExecutionRepository.save(execution)
+    }
+
+    private suspend fun createStepResult(
+        sagaExecutionId: UUID,
+        stepName: String,
+        stepOrder: Int,
+        status: StepStatus,
+        errorMessage: String? = null
+    ): SagaStepResult {
+        val startedAt = if (status != StepStatus.PENDING) Instant.now().minusSeconds(5) else null
+        val completedAt = if (status in listOf(StepStatus.COMPLETED, StepStatus.FAILED, StepStatus.COMPENSATED)) {
+            Instant.now()
+        } else null
+
+        val result = SagaStepResult(
+            id = UUID.randomUUID(),
+            sagaExecutionId = sagaExecutionId,
+            stepName = stepName,
+            stepOrder = stepOrder,
+            status = status,
+            errorMessage = errorMessage,
+            startedAt = startedAt,
+            completedAt = completedAt
+        )
+        return sagaStepResultRepository.save(result)
     }
 }
