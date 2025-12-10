@@ -32,12 +32,12 @@ class StepProgressTest {
     }
 
     @Test
-    fun `skipped creates step with PENDING status`() {
+    fun `skipped creates step with SKIPPED status`() {
         val progress = StepProgress.skipped("Shipping", 3)
 
         assertEquals("Shipping", progress.stepName)
         assertEquals(3, progress.stepOrder)
-        assertEquals(StepStatus.PENDING, progress.status)
+        assertEquals(StepStatus.SKIPPED, progress.status)
     }
 
     @Test
