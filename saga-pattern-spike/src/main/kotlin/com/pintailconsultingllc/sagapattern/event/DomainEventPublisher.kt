@@ -7,8 +7,8 @@ import org.springframework.stereotype.Component
 /**
  * Publisher for domain events.
  *
- * Wraps Spring's ApplicationEventPublisher to provide a domain-specific interface
- * for publishing saga-related events. Events can be consumed by:
+ * Wraps Spring's [ApplicationEventPublisher](https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/context/ApplicationEventPublisher.html)
+ * to provide a domain-specific interface for publishing saga-related events. Events can be consumed by:
  * - Internal listeners for logging, metrics, or side effects
  * - External systems via webhooks or message queues (future extension)
  */
