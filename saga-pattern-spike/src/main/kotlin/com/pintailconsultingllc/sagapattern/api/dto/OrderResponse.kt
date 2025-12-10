@@ -87,35 +87,65 @@ data class OrderFailureResponse(
     val status: OrderStatus,
 
     /**
-     * The saga step that failed.
+     * Error details for the failure.
      */
-    val failedStep: String,
+    val error: ErrorDetails,
 
     /**
-     * Reason for the failure.
+     * Compensation details (what was rolled back).
      */
-    val failureReason: String,
+    val compensation: CompensationDetails,
 
     /**
-     * Machine-readable error code.
+     * Suggested actions for the customer.
      */
-    val errorCode: String? = null,
-
-    /**
-     * Steps that were compensated (rolled back).
-     */
-    val compensatedSteps: List<String> = emptyList()
+    val suggestions: List<String>
 ) {
+    /**
+     * Error details structure.
+     */
+    data class ErrorDetails(
+        val code: String?,
+        val message: String,
+        val failedStep: String,
+        val retryable: Boolean
+    )
+
+    /**
+     * Compensation status structure.
+     */
+    data class CompensationDetails(
+        val status: CompensationStatus,
+        val reversedSteps: List<String>
+    )
+
+    /**
+     * Compensation status enum.
+     */
+    enum class CompensationStatus {
+        NOT_NEEDED,
+        COMPLETED,
+        PARTIAL
+    }
+
     companion object {
         /**
-         * Create response from a failed saga result.
+         * Create response from a failed saga result (first step failed, no compensation).
          */
         fun fromFailed(result: SagaResult.Failed): OrderFailureResponse = OrderFailureResponse(
             orderId = result.order.id,
             status = result.status,
-            failedStep = result.failedStep,
-            failureReason = result.failureReason,
-            errorCode = result.errorCode
+            error = ErrorDetails(
+                code = result.errorCode,
+                message = result.failureReason,
+                failedStep = result.failedStep,
+                retryable = isRetryable(result.errorCode)
+            ),
+            compensation = CompensationDetails(
+                status = CompensationStatus.NOT_NEEDED,
+                reversedSteps = emptyList()
+            ),
+            suggestions = suggestionsForError(result.errorCode)
         )
 
         /**
@@ -124,9 +154,58 @@ data class OrderFailureResponse(
         fun fromCompensated(result: SagaResult.Compensated): OrderFailureResponse = OrderFailureResponse(
             orderId = result.order.id,
             status = result.status,
-            failedStep = result.failedStep,
-            failureReason = result.failureReason,
-            compensatedSteps = result.compensatedSteps
+            error = ErrorDetails(
+                code = null,
+                message = result.failureReason,
+                failedStep = result.failedStep,
+                retryable = false
+            ),
+            compensation = CompensationDetails(
+                status = CompensationStatus.COMPLETED,
+                reversedSteps = result.compensatedSteps
+            ),
+            suggestions = listOf(
+                "Please try again",
+                "Contact customer support if the issue persists"
+            )
         )
+
+        private fun isRetryable(errorCode: String?): Boolean = when (errorCode) {
+            "PAYMENT_DECLINED" -> true
+            "INVALID_ADDRESS" -> true
+            "PAYMENT_TIMEOUT" -> true
+            "SERVICE_ERROR" -> true
+            else -> false
+        }
+
+        private fun suggestionsForError(errorCode: String?): List<String> = when (errorCode) {
+            "INVENTORY_UNAVAILABLE" -> listOf(
+                "Check product availability",
+                "Try reducing the quantity",
+                "Add items to wishlist for notifications"
+            )
+            "PAYMENT_DECLINED" -> listOf(
+                "Update your payment method",
+                "Try a different card",
+                "Contact your bank for authorization"
+            )
+            "FRAUD_DETECTED" -> listOf(
+                "Contact customer support",
+                "Verify your account information"
+            )
+            "INVALID_ADDRESS" -> listOf(
+                "Verify your shipping address",
+                "Check postal code is correct",
+                "Try an alternate delivery address"
+            )
+            "SHIPPING_UNAVAILABLE" -> listOf(
+                "Select a different shipping address",
+                "Contact support for shipping options"
+            )
+            else -> listOf(
+                "Please try again",
+                "Contact customer support if the issue persists"
+            )
+        }
     }
 }
