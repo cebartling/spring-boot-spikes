@@ -3,6 +3,7 @@ package com.pintailconsultingllc.sagapattern.progress
 import com.pintailconsultingllc.sagapattern.repository.OrderRepository
 import com.pintailconsultingllc.sagapattern.repository.SagaExecutionRepository
 import com.pintailconsultingllc.sagapattern.repository.SagaStepResultRepository
+import com.pintailconsultingllc.sagapattern.saga.SagaStepRegistry
 import io.micrometer.observation.annotation.Observed
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -18,7 +19,8 @@ import java.util.UUID
 class OrderProgressService(
     private val orderRepository: OrderRepository,
     private val sagaExecutionRepository: SagaExecutionRepository,
-    private val sagaStepResultRepository: SagaStepResultRepository
+    private val sagaStepResultRepository: SagaStepResultRepository,
+    private val sagaStepRegistry: SagaStepRegistry
 ) {
     private val logger = LoggerFactory.getLogger(OrderProgressService::class.java)
 
@@ -44,7 +46,7 @@ class OrderProgressService(
         if (sagaExecution == null) {
             logger.debug("No saga execution found for order {}", orderId)
             // Order exists but saga hasn't started - return queued status
-            return OrderProgress.initial(orderId, DEFAULT_STEP_NAMES)
+            return OrderProgress.initial(orderId, sagaStepRegistry.getStepNames())
         }
 
         // Get all step results for the saga execution
@@ -76,15 +78,4 @@ class OrderProgressService(
         return orderRepository.existsByIdAndCustomerId(orderId, customerId)
     }
 
-    companion object {
-        /**
-         * Default step names for the order saga.
-         * Used when creating initial progress before saga execution starts.
-         */
-        val DEFAULT_STEP_NAMES = listOf(
-            "Inventory Reservation",
-            "Payment Processing",
-            "Shipping Arrangement"
-        )
-    }
 }
