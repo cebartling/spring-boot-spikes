@@ -65,6 +65,8 @@ class OrderStatusStreamController(
      * 1. Initial status event from current progress
      * 2. Real-time updates from the event publisher
      * 3. Periodic heartbeat to keep connection alive
+     *
+     * The heartbeat automatically stops when the status stream completes.
      */
     private fun createStatusStream(orderId: UUID): Flux<ServerSentEvent<OrderStatusEvent>> {
         // Get initial status
@@ -84,14 +86,6 @@ class OrderStatusStreamController(
         // Subscribe to real-time updates
         val updates = orderStatusEventPublisher.subscribe(orderId)
 
-        // Heartbeat to keep connection alive (every 30 seconds)
-        val heartbeat = Flux.interval(Duration.ofSeconds(30))
-            .map {
-                ServerSentEvent.builder<OrderStatusEvent>()
-                    .comment("heartbeat")
-                    .build()
-            }
-
         // Combine initial status with updates, wrap in SSE
         val statusEvents = Flux.concat(initialStatus, updates)
             .map { event ->
@@ -109,6 +103,16 @@ class OrderStatusStreamController(
             .doOnCancel {
                 logger.info("SSE stream cancelled for order {}", orderId)
             }
+
+        // Heartbeat to keep connection alive (every 30 seconds)
+        // takeUntilOther ensures heartbeat stops when statusEvents completes
+        val heartbeat = Flux.interval(Duration.ofSeconds(30))
+            .map {
+                ServerSentEvent.builder<OrderStatusEvent>()
+                    .comment("heartbeat")
+                    .build()
+            }
+            .takeUntilOther(statusEvents.ignoreElements())
 
         // Merge status events with heartbeat
         return Flux.merge(statusEvents, heartbeat)
