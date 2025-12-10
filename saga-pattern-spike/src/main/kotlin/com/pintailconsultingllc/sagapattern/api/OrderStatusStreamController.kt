@@ -5,6 +5,7 @@ import com.pintailconsultingllc.sagapattern.event.OrderStatusEventPublisher
 import com.pintailconsultingllc.sagapattern.event.StatusEventType
 import com.pintailconsultingllc.sagapattern.progress.OrderProgressService
 import io.micrometer.observation.annotation.Observed
+import kotlinx.coroutines.reactor.mono
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -48,7 +49,7 @@ class OrderStatusStreamController(
         logger.info("Starting SSE stream for order: {}", orderId)
 
         // Verify order exists first
-        return Mono.fromCallable { runBlocking { orderProgressService.orderExists(orderId) } }
+        return mono { orderProgressService.orderExists(orderId) }
             .flatMapMany { exists ->
                 if (!exists) {
                     Flux.error(ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found: $orderId"))
@@ -68,7 +69,7 @@ class OrderStatusStreamController(
      */
     private fun createStatusStream(orderId: UUID): Flux<ServerSentEvent<OrderStatusEvent>> {
         // Get initial status
-        val initialStatus = Mono.fromCallable { runBlocking { orderProgressService.getProgress(orderId) } }
+        val initialStatus = mono { orderProgressService.getProgress(orderId) }
             .mapNotNull { progress ->
                 progress?.let {
                     OrderStatusEvent(
@@ -127,12 +128,5 @@ class OrderStatusStreamController(
             "ROLLED_BACK" -> StatusEventType.SAGA_FAILED
             else -> StatusEventType.STEP_STARTED
         }
-    }
-
-    /**
-     * Helper to run suspend functions in a blocking context for Mono/Flux bridging.
-     */
-    private fun <T> runBlocking(block: suspend () -> T): T {
-        return kotlinx.coroutines.runBlocking { block() }
     }
 }
