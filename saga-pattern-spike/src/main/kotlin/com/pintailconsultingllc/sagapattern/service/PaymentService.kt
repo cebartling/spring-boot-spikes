@@ -8,7 +8,6 @@ import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
-import java.math.BigDecimal
 import java.util.UUID
 
 /**
@@ -26,7 +25,7 @@ class PaymentService(
      * @param orderId The order ID for tracking
      * @param customerId The customer ID
      * @param paymentMethodId The payment method to use
-     * @param amount The amount to authorize
+     * @param amountCents The amount to authorize in cents
      * @return Authorization response with authorization ID
      * @throws PaymentException if authorization fails
      */
@@ -35,15 +34,15 @@ class PaymentService(
         orderId: UUID,
         customerId: UUID,
         paymentMethodId: String,
-        amount: BigDecimal
+        amountCents: Long
     ): AuthorizationResponse {
-        logger.info("Authorizing payment for order $orderId, amount: $amount")
+        logger.info("Authorizing payment for order $orderId, amount: $amountCents cents")
 
         val request = AuthorizationRequest(
             orderId = orderId.toString(),
             customerId = customerId.toString(),
             paymentMethodId = paymentMethodId,
-            amount = amount,
+            amountCents = amountCents,
             currency = "USD"
         )
 
@@ -115,7 +114,7 @@ data class AuthorizationRequest(
     val orderId: String,
     val customerId: String,
     val paymentMethodId: String,
-    val amount: BigDecimal,
+    val amountCents: Long,
     val currency: String
 )
 

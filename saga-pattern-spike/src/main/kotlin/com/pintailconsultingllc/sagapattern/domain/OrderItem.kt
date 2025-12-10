@@ -3,7 +3,6 @@ package com.pintailconsultingllc.sagapattern.domain
 import org.springframework.data.annotation.Id
 import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.mapping.Table
-import java.math.BigDecimal
 import java.time.Instant
 import java.util.UUID
 
@@ -26,14 +25,17 @@ data class OrderItem(
 
     val quantity: Int,
 
+    /**
+     * Unit price in cents.
+     */
     @Column("unit_price")
-    val unitPrice: BigDecimal,
+    val unitPriceCents: Long,
 
     @Column("created_at")
     val createdAt: Instant = Instant.now()
 ) {
     /**
-     * Calculate the total price for this line item.
+     * Calculate the total price for this line item in cents.
      */
-    fun lineTotal(): BigDecimal = unitPrice.multiply(BigDecimal(quantity))
+    fun lineTotalCents(): Long = unitPriceCents * quantity
 }

@@ -1,6 +1,5 @@
 package com.pintailconsultingllc.sagapattern.api.dto
 
-import java.math.BigDecimal
 import java.util.UUID
 
 /**
@@ -28,9 +27,9 @@ data class CreateOrderRequest(
     val shippingAddress: ShippingAddressRequest
 ) {
     /**
-     * Calculate the total amount for this order.
+     * Calculate the total amount for this order in cents.
      */
-    fun calculateTotal(): BigDecimal = items.sumOf { it.calculateLineTotal() }
+    fun calculateTotalCents(): Long = items.sumOf { it.calculateLineTotalCents() }
 }
 
 /**
@@ -53,14 +52,14 @@ data class OrderItemRequest(
     val quantity: Int,
 
     /**
-     * Unit price for the product.
+     * Unit price for the product in cents.
      */
-    val unitPrice: BigDecimal
+    val unitPriceCents: Long
 ) {
     /**
-     * Calculate the total for this line item.
+     * Calculate the total for this line item in cents.
      */
-    fun calculateLineTotal(): BigDecimal = unitPrice.multiply(BigDecimal(quantity))
+    fun calculateLineTotalCents(): Long = unitPriceCents * quantity
 }
 
 /**

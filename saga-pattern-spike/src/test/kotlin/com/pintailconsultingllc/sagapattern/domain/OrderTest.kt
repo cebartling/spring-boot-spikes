@@ -1,7 +1,6 @@
 package com.pintailconsultingllc.sagapattern.domain
 
 import org.junit.jupiter.api.Test
-import java.math.BigDecimal
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -16,7 +15,7 @@ class OrderTest {
     fun `order is created with correct defaults`() {
         val order = Order(
             customerId = UUID.randomUUID(),
-            totalAmount = BigDecimal("99.99")
+            totalAmountCents = 9999L
         )
 
         assertNotNull(order.id)
@@ -30,7 +29,7 @@ class OrderTest {
     fun `withStatus creates new order with updated status`() {
         val order = Order(
             customerId = UUID.randomUUID(),
-            totalAmount = BigDecimal("99.99"),
+            totalAmountCents = 9999L,
             status = OrderStatus.PENDING
         )
 
@@ -46,7 +45,7 @@ class OrderTest {
     fun `withItems creates new order with items`() {
         val order = Order(
             customerId = UUID.randomUUID(),
-            totalAmount = BigDecimal("99.99")
+            totalAmountCents = 9999L
         )
 
         val items = listOf(
@@ -55,7 +54,7 @@ class OrderTest {
                 productId = UUID.randomUUID(),
                 productName = "Product 1",
                 quantity = 2,
-                unitPrice = BigDecimal("49.99")
+                unitPriceCents = 4999L
             )
         )
 
@@ -72,29 +71,29 @@ class OrderTest {
 class OrderItemTest {
 
     @Test
-    fun `lineTotal calculates correctly`() {
+    fun `lineTotalCents calculates correctly`() {
         val item = OrderItem(
             orderId = UUID.randomUUID(),
             productId = UUID.randomUUID(),
             productName = "Test Product",
             quantity = 3,
-            unitPrice = BigDecimal("10.00")
+            unitPriceCents = 1000L
         )
 
-        assertEquals(BigDecimal("30.00"), item.lineTotal())
+        assertEquals(3000L, item.lineTotalCents())
     }
 
     @Test
-    fun `lineTotal with single quantity`() {
+    fun `lineTotalCents with single quantity`() {
         val item = OrderItem(
             orderId = UUID.randomUUID(),
             productId = UUID.randomUUID(),
             productName = "Test Product",
             quantity = 1,
-            unitPrice = BigDecimal("25.50")
+            unitPriceCents = 2550L
         )
 
-        assertEquals(BigDecimal("25.50"), item.lineTotal())
+        assertEquals(2550L, item.lineTotalCents())
     }
 }
 

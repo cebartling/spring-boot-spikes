@@ -3,7 +3,6 @@ package com.pintailconsultingllc.sagapattern.saga
 import com.pintailconsultingllc.sagapattern.domain.Order
 import com.pintailconsultingllc.sagapattern.domain.OrderStatus
 import org.junit.jupiter.api.Test
-import java.math.BigDecimal
 import java.time.LocalDate
 import java.util.UUID
 import kotlin.test.assertEquals
@@ -18,7 +17,7 @@ class SagaResultTest {
     private val testOrder = Order(
         id = UUID.randomUUID(),
         customerId = UUID.randomUUID(),
-        totalAmount = BigDecimal("99.99"),
+        totalAmountCents = 9999L,
         status = OrderStatus.COMPLETED
     )
 
@@ -27,14 +26,14 @@ class SagaResultTest {
         val result = SagaResult.Success(
             order = testOrder,
             confirmationNumber = "ORD-2024-ABC123",
-            totalCharged = BigDecimal("99.99"),
+            totalChargedCents = 9999L,
             estimatedDelivery = LocalDate.now().plusDays(5),
             trackingNumber = "TRK123"
         )
 
         assertEquals(OrderStatus.COMPLETED, result.status)
         assertEquals("ORD-2024-ABC123", result.confirmationNumber)
-        assertEquals(BigDecimal("99.99"), result.totalCharged)
+        assertEquals(9999L, result.totalChargedCents)
         assertEquals("TRK123", result.trackingNumber)
     }
 

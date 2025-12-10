@@ -4,7 +4,6 @@ import org.springframework.data.annotation.Id
 import org.springframework.data.annotation.Transient
 import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.mapping.Table
-import java.math.BigDecimal
 import java.time.Instant
 import java.util.UUID
 
@@ -19,8 +18,11 @@ data class Order(
     @Column("customer_id")
     val customerId: UUID,
 
+    /**
+     * Total amount in cents.
+     */
     @Column("total_amount")
-    val totalAmount: BigDecimal,
+    val totalAmountCents: Long,
 
     val status: OrderStatus = OrderStatus.PENDING,
 

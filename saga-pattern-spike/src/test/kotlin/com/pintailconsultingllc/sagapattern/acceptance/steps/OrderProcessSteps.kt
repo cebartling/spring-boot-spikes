@@ -11,7 +11,6 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
-import java.math.BigDecimal
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -41,7 +40,7 @@ class OrderProcessSteps(
                 "productId" to UUID.randomUUID().toString(),
                 "productName" to "Test Product",
                 "quantity" to 1,
-                "unitPrice" to 29.99
+                "unitPriceCents" to 2999
             )
         )
     }
@@ -54,7 +53,7 @@ class OrderProcessSteps(
                     "productId" to UUID.randomUUID().toString(),
                     "productName" to "Test Product ${index + 1}",
                     "quantity" to 1,
-                    "unitPrice" to 29.99
+                    "unitPriceCents" to 2999
                 )
             )
         }
@@ -110,7 +109,7 @@ class OrderProcessSteps(
                     "productId" to item["productId"],
                     "productName" to item["productName"],
                     "quantity" to item["quantity"],
-                    "unitPrice" to item["unitPrice"]
+                    "unitPriceCents" to item["unitPriceCents"]
                 )
             },
             "paymentMethodId" to testContext.paymentMethodId,
@@ -214,7 +213,7 @@ class OrderProcessSteps(
 
     @Then("the confirmation should include the total amount charged")
     fun theConfirmationShouldIncludeTheTotalAmountCharged() {
-        assertNotNull(testContext.orderResponse?.get("totalCharged"), "Confirmation should include total charged")
+        assertNotNull(testContext.orderResponse?.get("totalChargedCents"), "Confirmation should include total charged")
     }
 
     @Then("the confirmation should include an estimated delivery date")
@@ -229,16 +228,16 @@ class OrderProcessSteps(
 
     @Then("the total amount should reflect {int} items")
     fun theTotalAmountShouldReflectItems(quantity: Int) {
-        val totalCharged = testContext.orderResponse?.get("totalCharged")
-        assertNotNull(totalCharged, "Total charged should exist")
+        val totalChargedCents = testContext.orderResponse?.get("totalChargedCents")
+        assertNotNull(totalChargedCents, "Total charged should exist")
 
-        val expectedTotal = BigDecimal("29.99").multiply(BigDecimal(quantity))
-        val actualTotal = when (totalCharged) {
-            is Number -> BigDecimal(totalCharged.toDouble())
-            is String -> BigDecimal(totalCharged)
-            else -> BigDecimal.ZERO
+        val expectedTotalCents = 2999L * quantity
+        val actualTotalCents = when (totalChargedCents) {
+            is Number -> totalChargedCents.toLong()
+            is String -> totalChargedCents.toLong()
+            else -> 0L
         }
-        assertEquals(0, expectedTotal.compareTo(actualTotal), "Total should reflect $quantity items")
+        assertEquals(expectedTotalCents, actualTotalCents, "Total should reflect $quantity items")
     }
 
     @Then("a saga execution record should be created")

@@ -3,7 +3,6 @@ package com.pintailconsultingllc.sagapattern.api.dto
 import com.pintailconsultingllc.sagapattern.domain.Order
 import com.pintailconsultingllc.sagapattern.domain.OrderStatus
 import com.pintailconsultingllc.sagapattern.saga.SagaResult
-import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
@@ -28,9 +27,9 @@ data class OrderResponse(
     val confirmationNumber: String? = null,
 
     /**
-     * Total amount charged.
+     * Total amount charged in cents.
      */
-    val totalCharged: BigDecimal,
+    val totalChargedCents: Long,
 
     /**
      * Estimated delivery date.
@@ -55,7 +54,7 @@ data class OrderResponse(
             orderId = result.order.id,
             status = result.status,
             confirmationNumber = result.confirmationNumber,
-            totalCharged = result.totalCharged,
+            totalChargedCents = result.totalChargedCents,
             estimatedDelivery = result.estimatedDelivery,
             trackingNumber = result.trackingNumber,
             createdAt = result.order.createdAt
@@ -67,7 +66,7 @@ data class OrderResponse(
         fun fromOrder(order: Order): OrderResponse = OrderResponse(
             orderId = order.id,
             status = order.status,
-            totalCharged = order.totalAmount,
+            totalChargedCents = order.totalAmountCents,
             createdAt = order.createdAt
         )
     }

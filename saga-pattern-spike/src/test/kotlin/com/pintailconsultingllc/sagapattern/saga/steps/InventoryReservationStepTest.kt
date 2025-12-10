@@ -15,7 +15,6 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
-import java.math.BigDecimal
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -39,7 +38,7 @@ class InventoryReservationStepTest {
         val order = Order(
             id = orderId,
             customerId = UUID.randomUUID(),
-            totalAmount = BigDecimal("99.99"),
+            totalAmountCents = 9999L,
             status = OrderStatus.PROCESSING,
             items = listOf(
                 OrderItem(
@@ -47,7 +46,7 @@ class InventoryReservationStepTest {
                     productId = UUID.randomUUID(),
                     productName = "Test Product",
                     quantity = 2,
-                    unitPrice = BigDecimal("49.99")
+                    unitPriceCents = 4999L
                 )
             )
         )

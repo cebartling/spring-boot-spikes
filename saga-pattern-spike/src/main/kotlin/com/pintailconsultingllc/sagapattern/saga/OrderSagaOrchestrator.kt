@@ -155,7 +155,7 @@ class OrderSagaOrchestrator(
         return SagaResult.Success(
             order = completedOrder,
             confirmationNumber = SagaResult.generateConfirmationNumber(),
-            totalCharged = context.order.totalAmount,
+            totalChargedCents = context.order.totalAmountCents,
             estimatedDelivery = estimatedDelivery,
             trackingNumber = context.getData(SagaContext.KEY_TRACKING_NUMBER)
         )

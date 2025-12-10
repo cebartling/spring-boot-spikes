@@ -5,7 +5,6 @@ import com.pintailconsultingllc.sagapattern.domain.OrderItem
 import com.pintailconsultingllc.sagapattern.domain.OrderStatus
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import java.math.BigDecimal
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -25,7 +24,7 @@ class SagaContextTest {
         order = Order(
             id = UUID.randomUUID(),
             customerId = UUID.randomUUID(),
-            totalAmount = BigDecimal("99.99"),
+            totalAmountCents = 9999L,
             status = OrderStatus.PENDING,
             items = listOf(
                 OrderItem(
@@ -33,7 +32,7 @@ class SagaContextTest {
                     productId = UUID.randomUUID(),
                     productName = "Test Product",
                     quantity = 2,
-                    unitPrice = BigDecimal("49.99")
+                    unitPriceCents = 4999L
                 )
             )
         )

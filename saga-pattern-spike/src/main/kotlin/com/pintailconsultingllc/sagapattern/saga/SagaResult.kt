@@ -2,7 +2,6 @@ package com.pintailconsultingllc.sagapattern.saga
 
 import com.pintailconsultingllc.sagapattern.domain.Order
 import com.pintailconsultingllc.sagapattern.domain.OrderStatus
-import java.math.BigDecimal
 import java.time.LocalDate
 import java.util.UUID
 
@@ -16,7 +15,7 @@ sealed class SagaResult {
     data class Success(
         val order: Order,
         val confirmationNumber: String,
-        val totalCharged: BigDecimal,
+        val totalChargedCents: Long,
         val estimatedDelivery: LocalDate,
         val trackingNumber: String? = null
     ) : SagaResult() {
