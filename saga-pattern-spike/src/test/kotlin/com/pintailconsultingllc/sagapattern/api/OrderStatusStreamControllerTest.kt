@@ -117,10 +117,13 @@ class OrderStatusStreamControllerTest {
             )
 
         // Verify stream completes and heartbeats are present (comments have no data)
+        val hasDataOrHeartbeat: (org.springframework.http.codec.ServerSentEvent<OrderStatusEvent>) -> Boolean = 
+            { it.data() != null || it.comment() == "heartbeat" }
+        
         StepVerifier.create(controller.streamOrderStatus(orderId))
-            .expectNextMatches { it.data() != null || it.comment() == "heartbeat" }
-            .expectNextMatches { it.data() != null || it.comment() == "heartbeat" }
-            .expectNextMatches { it.data() != null || it.comment() == "heartbeat" }
+            .expectNextMatches(hasDataOrHeartbeat)
+            .expectNextMatches(hasDataOrHeartbeat)
+            .expectNextMatches(hasDataOrHeartbeat)
             .expectComplete()
             .verify(Duration.ofSeconds(10))
     }
