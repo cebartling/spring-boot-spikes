@@ -3,7 +3,7 @@
 ## Status: COMPLETED
 
 **Completed:** 2025-12-10
-**Pull Request:** TBD
+**Pull Request:** [#76](https://github.com/cebartling/spring-boot-spikes/pull/76)
 
 ## Overview
 
