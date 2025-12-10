@@ -436,7 +436,7 @@ curl -X POST http://localhost:8080/api/orders \
         "productId": "123e4567-e89b-12d3-a456-426614174000",
         "productName": "Test Product",
         "quantity": 2,
-        "unitPrice": 29.99
+        "unitPriceInCents": 2999
       }
     ],
     "paymentMethodId": "valid-card",
