@@ -17,7 +17,7 @@ class SagaResultTest {
     private val testOrder = Order(
         id = UUID.randomUUID(),
         customerId = UUID.randomUUID(),
-        totalAmountCents = 9999L,
+        totalAmountInCents = 9999L,
         status = OrderStatus.COMPLETED
     )
 
@@ -26,14 +26,14 @@ class SagaResultTest {
         val result = SagaResult.Success(
             order = testOrder,
             confirmationNumber = "ORD-2024-ABC123",
-            totalChargedCents = 9999L,
+            totalChargedInCents = 9999L,
             estimatedDelivery = LocalDate.now().plusDays(5),
             trackingNumber = "TRK123"
         )
 
         assertEquals(OrderStatus.COMPLETED, result.status)
         assertEquals("ORD-2024-ABC123", result.confirmationNumber)
-        assertEquals(9999L, result.totalChargedCents)
+        assertEquals(9999L, result.totalChargedInCents)
         assertEquals("TRK123", result.trackingNumber)
     }
 

@@ -38,7 +38,7 @@ class InventoryReservationStepTest {
         val order = Order(
             id = orderId,
             customerId = UUID.randomUUID(),
-            totalAmountCents = 9999L,
+            totalAmountInCents = 9999L,
             status = OrderStatus.PROCESSING,
             items = listOf(
                 OrderItem(
@@ -46,7 +46,7 @@ class InventoryReservationStepTest {
                     productId = UUID.randomUUID(),
                     productName = "Test Product",
                     quantity = 2,
-                    unitPriceCents = 4999L
+                    unitPriceInCents = 4999L
                 )
             )
         )

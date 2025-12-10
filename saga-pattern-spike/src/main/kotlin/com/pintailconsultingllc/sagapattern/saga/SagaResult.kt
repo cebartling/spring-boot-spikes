@@ -15,7 +15,7 @@ sealed class SagaResult {
     data class Success(
         val order: Order,
         val confirmationNumber: String,
-        val totalChargedCents: Long,
+        val totalChargedInCents: Long,
         val estimatedDelivery: LocalDate,
         val trackingNumber: String? = null
     ) : SagaResult() {

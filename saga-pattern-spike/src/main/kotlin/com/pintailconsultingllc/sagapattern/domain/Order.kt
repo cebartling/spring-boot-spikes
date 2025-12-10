@@ -21,8 +21,8 @@ data class Order(
     /**
      * Total amount in cents.
      */
-    @Column("total_amount")
-    val totalAmountCents: Long,
+    @Column("total_amount_in_cents")
+    val totalAmountInCents: Long,
 
     val status: OrderStatus = OrderStatus.PENDING,
 

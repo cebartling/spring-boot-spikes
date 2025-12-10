@@ -36,7 +36,7 @@ class PaymentProcessingStep(
                 orderId = context.order.id,
                 customerId = context.customerId,
                 paymentMethodId = context.paymentMethodId,
-                amountCents = context.order.totalAmountCents
+                amountInCents = context.order.totalAmountInCents
             )
 
             // Store authorization ID for potential compensation
@@ -49,7 +49,7 @@ class PaymentProcessingStep(
                 mapOf(
                     "authorizationId" to response.authorizationId,
                     "status" to response.status,
-                    "amountCents" to (response.amount ?: context.order.totalAmountCents.toString())
+                    "amountInCents" to (response.amount ?: context.order.totalAmountInCents.toString())
                 )
             )
         } catch (e: PaymentException) {

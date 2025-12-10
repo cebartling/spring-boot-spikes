@@ -40,7 +40,7 @@ class OrderProcessSteps(
                 "productId" to UUID.randomUUID().toString(),
                 "productName" to "Test Product",
                 "quantity" to 1,
-                "unitPriceCents" to 2999
+                "unitPriceInCents" to 2999
             )
         )
     }
@@ -53,7 +53,7 @@ class OrderProcessSteps(
                     "productId" to UUID.randomUUID().toString(),
                     "productName" to "Test Product ${index + 1}",
                     "quantity" to 1,
-                    "unitPriceCents" to 2999
+                    "unitPriceInCents" to 2999
                 )
             )
         }
@@ -109,7 +109,7 @@ class OrderProcessSteps(
                     "productId" to item["productId"],
                     "productName" to item["productName"],
                     "quantity" to item["quantity"],
-                    "unitPriceCents" to item["unitPriceCents"]
+                    "unitPriceInCents" to item["unitPriceInCents"]
                 )
             },
             "paymentMethodId" to testContext.paymentMethodId,
@@ -213,7 +213,7 @@ class OrderProcessSteps(
 
     @Then("the confirmation should include the total amount charged")
     fun theConfirmationShouldIncludeTheTotalAmountCharged() {
-        assertNotNull(testContext.orderResponse?.get("totalChargedCents"), "Confirmation should include total charged")
+        assertNotNull(testContext.orderResponse?.get("totalChargedInCents"), "Confirmation should include total charged")
     }
 
     @Then("the confirmation should include an estimated delivery date")
@@ -228,16 +228,16 @@ class OrderProcessSteps(
 
     @Then("the total amount should reflect {int} items")
     fun theTotalAmountShouldReflectItems(quantity: Int) {
-        val totalChargedCents = testContext.orderResponse?.get("totalChargedCents")
-        assertNotNull(totalChargedCents, "Total charged should exist")
+        val totalChargedInCents = testContext.orderResponse?.get("totalChargedInCents")
+        assertNotNull(totalChargedInCents, "Total charged should exist")
 
-        val expectedTotalCents = 2999L * quantity
-        val actualTotalCents = when (totalChargedCents) {
-            is Number -> totalChargedCents.toLong()
-            is String -> totalChargedCents.toLong()
+        val expectedTotalInCents = 2999L * quantity
+        val actualTotalInCents = when (totalChargedInCents) {
+            is Number -> totalChargedInCents.toLong()
+            is String -> totalChargedInCents.toLong()
             else -> 0L
         }
-        assertEquals(expectedTotalCents, actualTotalCents, "Total should reflect $quantity items")
+        assertEquals(expectedTotalInCents, actualTotalInCents, "Total should reflect $quantity items")
     }
 
     @Then("a saga execution record should be created")

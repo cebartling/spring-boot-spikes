@@ -27,7 +27,7 @@ class CompensationSteps(
             mapOf(
                 "productId" to "out-of-stock-product",
                 "quantity" to 5,
-                "unitPriceCents" to 2999
+                "unitPriceInCents" to 2999
             )
         )
     }

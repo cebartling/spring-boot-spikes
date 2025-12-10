@@ -15,7 +15,7 @@ class OrderTest {
     fun `order is created with correct defaults`() {
         val order = Order(
             customerId = UUID.randomUUID(),
-            totalAmountCents = 9999L
+            totalAmountInCents = 9999L
         )
 
         assertNotNull(order.id)
@@ -29,7 +29,7 @@ class OrderTest {
     fun `withStatus creates new order with updated status`() {
         val order = Order(
             customerId = UUID.randomUUID(),
-            totalAmountCents = 9999L,
+            totalAmountInCents = 9999L,
             status = OrderStatus.PENDING
         )
 
@@ -45,7 +45,7 @@ class OrderTest {
     fun `withItems creates new order with items`() {
         val order = Order(
             customerId = UUID.randomUUID(),
-            totalAmountCents = 9999L
+            totalAmountInCents = 9999L
         )
 
         val items = listOf(
@@ -54,7 +54,7 @@ class OrderTest {
                 productId = UUID.randomUUID(),
                 productName = "Product 1",
                 quantity = 2,
-                unitPriceCents = 4999L
+                unitPriceInCents = 4999L
             )
         )
 
@@ -71,29 +71,29 @@ class OrderTest {
 class OrderItemTest {
 
     @Test
-    fun `lineTotalCents calculates correctly`() {
+    fun `lineTotalInCents calculates correctly`() {
         val item = OrderItem(
             orderId = UUID.randomUUID(),
             productId = UUID.randomUUID(),
             productName = "Test Product",
             quantity = 3,
-            unitPriceCents = 1000L
+            unitPriceInCents = 1000L
         )
 
-        assertEquals(3000L, item.lineTotalCents())
+        assertEquals(3000L, item.lineTotalInCents())
     }
 
     @Test
-    fun `lineTotalCents with single quantity`() {
+    fun `lineTotalInCents with single quantity`() {
         val item = OrderItem(
             orderId = UUID.randomUUID(),
             productId = UUID.randomUUID(),
             productName = "Test Product",
             quantity = 1,
-            unitPriceCents = 2550L
+            unitPriceInCents = 2550L
         )
 
-        assertEquals(2550L, item.lineTotalCents())
+        assertEquals(2550L, item.lineTotalInCents())
     }
 }
 

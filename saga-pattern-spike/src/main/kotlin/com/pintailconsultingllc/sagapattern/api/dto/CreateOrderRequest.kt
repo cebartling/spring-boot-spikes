@@ -29,7 +29,7 @@ data class CreateOrderRequest(
     /**
      * Calculate the total amount for this order in cents.
      */
-    fun calculateTotalCents(): Long = items.sumOf { it.calculateLineTotalCents() }
+    fun calculateTotalInCents(): Long = items.sumOf { it.calculateLineTotalInCents() }
 }
 
 /**
@@ -54,12 +54,12 @@ data class OrderItemRequest(
     /**
      * Unit price for the product in cents.
      */
-    val unitPriceCents: Long
+    val unitPriceInCents: Long
 ) {
     /**
      * Calculate the total for this line item in cents.
      */
-    fun calculateLineTotalCents(): Long = unitPriceCents * quantity
+    fun calculateLineTotalInCents(): Long = unitPriceInCents * quantity
 }
 
 /**

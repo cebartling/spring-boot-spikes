@@ -43,7 +43,7 @@ class OrderService(
         // Create the order entity
         val order = Order(
             customerId = request.customerId,
-            totalAmountCents = request.calculateTotalCents(),
+            totalAmountInCents = request.calculateTotalInCents(),
             status = OrderStatus.PENDING
         )
 
@@ -58,7 +58,7 @@ class OrderService(
                 productId = item.productId,
                 productName = item.productName,
                 quantity = item.quantity,
-                unitPriceCents = item.unitPriceCents
+                unitPriceInCents = item.unitPriceInCents
             )
         }
         orderItems.forEach { orderItemRepository.save(it) }

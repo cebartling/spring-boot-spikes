@@ -8,7 +8,7 @@ ALTER USER saga_user CREATEROLE;
 CREATE TABLE orders (
     id UUID PRIMARY KEY,
     customer_id UUID NOT NULL,
-    total_amount BIGINT NOT NULL,
+    total_amount_in_cents BIGINT NOT NULL,
     status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
@@ -21,7 +21,7 @@ CREATE TABLE order_items (
     product_id UUID NOT NULL,
     product_name VARCHAR(255) NOT NULL,
     quantity INT NOT NULL,
-    unit_price BIGINT NOT NULL,
+    unit_price_in_cents BIGINT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 

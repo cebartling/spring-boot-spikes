@@ -25,7 +25,7 @@ class PaymentService(
      * @param orderId The order ID for tracking
      * @param customerId The customer ID
      * @param paymentMethodId The payment method to use
-     * @param amountCents The amount to authorize in cents
+     * @param amountInCents The amount to authorize in cents
      * @return Authorization response with authorization ID
      * @throws PaymentException if authorization fails
      */
@@ -34,15 +34,15 @@ class PaymentService(
         orderId: UUID,
         customerId: UUID,
         paymentMethodId: String,
-        amountCents: Long
+        amountInCents: Long
     ): AuthorizationResponse {
-        logger.info("Authorizing payment for order $orderId, amount: $amountCents cents")
+        logger.info("Authorizing payment for order $orderId, amount: $amountInCents cents")
 
         val request = AuthorizationRequest(
             orderId = orderId.toString(),
             customerId = customerId.toString(),
             paymentMethodId = paymentMethodId,
-            amountCents = amountCents,
+            amountInCents = amountInCents,
             currency = "USD"
         )
 
@@ -114,7 +114,7 @@ data class AuthorizationRequest(
     val orderId: String,
     val customerId: String,
     val paymentMethodId: String,
-    val amountCents: Long,
+    val amountInCents: Long,
     val currency: String
 )
 

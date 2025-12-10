@@ -28,8 +28,8 @@ data class OrderItem(
     /**
      * Unit price in cents.
      */
-    @Column("unit_price")
-    val unitPriceCents: Long,
+    @Column("unit_price_in_cents")
+    val unitPriceInCents: Long,
 
     @Column("created_at")
     val createdAt: Instant = Instant.now()
@@ -37,5 +37,5 @@ data class OrderItem(
     /**
      * Calculate the total price for this line item in cents.
      */
-    fun lineTotalCents(): Long = unitPriceCents * quantity
+    fun lineTotalInCents(): Long = unitPriceInCents * quantity
 }

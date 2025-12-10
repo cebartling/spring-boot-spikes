@@ -29,7 +29,7 @@ data class OrderResponse(
     /**
      * Total amount charged in cents.
      */
-    val totalChargedCents: Long,
+    val totalChargedInCents: Long,
 
     /**
      * Estimated delivery date.
@@ -54,7 +54,7 @@ data class OrderResponse(
             orderId = result.order.id,
             status = result.status,
             confirmationNumber = result.confirmationNumber,
-            totalChargedCents = result.totalChargedCents,
+            totalChargedInCents = result.totalChargedInCents,
             estimatedDelivery = result.estimatedDelivery,
             trackingNumber = result.trackingNumber,
             createdAt = result.order.createdAt
@@ -66,7 +66,7 @@ data class OrderResponse(
         fun fromOrder(order: Order): OrderResponse = OrderResponse(
             orderId = order.id,
             status = order.status,
-            totalChargedCents = order.totalAmountCents,
+            totalChargedInCents = order.totalAmountInCents,
             createdAt = order.createdAt
         )
     }
