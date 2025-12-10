@@ -29,7 +29,7 @@ import java.time.LocalDate
  */
 @Component
 class OrderSagaOrchestrator(
-    private val steps: List<SagaStep>,
+    private val sagaStepRegistry: SagaStepRegistry,
     private val orderRepository: OrderRepository,
     private val sagaExecutionRepository: SagaExecutionRepository,
     private val sagaStepResultRepository: SagaStepResultRepository,
@@ -39,8 +39,9 @@ class OrderSagaOrchestrator(
     private val logger = LoggerFactory.getLogger(OrderSagaOrchestrator::class.java)
     private val objectMapper = jacksonObjectMapper()
 
-    // Sort steps by their order on initialization
-    private val orderedSteps: List<SagaStep> = steps.sortedBy { it.getStepOrder() }
+    // Get ordered steps from the registry
+    private val orderedSteps: List<SagaStep>
+        get() = sagaStepRegistry.getOrderedSteps()
 
     /**
      * Start and execute the saga for an order.
