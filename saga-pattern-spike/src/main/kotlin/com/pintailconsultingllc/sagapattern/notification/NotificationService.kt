@@ -3,6 +3,7 @@ package com.pintailconsultingllc.sagapattern.notification
 import com.pintailconsultingllc.sagapattern.event.DomainEventPublisher
 import com.pintailconsultingllc.sagapattern.event.OrderSagaFailed
 import com.pintailconsultingllc.sagapattern.saga.SagaResult
+import com.pintailconsultingllc.sagapattern.util.ErrorSuggestionsUtil
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.util.UUID
@@ -37,7 +38,7 @@ class NotificationService(
         customerId: UUID,
         result: SagaResult.Failed
     ): FailureNotification {
-        val suggestions = FailureNotification.suggestionsForError(result.errorCode)
+        val suggestions = ErrorSuggestionsUtil.suggestionsForError(result.errorCode)
 
         val notification = FailureNotification.forFirstStepFailure(
             orderId = orderId,
@@ -90,7 +91,7 @@ class NotificationService(
         customerId: UUID,
         result: SagaResult.Compensated
     ): FailureNotification {
-        val suggestions = FailureNotification.suggestionsForError(null)
+        val suggestions = ErrorSuggestionsUtil.suggestionsForError(null)
 
         val notification = FailureNotification.forCompensatedFailure(
             orderId = orderId,
