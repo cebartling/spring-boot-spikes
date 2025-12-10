@@ -2,6 +2,8 @@ package com.pintailconsultingllc.sagapattern.api
 
 import com.pintailconsultingllc.sagapattern.api.dto.CreateOrderRequest
 import com.pintailconsultingllc.sagapattern.api.dto.OrderResponse
+import com.pintailconsultingllc.sagapattern.api.dto.OrderStatusResponse
+import com.pintailconsultingllc.sagapattern.progress.OrderProgressService
 import com.pintailconsultingllc.sagapattern.service.OrderCreationResult
 import com.pintailconsultingllc.sagapattern.service.OrderService
 import io.micrometer.observation.annotation.Observed
@@ -24,7 +26,8 @@ import java.util.UUID
 @RestController
 @RequestMapping("/api/orders")
 class OrderController(
-    private val orderService: OrderService
+    private val orderService: OrderService,
+    private val orderProgressService: OrderProgressService
 ) {
     private val logger = LoggerFactory.getLogger(OrderController::class.java)
 
@@ -92,6 +95,30 @@ class OrderController(
         return mono {
             val orders = orderService.getOrdersForCustomer(customerId)
             ResponseEntity.ok(orders.map { OrderResponse.fromOrder(it) })
+        }
+    }
+
+    /**
+     * Get the processing status of an order.
+     *
+     * Provides real-time visibility into the saga execution progress,
+     * including individual step statuses and overall completion state.
+     *
+     * @param orderId The order ID to get status for
+     * @return Mono with order status or 404 if not found
+     */
+    @GetMapping("/{orderId}/status")
+    @Observed(name = "http.order.status", contextualName = "get-order-status")
+    fun getOrderStatus(@PathVariable orderId: UUID): Mono<ResponseEntity<OrderStatusResponse>> {
+        logger.info("Retrieving status for order: $orderId")
+
+        return mono {
+            val progress = orderProgressService.getProgress(orderId)
+            if (progress != null) {
+                ResponseEntity.ok(OrderStatusResponse.fromOrderProgress(progress))
+            } else {
+                ResponseEntity.notFound().build()
+            }
         }
     }
 }
