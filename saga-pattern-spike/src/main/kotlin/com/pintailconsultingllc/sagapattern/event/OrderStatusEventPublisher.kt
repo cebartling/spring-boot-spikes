@@ -51,12 +51,16 @@ class OrderStatusEventPublisher {
             // This ensures slow subscribers or those with network latency receive the final event
             Mono.delay(Duration.ofMillis(100))
                 .subscribeOn(Schedulers.boundedElastic())
-                .subscribe {
+                .doOnNext {
                     val completeResult = sink.tryEmitComplete()
                     if (completeResult.isFailure) {
                         logger.warn("Failed to complete sink for order {}: {}", event.orderId, completeResult)
                     }
                 }
+                .doOnError { error ->
+                    logger.error("Error during delayed sink completion for order {}", event.orderId, error)
+                }
+                .subscribe()
         }
     }
 
