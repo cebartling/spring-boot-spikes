@@ -17,7 +17,20 @@ class SagaStepRegistry(
     private val orderedSteps: List<SagaStep> = steps.sortedBy { it.getStepOrder() }
     
     // Cache step lookup by name for efficient O(1) access
-    private val stepsByName: Map<String, SagaStep> = orderedSteps.associateBy { it.getStepName() }
+    private val stepsByName: Map<String, SagaStep> = run {
+        val duplicates = orderedSteps.groupBy { it.getStepName() }
+            .filter { it.value.size > 1 }
+            .keys
+        
+        if (duplicates.isNotEmpty()) {
+            throw IllegalStateException(
+                "Duplicate saga step names detected: ${duplicates.joinToString(", ")}. " +
+                "Each saga step must have a unique name."
+            )
+        }
+        
+        orderedSteps.associateBy { it.getStepName() }
+    }
 
     /**
      * Get the ordered list of step names.
