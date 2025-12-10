@@ -95,7 +95,6 @@ data class FailureNotification(
         /**
          * Generate suggestions based on the error code.
          */
-        fun suggestionsForError(errorCode: String?): List<String> = 
-            ErrorSuggestions.suggestionsForError(errorCode)
+        fun suggestionsForError(errorCode: String?): List<String> = ErrorSuggestions.suggestionsForError(errorCode)
     }
 }
