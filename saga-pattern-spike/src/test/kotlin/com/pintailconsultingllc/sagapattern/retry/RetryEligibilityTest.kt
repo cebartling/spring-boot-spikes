@@ -64,6 +64,7 @@ class RetryEligibilityTest {
 
         assertFalse(eligibility.eligible)
         assertEquals("Cannot retry due to fraud detection", eligibility.reason)
+        assertEquals(IneligibilityReason.OTHER, eligibility.ineligibilityReason)
         assertEquals(1, eligibility.blockers.size)
         assertEquals(BlockerType.FRAUD_DETECTED, eligibility.blockers[0].type)
     }
@@ -78,6 +79,7 @@ class RetryEligibilityTest {
 
         assertFalse(eligibility.eligible)
         assertEquals("Retry cooldown period not elapsed", eligibility.reason)
+        assertEquals(IneligibilityReason.IN_COOLDOWN, eligibility.ineligibilityReason)
         assertEquals(nextAvailable, eligibility.nextRetryAvailableAt)
         assertEquals(2, eligibility.retryAttemptsRemaining)
     }
@@ -88,6 +90,7 @@ class RetryEligibilityTest {
 
         assertFalse(eligibility.eligible)
         assertEquals("Maximum retry attempts exceeded", eligibility.reason)
+        assertEquals(IneligibilityReason.MAX_RETRIES_EXCEEDED, eligibility.ineligibilityReason)
         assertEquals(0, eligibility.retryAttemptsRemaining)
     }
 
@@ -97,6 +100,7 @@ class RetryEligibilityTest {
 
         assertFalse(eligibility.eligible)
         assertEquals("A retry is already in progress", eligibility.reason)
+        assertEquals(IneligibilityReason.RETRY_IN_PROGRESS, eligibility.ineligibilityReason)
     }
 }
 
