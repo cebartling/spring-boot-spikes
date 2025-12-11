@@ -12,7 +12,6 @@ import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import java.time.Instant
 import java.util.UUID
-import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -41,15 +40,16 @@ class OrderHistorySteps(
         createSuccessfulOrder()
     }
 
-    @Given("I have a successfully completed order")
-    fun iHaveASuccessfullyCompletedOrder() {
-        createSuccessfulOrder()
-    }
+    // Note: "I have a successfully completed order" is defined in OrderStatusSteps.kt
+    // It creates a completed order with saga execution in the database directly.
+    // For history tests, we may need to create orders via API to ensure events are recorded.
 
     @Given("I have an order that failed at payment and was compensated")
     fun iHaveAnOrderThatFailedAtPaymentAndWasCompensated() {
         createFailedPaymentOrder()
     }
+
+    // Note: "I have an order that failed due to payment decline" is defined in CompensationSteps.kt
 
     @Given("I have an order with mixed step outcomes")
     fun iHaveAnOrderWithMixedStepOutcomes() {
@@ -323,8 +323,8 @@ class OrderHistorySteps(
         }
     }
 
-    @Then("the response should include:")
-    fun theResponseShouldInclude(dataTable: DataTable) {
+    @Then("the history response should include:")
+    fun theHistoryResponseShouldInclude(dataTable: DataTable) {
         assertNotNull(testContext.historyResponse, "History response should exist")
 
         val requiredFields = dataTable.asMaps()
@@ -370,42 +370,7 @@ class OrderHistorySteps(
         eachExecutionShouldShow(dataTable)
     }
 
-    @Then("each trace ID should be unique")
-    fun eachTraceIdShouldBeUnique() {
-        // Trace IDs are generated per request - this is observability feature
-        assertTrue(true, "Trace IDs are unique per execution")
-    }
-
-    @Then("traces should be linked showing the retry relationship")
-    fun tracesShouldBeLinkedShowingTheRetryRelationship() {
-        // This is an observability/tracing feature
-        assertTrue(true, "Traces show retry relationships through parent spans")
-    }
-
-    @Then("the order history should display the trace ID")
-    fun theOrderHistoryShouldDisplayTheTraceId() {
-        // Trace ID display is an observability feature
-        // For now, verify history exists
-        assertNotNull(testContext.historyResponse, "History response should exist")
-    }
-
-    @Then("the trace ID should be clickable or copyable")
-    fun theTraceIdShouldBeClickableOrCopyable() {
-        // UI feature - verified by having trace ID in response
-        assertTrue(true, "Trace ID is present in API response")
-    }
-
-    @Then("I should be able to use the trace ID to navigate to the observability dashboard")
-    fun iShouldBeAbleToUseTheTraceIdToNavigateToTheObservabilityDashboard() {
-        // Integration feature with SigNoz
-        assertTrue(true, "Trace ID can be used in observability dashboard")
-    }
-
-    @Then("each execution attempt should include its trace ID")
-    fun eachExecutionAttemptShouldIncludeItsTraceId() {
-        // Trace IDs are captured per execution via OpenTelemetry
-        assertTrue(true, "Executions have associated trace IDs")
-    }
+    // Note: Observability-related step definitions (trace ID, etc.) are in ObservabilitySteps.kt
 
     // ==================== Helper Methods ====================
 

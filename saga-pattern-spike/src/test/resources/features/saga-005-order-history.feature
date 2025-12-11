@@ -95,7 +95,7 @@ Feature: SAGA-005 - Order History Includes Saga Details
   Scenario: History API returns proper response structure
     Given I have a completed order
     When I request the order history via API
-    Then the response should include:
+    Then the history response should include:
       | field          | type    |
       | orderId        | UUID    |
       | orderNumber    | String  |
@@ -130,7 +130,7 @@ Feature: SAGA-005 - Order History Includes Saga Details
   Scenario: History API includes trace ID in response
     Given I have a completed order
     When I request the order history via API
-    Then the response should include:
+    Then the history response should include:
       | field          | type    |
       | orderId        | UUID    |
       | traceId        | String  |
