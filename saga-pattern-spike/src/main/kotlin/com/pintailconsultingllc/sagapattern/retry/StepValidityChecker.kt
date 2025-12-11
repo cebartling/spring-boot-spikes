@@ -3,6 +3,9 @@ package com.pintailconsultingllc.sagapattern.retry
 import com.pintailconsultingllc.sagapattern.domain.SagaStepResult
 import com.pintailconsultingllc.sagapattern.domain.StepStatus
 import com.pintailconsultingllc.sagapattern.saga.SagaContext
+import com.pintailconsultingllc.sagapattern.saga.steps.InventoryReservationStep
+import com.pintailconsultingllc.sagapattern.saga.steps.PaymentProcessingStep
+import com.pintailconsultingllc.sagapattern.saga.steps.ShippingArrangementStep
 import io.micrometer.observation.annotation.Observed
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
@@ -67,9 +70,9 @@ class DefaultStepValidityChecker(
         }
 
         return when (stepResult.stepName) {
-            "Inventory Reservation" -> checkInventoryReservationValidity(stepResult)
-            "Payment Processing" -> checkPaymentAuthorizationValidity(stepResult)
-            "Shipping Arrangement" -> checkShippingQuoteValidity(stepResult)
+            InventoryReservationStep.STEP_NAME -> checkInventoryReservationValidity(stepResult)
+            PaymentProcessingStep.STEP_NAME -> checkPaymentAuthorizationValidity(stepResult)
+            ShippingArrangementStep.STEP_NAME -> checkShippingQuoteValidity(stepResult)
             else -> {
                 logger.warn("Unknown step name: ${stepResult.stepName}, assuming valid")
                 StepValidityResult.valid()
