@@ -254,8 +254,7 @@ class RetryOrchestrator(
                     stepName = stepName,
                     stepOrder = index + 1
                 )
-                @Suppress("UNUSED_VARIABLE")
-                val saved = sagaStepResultRepository.save(skippedStepResult)
+                sagaStepResultRepository.save(skippedStepResult)
                 sagaMetrics.stepCompleted(stepName)
                 continue
             }
