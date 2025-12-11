@@ -186,7 +186,11 @@ class DefaultOrderRetryService(
         if (!eligibility.eligible) {
             return when {
                 eligibility.reason?.contains("cooldown") == true ->
-                    RetryResult.inCooldown(request.orderId, eligibility.nextRetryAvailableAt!!)
+                    if (eligibility.nextRetryAvailableAt != null) {
+                        RetryResult.inCooldown(request.orderId, eligibility.nextRetryAvailableAt)
+                    } else {
+                        RetryResult.rejected(request.orderId, "Retry is in cooldown but next available time is not set.")
+                    }
                 eligibility.reason?.contains("Maximum") == true ->
                     RetryResult.maxRetriesExceeded(request.orderId)
                 eligibility.reason?.contains("in progress") == true ->
