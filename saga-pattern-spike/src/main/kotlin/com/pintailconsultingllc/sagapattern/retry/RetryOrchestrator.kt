@@ -218,13 +218,11 @@ class RetryOrchestrator(
                 postalCode = it.postalCode,
                 country = it.country
             )
-        } ?: ShippingAddress(
-            street = "",
-            city = "",
-            state = "",
-            postalCode = "",
-            country = ""
-        )
+        } ?: order.shippingAddress
+        // If order.shippingAddress is null, you may want to throw an exception or handle it explicitly
+        if (shippingAddress == null) {
+            throw IllegalArgumentException("Shipping address must be provided for retry, either in the request or in the original order.")
+        }
 
         return SagaContext(
             order = order,
