@@ -157,3 +157,11 @@ All changes will reside in this feature branch until the documentation is comple
 Once the documentation is complete, create a pull request to merge the feature branch into the main branch.
 The pull request should include a description of the changes made.
 ```
+
+```
+Change the architecture diagram in the @README.md file to use Mermaid.js instead of ASCII text.
+Create a feature branch and commit small changes often to this feature branch.
+All changes will reside in this feature branch until the documentation is complete.
+Once the documentation is complete, create a pull request to merge the feature branch into the main branch.
+The pull request should include a description of the changes made.
+```
