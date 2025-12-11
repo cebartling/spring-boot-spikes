@@ -42,15 +42,17 @@ data class OrderEvent(
 ) {
     /**
      * Transient parsed details map (not persisted directly).
+     * Named differently from detailsJson to avoid Spring Data R2DBC column mapping conflicts.
      */
     @Transient
-    var details: Map<String, Any>? = null
+    var parsedDetails: Map<String, Any>? = null
 
     /**
      * Transient parsed error info (not persisted directly).
+     * Named differently from errorInfoJson to avoid Spring Data R2DBC column mapping conflicts.
      */
     @Transient
-    var errorInfo: ErrorInfo? = null
+    var parsedErrorInfo: ErrorInfo? = null
 
     companion object {
         /**
