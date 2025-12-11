@@ -100,10 +100,21 @@ flowchart TB
      -d '{
        "customerId": "550e8400-e29b-41d4-a716-446655440000",
        "items": [
-         {"productId": "prod-001", "quantity": 2, "priceInCents": 2999}
+         {
+           "productId": "550e8400-e29b-41d4-a716-446655440001",
+           "productName": "Widget Pro",
+           "quantity": 2,
+           "unitPriceInCents": 2999
+         }
        ],
-       "paymentMethodId": "pm-valid",
-       "shippingAddressId": "addr-valid"
+       "paymentMethodId": "valid-card",
+       "shippingAddress": {
+         "street": "123 Main St",
+         "city": "Springfield",
+         "state": "IL",
+         "postalCode": "62701",
+         "country": "US"
+       }
      }'
    ```
 
