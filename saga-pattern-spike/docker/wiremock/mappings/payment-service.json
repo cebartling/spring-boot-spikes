@@ -16,7 +16,7 @@
         "headers": {
           "Content-Type": "application/json"
         },
-        "body": "{\"authorizationId\": \"{{randomValue type='UUID'}}\", \"status\": \"AUTHORIZED\", \"amount\": {{jsonPath request.body '$.amount'}}, \"currency\": \"USD\", \"expiresAt\": \"{{now offset='7 days' format=\"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'\"}}\"}",
+        "body": "{\"authorizationId\": \"{{randomValue type='UUID'}}\", \"status\": \"AUTHORIZED\", \"amount\": \"{{jsonPath request.body '$.amountInCents'}}\", \"currency\": \"USD\", \"expiresAt\": \"{{now offset='7 days' format=\"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'\"}}\"}",
         "transformers": ["response-template"]
       }
     },
@@ -27,8 +27,7 @@
         "urlPath": "/api/payments/authorize",
         "bodyPatterns": [
           {
-            "matchesJsonPath": "$.paymentMethodId",
-            "equalTo": "declined-card"
+            "matchesJsonPath": "$[?(@.paymentMethodId == 'declined-card')]"
           }
         ]
       },
@@ -44,7 +43,7 @@
           "retryable": true
         }
       },
-      "priority": 1
+      "priority": 2
     },
     {
       "name": "Authorize Payment - Fraud Detected",
@@ -53,8 +52,7 @@
         "urlPath": "/api/payments/authorize",
         "bodyPatterns": [
           {
-            "matchesJsonPath": "$.paymentMethodId",
-            "equalTo": "fraud-card"
+            "matchesJsonPath": "$[?(@.paymentMethodId == 'fraud-card')]"
           }
         ]
       },
@@ -69,7 +67,7 @@
           "retryable": false
         }
       },
-      "priority": 1
+      "priority": 2
     },
     {
       "name": "Void Authorization - Success",
