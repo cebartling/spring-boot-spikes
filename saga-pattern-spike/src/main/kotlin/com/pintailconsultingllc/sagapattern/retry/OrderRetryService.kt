@@ -185,8 +185,11 @@ class DefaultOrderRetryService(
         val eligibility = checkRetryEligibility(request.orderId)
         if (!eligibility.eligible) {
             return when (eligibility.ineligibilityReason) {
-                IneligibilityReason.IN_COOLDOWN ->
-                    RetryResult.inCooldown(request.orderId, eligibility.nextRetryAvailableAt!!)
+                IneligibilityReason.IN_COOLDOWN -> {
+                    val nextRetryTime = eligibility.nextRetryAvailableAt
+                        ?: return RetryResult.rejected(request.orderId, "Cooldown in effect but no retry time available")
+                    RetryResult.inCooldown(request.orderId, nextRetryTime)
+                }
                 IneligibilityReason.MAX_RETRIES_EXCEEDED ->
                     RetryResult.maxRetriesExceeded(request.orderId)
                 IneligibilityReason.RETRY_IN_PROGRESS ->
