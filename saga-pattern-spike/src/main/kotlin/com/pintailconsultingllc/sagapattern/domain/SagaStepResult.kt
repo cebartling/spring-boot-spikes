@@ -52,6 +52,22 @@ data class SagaStepResult(
             stepOrder = stepOrder,
             status = StepStatus.PENDING
         )
+
+        /**
+         * Create a skipped step result record.
+         * Used during retry when a step's previous result is still valid.
+         */
+        fun skipped(
+            sagaExecutionId: UUID,
+            stepName: String,
+            stepOrder: Int
+        ): SagaStepResult = SagaStepResult(
+            sagaExecutionId = sagaExecutionId,
+            stepName = stepName,
+            stepOrder = stepOrder,
+            status = StepStatus.SKIPPED,
+            completedAt = Instant.now()
+        )
     }
 
     /**

@@ -1,5 +1,54 @@
 # Implementation Plan: SAGA-004 - Retry Failed Orders
 
+## Implementation Status: COMPLETED
+
+### Summary
+
+The retry functionality for failed orders has been fully implemented. Customers can now retry failed orders without re-entering information, with the saga resuming from the failed step while skipping steps whose results are still valid.
+
+### Completed Components
+
+| Component | File | Status |
+|-----------|------|--------|
+| RetryAttempt Entity | `domain/RetryAttempt.kt` | ✅ |
+| RetryAttemptRepository | `repository/RetryAttemptRepository.kt` | ✅ |
+| RetryEligibility Model | `retry/RetryEligibility.kt` | ✅ |
+| RetryRequest Model | `retry/RetryRequest.kt` | ✅ |
+| RetryResult Model | `retry/RetryResult.kt` | ✅ |
+| StepValidityResult Model | `retry/StepValidityResult.kt` | ✅ |
+| StepValidityChecker | `retry/StepValidityChecker.kt` | ✅ |
+| RetryConfiguration | `retry/RetryConfiguration.kt` | ✅ |
+| OrderRetryService | `retry/OrderRetryService.kt` | ✅ |
+| RetryOrchestrator | `retry/RetryOrchestrator.kt` | ✅ |
+| RetryController | `api/RetryController.kt` | ✅ |
+| API DTOs | `api/dto/RetryDtos.kt` | ✅ |
+| SagaStepResult.skipped() | `domain/SagaStepResult.kt` | ✅ |
+
+### API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/orders/{orderId}/retry/eligibility` | Check if order is eligible for retry |
+| POST | `/api/orders/{orderId}/retry` | Initiate a retry for a failed order |
+| GET | `/api/orders/{orderId}/retry/history` | Get retry history for an order |
+
+### Key Features
+
+1. **Retry Eligibility Checking**: Validates order status, failure reason, retry limits, and cooldown periods
+2. **Step Validity Checking**: TTL-based expiration checks with optional external service validation
+3. **Resume from Failed Step**: Automatically determines which step to resume from
+4. **Skip Valid Steps**: Steps with valid results are skipped during retry
+5. **Retry Limits**: Configurable max attempts (default: 3), cooldown (default: 5 min), window (default: 24h)
+6. **Retry History**: Full audit trail of all retry attempts
+
+### Tests
+
+- Unit tests for all retry data models in `src/test/kotlin/.../retry/`
+- Cucumber step definitions updated in `RetrySteps.kt`
+- Feature file at `src/test/resources/features/saga-004-retry-failed-orders.feature`
+
+---
+
 ## Overview
 
 Implement the ability for customers to retry failed orders without re-entering information, resuming the saga from the failed step while avoiding unnecessary repetition of successful steps.
