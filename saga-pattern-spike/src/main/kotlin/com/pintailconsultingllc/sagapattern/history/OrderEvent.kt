@@ -2,6 +2,7 @@ package com.pintailconsultingllc.sagapattern.history
 
 import org.springframework.data.annotation.Id
 import org.springframework.data.annotation.Transient
+import org.springframework.data.domain.Persistable
 import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.mapping.Table
 import java.time.Instant
@@ -10,10 +11,13 @@ import java.util.UUID
 /**
  * Represents an immutable event in the order processing timeline.
  * Each significant action is recorded as an event for auditing and history.
+ *
+ * Implements [Persistable] to correctly handle INSERT vs UPDATE with pre-generated UUIDs.
  */
 @Table("order_events")
 data class OrderEvent(
     @Id
+    @get:JvmName("id")
     val id: UUID = UUID.randomUUID(),
 
     @Column("order_id")
@@ -38,8 +42,16 @@ data class OrderEvent(
 
     /** JSON-serialized error info. */
     @Column("error_info")
-    val errorInfoJson: String? = null
-) {
+    val errorInfoJson: String? = null,
+
+    @Transient
+    private val isNewEntity: Boolean = true
+) : Persistable<UUID> {
+
+    override fun getId(): UUID = id
+
+    override fun isNew(): Boolean = isNewEntity
+
     /**
      * Transient parsed details map (not persisted directly).
      */
@@ -51,6 +63,11 @@ data class OrderEvent(
      */
     @Transient
     var errorInfo: ErrorInfo? = null
+
+    /**
+     * Mark this entity as persisted.
+     */
+    fun asPersisted(): OrderEvent = copy(isNewEntity = false)
 
     companion object {
         /**
