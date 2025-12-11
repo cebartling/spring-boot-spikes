@@ -16,14 +16,7 @@
         "headers": {
           "Content-Type": "application/json"
         },
-        "jsonBody": {
-          "shipmentId": "{{randomValue type='UUID'}}",
-          "status": "PENDING",
-          "carrier": "STANDARD",
-          "trackingNumber": "TRK{{randomValue length=10 type='ALPHANUMERIC'}}",
-          "estimatedDelivery": "{{now offset='5 days' format='yyyy-MM-dd'}}",
-          "createdAt": "{{now format='yyyy-MM-dd\\'T\\'HH:mm:ss.SSS\\'Z\\''}}"
-        },
+        "body": "{\"shipmentId\": \"{{randomValue type='UUID'}}\", \"status\": \"PENDING\", \"carrier\": \"STANDARD\", \"trackingNumber\": \"TRK{{randomValue length=10 type='ALPHANUMERIC'}}\", \"estimatedDelivery\": \"{{now offset='5 days' format='yyyy-MM-dd'}}\", \"createdAt\": \"{{now format=\"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'\"}}\"}",
         "transformers": ["response-template"]
       }
     },
@@ -92,11 +85,7 @@
         "headers": {
           "Content-Type": "application/json"
         },
-        "jsonBody": {
-          "shipmentId": "{{request.pathSegments.[2]}}",
-          "status": "CANCELLED",
-          "cancelledAt": "{{now format='yyyy-MM-dd\\'T\\'HH:mm:ss.SSS\\'Z\\''}}"
-        },
+        "body": "{\"shipmentId\": \"{{request.pathSegments.[2]}}\", \"status\": \"CANCELLED\", \"cancelledAt\": \"{{now format=\"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'\"}}\"}",
         "transformers": ["response-template"]
       }
     },

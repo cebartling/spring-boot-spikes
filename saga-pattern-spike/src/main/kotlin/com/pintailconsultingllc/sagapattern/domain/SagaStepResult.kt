@@ -1,6 +1,7 @@
 package com.pintailconsultingllc.sagapattern.domain
 
 import org.springframework.data.annotation.Id
+import org.springframework.data.annotation.PersistenceCreator
 import org.springframework.data.annotation.Transient
 import org.springframework.data.domain.Persistable
 import org.springframework.data.relational.core.mapping.Column
@@ -15,7 +16,7 @@ import java.util.UUID
  * Implements [Persistable] to correctly handle INSERT vs UPDATE with pre-generated UUIDs.
  */
 @Table("saga_step_results")
-data class SagaStepResult(
+data class SagaStepResult @PersistenceCreator constructor(
     @Id
     @get:JvmName("id")
     val id: UUID = UUID.randomUUID(),
@@ -41,11 +42,11 @@ data class SagaStepResult(
     val startedAt: Instant? = null,
 
     @Column("completed_at")
-    val completedAt: Instant? = null,
+    val completedAt: Instant? = null
+) : Persistable<UUID> {
 
     @Transient
-    private val isNewEntity: Boolean = true
-) : Persistable<UUID> {
+    private var isNewEntity: Boolean = false
 
     override fun getId(): UUID = id
 
@@ -60,11 +61,12 @@ data class SagaStepResult(
             stepName: String,
             stepOrder: Int
         ): SagaStepResult = SagaStepResult(
+            id = UUID.randomUUID(),
             sagaExecutionId = sagaExecutionId,
             stepName = stepName,
             stepOrder = stepOrder,
             status = StepStatus.PENDING
-        )
+        ).apply { isNewEntity = true }
 
         /**
          * Create a skipped step result record.
@@ -75,12 +77,13 @@ data class SagaStepResult(
             stepName: String,
             stepOrder: Int
         ): SagaStepResult = SagaStepResult(
+            id = UUID.randomUUID(),
             sagaExecutionId = sagaExecutionId,
             stepName = stepName,
             stepOrder = stepOrder,
             status = StepStatus.SKIPPED,
             completedAt = Instant.now()
-        )
+        ).apply { isNewEntity = true }
     }
 
     /**
@@ -88,8 +91,7 @@ data class SagaStepResult(
      */
     fun start(): SagaStepResult = copy(
         status = StepStatus.IN_PROGRESS,
-        startedAt = Instant.now(),
-        isNewEntity = false
+        startedAt = Instant.now()
     )
 
     /**
@@ -98,8 +100,7 @@ data class SagaStepResult(
     fun complete(data: String? = null): SagaStepResult = copy(
         status = StepStatus.COMPLETED,
         stepData = data,
-        completedAt = Instant.now(),
-        isNewEntity = false
+        completedAt = Instant.now()
     )
 
     /**
@@ -108,8 +109,7 @@ data class SagaStepResult(
     fun fail(error: String): SagaStepResult = copy(
         status = StepStatus.FAILED,
         errorMessage = error,
-        completedAt = Instant.now(),
-        isNewEntity = false
+        completedAt = Instant.now()
     )
 
     /**
@@ -117,12 +117,11 @@ data class SagaStepResult(
      */
     fun compensate(): SagaStepResult = copy(
         status = StepStatus.COMPENSATED,
-        completedAt = Instant.now(),
-        isNewEntity = false
+        completedAt = Instant.now()
     )
 
     /**
      * Mark this entity as persisted.
      */
-    fun asPersisted(): SagaStepResult = copy(isNewEntity = false)
+    fun asPersisted(): SagaStepResult = this.also { isNewEntity = false }
 }

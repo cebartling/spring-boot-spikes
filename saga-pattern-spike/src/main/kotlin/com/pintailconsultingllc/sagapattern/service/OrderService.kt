@@ -43,7 +43,7 @@ class OrderService(
         logger.info("Creating order for customer ${request.customerId}")
 
         // Create the order entity
-        val order = Order(
+        val order = Order.create(
             customerId = request.customerId,
             totalAmountInCents = request.calculateTotalInCents(),
             status = OrderStatus.PENDING
@@ -58,7 +58,7 @@ class OrderService(
 
         // Create and save order items
         val orderItems = request.items.map { item ->
-            OrderItem(
+            OrderItem.create(
                 orderId = savedOrder.id,
                 productId = item.productId,
                 productName = item.productName,

@@ -25,7 +25,8 @@ class SagaContextTest {
             id = UUID.randomUUID(),
             customerId = UUID.randomUUID(),
             totalAmountInCents = 9999L,
-            status = OrderStatus.PENDING,
+            status = OrderStatus.PENDING
+        ).apply {
             items = listOf(
                 OrderItem(
                     orderId = UUID.randomUUID(),
@@ -35,7 +36,7 @@ class SagaContextTest {
                     unitPriceInCents = 4999L
                 )
             )
-        )
+        }
 
         context = SagaContext(
             order = order,

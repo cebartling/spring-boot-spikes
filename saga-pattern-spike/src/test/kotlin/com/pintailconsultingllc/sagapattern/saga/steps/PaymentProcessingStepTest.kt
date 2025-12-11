@@ -39,7 +39,8 @@ class PaymentProcessingStepTest {
             id = orderId,
             customerId = UUID.randomUUID(),
             totalAmountInCents = 9999L,
-            status = OrderStatus.PROCESSING,
+            status = OrderStatus.PROCESSING
+        ).apply {
             items = listOf(
                 OrderItem(
                     orderId = orderId,
@@ -49,7 +50,7 @@ class PaymentProcessingStepTest {
                     unitPriceInCents = 4999L
                 )
             )
-        )
+        }
 
         context = SagaContext(
             order = order,

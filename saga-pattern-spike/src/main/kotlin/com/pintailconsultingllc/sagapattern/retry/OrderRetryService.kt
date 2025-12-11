@@ -214,7 +214,7 @@ class DefaultOrderRetryService(
 
         // Create retry attempt record
         val retryCount = retryAttemptRepository.countByOrderId(request.orderId)
-        val retryAttempt = RetryAttempt(
+        val retryAttempt = RetryAttempt.create(
             orderId = request.orderId,
             originalExecutionId = originalExecution.id,
             attemptNumber = (retryCount + 1).toInt()

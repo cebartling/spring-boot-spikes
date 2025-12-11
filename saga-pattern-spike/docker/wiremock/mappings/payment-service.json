@@ -16,13 +16,7 @@
         "headers": {
           "Content-Type": "application/json"
         },
-        "jsonBody": {
-          "authorizationId": "{{randomValue type='UUID'}}",
-          "status": "AUTHORIZED",
-          "amount": "{{jsonPath request.body '$.amount'}}",
-          "currency": "USD",
-          "expiresAt": "{{now offset='7 days' format='yyyy-MM-dd\\'T\\'HH:mm:ss.SSS\\'Z\\''}}"
-        },
+        "body": "{\"authorizationId\": \"{{randomValue type='UUID'}}\", \"status\": \"AUTHORIZED\", \"amount\": {{jsonPath request.body '$.amount'}}, \"currency\": \"USD\", \"expiresAt\": \"{{now offset='7 days' format=\"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'\"}}\"}",
         "transformers": ["response-template"]
       }
     },
@@ -88,11 +82,7 @@
         "headers": {
           "Content-Type": "application/json"
         },
-        "jsonBody": {
-          "authorizationId": "{{request.pathSegments.[3]}}",
-          "status": "VOIDED",
-          "voidedAt": "{{now format='yyyy-MM-dd\\'T\\'HH:mm:ss.SSS\\'Z\\''}}"
-        },
+        "body": "{\"authorizationId\": \"{{request.pathSegments.[3]}}\", \"status\": \"VOIDED\", \"voidedAt\": \"{{now format=\"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'\"}}\"}",
         "transformers": ["response-template"]
       }
     },
@@ -107,12 +97,7 @@
         "headers": {
           "Content-Type": "application/json"
         },
-        "jsonBody": {
-          "captureId": "{{randomValue type='UUID'}}",
-          "authorizationId": "{{request.pathSegments.[3]}}",
-          "status": "CAPTURED",
-          "capturedAt": "{{now format='yyyy-MM-dd\\'T\\'HH:mm:ss.SSS\\'Z\\''}}"
-        },
+        "body": "{\"captureId\": \"{{randomValue type='UUID'}}\", \"authorizationId\": \"{{request.pathSegments.[3]}}\", \"status\": \"CAPTURED\", \"capturedAt\": \"{{now format=\"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'\"}}\"}",
         "transformers": ["response-template"]
       }
     },
@@ -127,11 +112,7 @@
         "headers": {
           "Content-Type": "application/json"
         },
-        "jsonBody": {
-          "authorizationId": "{{request.pathSegments.[3]}}",
-          "status": "AUTHORIZED",
-          "expiresAt": "{{now offset='7 days' format='yyyy-MM-dd\\'T\\'HH:mm:ss.SSS\\'Z\\''}}"
-        },
+        "body": "{\"authorizationId\": \"{{request.pathSegments.[3]}}\", \"status\": \"AUTHORIZED\", \"expiresAt\": \"{{now offset='7 days' format=\"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'\"}}\"}",
         "transformers": ["response-template"]
       }
     }

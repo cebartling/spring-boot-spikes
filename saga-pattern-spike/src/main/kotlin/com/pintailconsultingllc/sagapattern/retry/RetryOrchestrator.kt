@@ -98,7 +98,7 @@ class RetryOrchestrator(
         // Create new saga execution for the retry
         val retryExecutionId = UUID.randomUUID()
         val retryExecution = sagaExecutionRepository.save(
-            SagaExecution(
+            SagaExecution.create(
                 id = retryExecutionId,
                 orderId = orderId,
                 status = SagaStatus.IN_PROGRESS,
@@ -109,12 +109,11 @@ class RetryOrchestrator(
         // Create retry attempt record
         val retryCount = retryAttemptRepository.countByOrderId(orderId)
         val retryAttempt = retryAttemptRepository.save(
-            com.pintailconsultingllc.sagapattern.domain.RetryAttempt(
+            com.pintailconsultingllc.sagapattern.domain.RetryAttempt.create(
                 orderId = orderId,
                 originalExecutionId = originalExecution.id,
-                retryExecutionId = retryExecutionId,
                 attemptNumber = (retryCount + 1).toInt()
-            )
+            ).withRetryExecution(retryExecutionId)
         )
 
         // Build saga context

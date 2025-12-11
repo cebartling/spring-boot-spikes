@@ -46,7 +46,7 @@ CREATE TABLE saga_step_results (
     step_name VARCHAR(100) NOT NULL,
     step_order INT NOT NULL,
     status VARCHAR(50) NOT NULL,
-    step_data JSONB,
+    step_data TEXT,
     error_message TEXT,
     started_at TIMESTAMP WITH TIME ZONE,
     completed_at TIMESTAMP WITH TIME ZONE
@@ -60,8 +60,8 @@ CREATE TABLE order_events (
     event_type VARCHAR(100) NOT NULL,
     step_name VARCHAR(100),
     outcome VARCHAR(50),
-    details JSONB,
-    error_info JSONB,
+    details TEXT,
+    error_info TEXT,
     timestamp TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 

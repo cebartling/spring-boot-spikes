@@ -1,6 +1,7 @@
 package com.pintailconsultingllc.sagapattern.domain
 
 import org.springframework.data.annotation.Id
+import org.springframework.data.annotation.PersistenceCreator
 import org.springframework.data.annotation.Transient
 import org.springframework.data.domain.Persistable
 import org.springframework.data.relational.core.mapping.Column
@@ -15,7 +16,7 @@ import java.util.UUID
  * Implements [Persistable] to correctly handle INSERT vs UPDATE with pre-generated UUIDs.
  */
 @Table("saga_executions")
-data class SagaExecution(
+data class SagaExecution @PersistenceCreator constructor(
     @Id
     @get:JvmName("id")
     val id: UUID = UUID.randomUUID(),
@@ -44,11 +45,11 @@ data class SagaExecution(
     val compensationStartedAt: Instant? = null,
 
     @Column("compensation_completed_at")
-    val compensationCompletedAt: Instant? = null,
+    val compensationCompletedAt: Instant? = null
+) : Persistable<UUID> {
 
     @Transient
-    private val isNewEntity: Boolean = true
-) : Persistable<UUID> {
+    private var isNewEntity: Boolean = false
 
     override fun getId(): UUID = id
 
@@ -59,22 +60,20 @@ data class SagaExecution(
      */
     fun start(): SagaExecution = copy(
         status = SagaStatus.IN_PROGRESS,
-        startedAt = Instant.now(),
-        isNewEntity = false
+        startedAt = Instant.now()
     )
 
     /**
      * Create a copy with updated current step.
      */
-    fun advanceToStep(step: Int): SagaExecution = copy(currentStep = step, isNewEntity = false)
+    fun advanceToStep(step: Int): SagaExecution = copy(currentStep = step)
 
     /**
      * Create a copy marking the saga as completed.
      */
     fun complete(): SagaExecution = copy(
         status = SagaStatus.COMPLETED,
-        completedAt = Instant.now(),
-        isNewEntity = false
+        completedAt = Instant.now()
     )
 
     /**
@@ -84,8 +83,7 @@ data class SagaExecution(
         status = SagaStatus.FAILED,
         failedStep = failedStepIndex,
         failureReason = reason,
-        completedAt = Instant.now(),
-        isNewEntity = false
+        completedAt = Instant.now()
     )
 
     /**
@@ -93,8 +91,7 @@ data class SagaExecution(
      */
     fun startCompensation(): SagaExecution = copy(
         status = SagaStatus.COMPENSATING,
-        compensationStartedAt = Instant.now(),
-        isNewEntity = false
+        compensationStartedAt = Instant.now()
     )
 
     /**
@@ -102,12 +99,36 @@ data class SagaExecution(
      */
     fun completeCompensation(): SagaExecution = copy(
         status = SagaStatus.COMPENSATED,
-        compensationCompletedAt = Instant.now(),
-        isNewEntity = false
+        compensationCompletedAt = Instant.now()
     )
 
     /**
      * Mark this entity as persisted.
      */
-    fun asPersisted(): SagaExecution = copy(isNewEntity = false)
+    fun asPersisted(): SagaExecution = this.also { isNewEntity = false }
+
+    companion object {
+        /**
+         * Create a new SagaExecution instance.
+         */
+        fun create(orderId: UUID): SagaExecution = SagaExecution(
+            id = UUID.randomUUID(),
+            orderId = orderId
+        ).apply { isNewEntity = true }
+
+        /**
+         * Create a new SagaExecution instance with specific ID and status.
+         */
+        fun create(
+            id: UUID,
+            orderId: UUID,
+            status: SagaStatus,
+            startedAt: Instant
+        ): SagaExecution = SagaExecution(
+            id = id,
+            orderId = orderId,
+            status = status,
+            startedAt = startedAt
+        ).apply { isNewEntity = true }
+    }
 }
