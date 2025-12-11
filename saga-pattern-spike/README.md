@@ -169,6 +169,92 @@ The order processing saga consists of three sequential steps:
 - **Step 2 fails**: Inventory reservation is released
 - **Step 3 fails**: Payment is voided, then inventory is released
 
+### Triggering WireMock Failures
+
+WireMock is configured with special trigger values that cause specific saga steps to fail, allowing you to test compensation behavior. Use these values in your order request to simulate failures:
+
+#### Payment Failures
+
+| `paymentMethodId` Value | Error Response | HTTP Status |
+|-------------------------|----------------|-------------|
+| `valid-card` | Success | 201 |
+| `declined-card` | PAYMENT_DECLINED | 402 |
+| `fraud-card` | FRAUD_DETECTED | 403 |
+
+**Example - Trigger payment declined:**
+
+```bash
+curl -X POST http://localhost:8080/api/orders \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customerId": "550e8400-e29b-41d4-a716-446655440000",
+    "items": [{"productId": "550e8400-e29b-41d4-a716-446655440001", "productName": "Widget", "quantity": 1, "unitPriceInCents": 999}],
+    "paymentMethodId": "declined-card",
+    "shippingAddress": {"street": "123 Main St", "city": "Springfield", "state": "IL", "postalCode": "62701", "country": "US"}
+  }'
+```
+
+#### Inventory Failures
+
+| `productId` Value | Error Response | HTTP Status |
+|-------------------|----------------|-------------|
+| Any valid UUID | Success | 201 |
+| `out-of-stock-product` | INVENTORY_UNAVAILABLE | 409 |
+
+**Example - Trigger out of stock:**
+
+```bash
+curl -X POST http://localhost:8080/api/orders \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customerId": "550e8400-e29b-41d4-a716-446655440000",
+    "items": [{"productId": "out-of-stock-product", "productName": "Sold Out Item", "quantity": 1, "unitPriceInCents": 999}],
+    "paymentMethodId": "valid-card",
+    "shippingAddress": {"street": "123 Main St", "city": "Springfield", "state": "IL", "postalCode": "62701", "country": "US"}
+  }'
+```
+
+#### Shipping Failures
+
+| Field | Trigger Value | Error Response | HTTP Status |
+|-------|---------------|----------------|-------------|
+| `postalCode` | `00000` | INVALID_ADDRESS | 400 |
+| `country` | `XX` | SHIPPING_UNAVAILABLE | 422 |
+
+**Example - Trigger invalid address:**
+
+```bash
+curl -X POST http://localhost:8080/api/orders \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customerId": "550e8400-e29b-41d4-a716-446655440000",
+    "items": [{"productId": "550e8400-e29b-41d4-a716-446655440001", "productName": "Widget", "quantity": 1, "unitPriceInCents": 999}],
+    "paymentMethodId": "valid-card",
+    "shippingAddress": {"street": "123 Main St", "city": "Springfield", "state": "IL", "postalCode": "00000", "country": "US"}
+  }'
+```
+
+**Example - Trigger undeliverable location:**
+
+```bash
+curl -X POST http://localhost:8080/api/orders \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customerId": "550e8400-e29b-41d4-a716-446655440000",
+    "items": [{"productId": "550e8400-e29b-41d4-a716-446655440001", "productName": "Widget", "quantity": 1, "unitPriceInCents": 999}],
+    "paymentMethodId": "valid-card",
+    "shippingAddress": {"street": "123 Main St", "city": "Nowhere", "state": "ZZ", "postalCode": "12345", "country": "XX"}
+  }'
+```
+
+#### Expected Compensation Behavior
+
+| Failed Step | Compensated Steps |
+|-------------|-------------------|
+| Inventory (Step 1) | None |
+| Payment (Step 2) | Inventory released |
+| Shipping (Step 3) | Payment voided, Inventory released |
+
 ## Configuration
 
 ### Application Properties

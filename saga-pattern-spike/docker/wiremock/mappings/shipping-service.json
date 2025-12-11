@@ -27,8 +27,7 @@
         "urlPath": "/api/shipments",
         "bodyPatterns": [
           {
-            "matchesJsonPath": "$.shippingAddress.postalCode",
-            "equalTo": "00000"
+            "matchesJsonPath": "$[?(@.shippingAddress.postalCode == '00000')]"
           }
         ]
       },
@@ -47,7 +46,7 @@
           "retryable": true
         }
       },
-      "priority": 1
+      "priority": 2
     },
     {
       "name": "Create Shipment - Undeliverable",
@@ -56,8 +55,7 @@
         "urlPath": "/api/shipments",
         "bodyPatterns": [
           {
-            "matchesJsonPath": "$.shippingAddress.country",
-            "equalTo": "XX"
+            "matchesJsonPath": "$[?(@.shippingAddress.country == 'XX')]"
           }
         ]
       },
@@ -72,7 +70,7 @@
           "retryable": false
         }
       },
-      "priority": 1
+      "priority": 2
     },
     {
       "name": "Cancel Shipment - Success",
