@@ -53,8 +53,8 @@ class DefaultTimelineDescriptionGenerator : TimelineDescriptionGenerator {
     }
 
     override fun generateDescription(event: OrderEvent): String {
-        val details = parseDetails(event.detailsJson)
-        val errorInfo = parseErrorInfo(event.errorInfoJson)
+        val details = parseDetails(event.details)
+        val errorInfo = parseErrorInfo(event.errorInfo)
 
         return when (event.eventType) {
             OrderEventType.ORDER_CREATED ->
@@ -103,8 +103,8 @@ class DefaultTimelineDescriptionGenerator : TimelineDescriptionGenerator {
     override fun toTimelineEntry(event: OrderEvent): TimelineEntry {
         val title = generateTitle(event)
         val description = generateDescription(event)
-        val errorInfo = parseErrorInfo(event.errorInfoJson)
-        val details = parseDetails(event.detailsJson)
+        val errorInfo = parseErrorInfo(event.errorInfo)
+        val details = parseDetails(event.details)
 
         val status = when (event.outcome) {
             EventOutcome.SUCCESS -> TimelineStatus.SUCCESS

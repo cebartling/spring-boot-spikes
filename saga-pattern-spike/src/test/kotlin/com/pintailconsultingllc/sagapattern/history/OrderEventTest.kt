@@ -58,7 +58,7 @@ class OrderEventTest {
         assertEquals(OrderEventType.STEP_COMPLETED, event.eventType)
         assertEquals(stepName, event.stepName)
         assertEquals(EventOutcome.SUCCESS, event.outcome)
-        assertEquals(details, event.detailsJson)
+        assertEquals(details, event.details)
     }
 
     @Test
@@ -72,7 +72,7 @@ class OrderEventTest {
         assertEquals(OrderEventType.STEP_FAILED, event.eventType)
         assertEquals(stepName, event.stepName)
         assertEquals(EventOutcome.FAILED, event.outcome)
-        assertEquals(errorInfo, event.errorInfoJson)
+        assertEquals(errorInfo, event.errorInfo)
     }
 
     @Test
@@ -108,7 +108,7 @@ class OrderEventTest {
         assertEquals(testSagaExecutionId, event.sagaExecutionId)
         assertEquals(OrderEventType.SAGA_COMPLETED, event.eventType)
         assertEquals(EventOutcome.SUCCESS, event.outcome)
-        assertEquals(details, event.detailsJson)
+        assertEquals(details, event.details)
     }
 
     @Test
@@ -122,7 +122,7 @@ class OrderEventTest {
         assertEquals(OrderEventType.SAGA_FAILED, event.eventType)
         assertEquals(failedStep, event.stepName)
         assertEquals(EventOutcome.FAILED, event.outcome)
-        assertEquals(errorInfo, event.errorInfoJson)
+        assertEquals(errorInfo, event.errorInfo)
     }
 
     @Test
@@ -134,7 +134,7 @@ class OrderEventTest {
         assertEquals(testSagaExecutionId, event.sagaExecutionId)
         assertEquals(OrderEventType.RETRY_INITIATED, event.eventType)
         assertEquals(EventOutcome.NEUTRAL, event.outcome)
-        assertEquals(details, event.detailsJson)
+        assertEquals(details, event.details)
     }
 
     @Test

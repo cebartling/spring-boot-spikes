@@ -37,12 +37,11 @@ data class OrderEvent(
     val outcome: EventOutcome? = null,
 
     /** JSON-serialized additional details. */
-    @Column("details")
-    val detailsJson: String? = null,
+    val details: String? = null,
 
     /** JSON-serialized error info. */
     @Column("error_info")
-    val errorInfoJson: String? = null,
+    val errorInfo: String? = null,
 
     @Transient
     private val isNewEntity: Boolean = true
@@ -54,14 +53,12 @@ data class OrderEvent(
 
     /**
      * Transient parsed details map (not persisted directly).
-     * Named differently from detailsJson to avoid Spring Data R2DBC column mapping conflicts.
      */
     @Transient
     var parsedDetails: Map<String, Any>? = null
 
     /**
      * Transient parsed error info (not persisted directly).
-     * Named differently from errorInfoJson to avoid Spring Data R2DBC column mapping conflicts.
      */
     @Transient
     var parsedErrorInfo: ErrorInfo? = null
@@ -113,14 +110,14 @@ data class OrderEvent(
             orderId: UUID,
             sagaExecutionId: UUID,
             stepName: String,
-            detailsJson: String? = null
+            details: String? = null
         ): OrderEvent = OrderEvent(
             orderId = orderId,
             sagaExecutionId = sagaExecutionId,
             eventType = OrderEventType.STEP_COMPLETED,
             stepName = stepName,
             outcome = EventOutcome.SUCCESS,
-            detailsJson = detailsJson
+            details = details
         )
 
         /**
@@ -130,14 +127,14 @@ data class OrderEvent(
             orderId: UUID,
             sagaExecutionId: UUID,
             stepName: String,
-            errorInfoJson: String? = null
+            errorInfo: String? = null
         ): OrderEvent = OrderEvent(
             orderId = orderId,
             sagaExecutionId = sagaExecutionId,
             eventType = OrderEventType.STEP_FAILED,
             stepName = stepName,
             outcome = EventOutcome.FAILED,
-            errorInfoJson = errorInfoJson
+            errorInfo = errorInfo
         )
 
         /**
@@ -177,14 +174,14 @@ data class OrderEvent(
             orderId: UUID,
             sagaExecutionId: UUID,
             stepName: String,
-            errorInfoJson: String? = null
+            errorInfo: String? = null
         ): OrderEvent = OrderEvent(
             orderId = orderId,
             sagaExecutionId = sagaExecutionId,
             eventType = OrderEventType.COMPENSATION_FAILED,
             stepName = stepName,
             outcome = EventOutcome.FAILED,
-            errorInfoJson = errorInfoJson
+            errorInfo = errorInfo
         )
 
         /**
@@ -193,13 +190,13 @@ data class OrderEvent(
         fun sagaCompleted(
             orderId: UUID,
             sagaExecutionId: UUID,
-            detailsJson: String? = null
+            details: String? = null
         ): OrderEvent = OrderEvent(
             orderId = orderId,
             sagaExecutionId = sagaExecutionId,
             eventType = OrderEventType.SAGA_COMPLETED,
             outcome = EventOutcome.SUCCESS,
-            detailsJson = detailsJson
+            details = details
         )
 
         /**
@@ -209,14 +206,14 @@ data class OrderEvent(
             orderId: UUID,
             sagaExecutionId: UUID,
             failedStep: String,
-            errorInfoJson: String? = null
+            errorInfo: String? = null
         ): OrderEvent = OrderEvent(
             orderId = orderId,
             sagaExecutionId = sagaExecutionId,
             eventType = OrderEventType.SAGA_FAILED,
             stepName = failedStep,
             outcome = EventOutcome.FAILED,
-            errorInfoJson = errorInfoJson
+            errorInfo = errorInfo
         )
 
         /**
@@ -225,13 +222,13 @@ data class OrderEvent(
         fun retryInitiated(
             orderId: UUID,
             sagaExecutionId: UUID,
-            detailsJson: String? = null
+            details: String? = null
         ): OrderEvent = OrderEvent(
             orderId = orderId,
             sagaExecutionId = sagaExecutionId,
             eventType = OrderEventType.RETRY_INITIATED,
             outcome = EventOutcome.NEUTRAL,
-            detailsJson = detailsJson
+            details = details
         )
 
         /**
