@@ -1,6 +1,8 @@
 package com.pintailconsultingllc.sagapattern.domain
 
 import org.springframework.data.annotation.Id
+import org.springframework.data.annotation.Transient
+import org.springframework.data.domain.Persistable
 import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.mapping.Table
 import java.time.Instant
@@ -9,10 +11,13 @@ import java.util.UUID
 /**
  * Represents the result of an individual saga step execution.
  * Persisted to the database for tracking and auditing.
+ *
+ * Implements [Persistable] to correctly handle INSERT vs UPDATE with pre-generated UUIDs.
  */
 @Table("saga_step_results")
 data class SagaStepResult(
     @Id
+    @get:JvmName("id")
     val id: UUID = UUID.randomUUID(),
 
     @Column("saga_execution_id")
@@ -36,8 +41,16 @@ data class SagaStepResult(
     val startedAt: Instant? = null,
 
     @Column("completed_at")
-    val completedAt: Instant? = null
-) {
+    val completedAt: Instant? = null,
+
+    @Transient
+    private val isNewEntity: Boolean = true
+) : Persistable<UUID> {
+
+    override fun getId(): UUID = id
+
+    override fun isNew(): Boolean = isNewEntity
+
     companion object {
         /**
          * Create a pending step result record.
@@ -75,7 +88,8 @@ data class SagaStepResult(
      */
     fun start(): SagaStepResult = copy(
         status = StepStatus.IN_PROGRESS,
-        startedAt = Instant.now()
+        startedAt = Instant.now(),
+        isNewEntity = false
     )
 
     /**
@@ -84,7 +98,8 @@ data class SagaStepResult(
     fun complete(data: String? = null): SagaStepResult = copy(
         status = StepStatus.COMPLETED,
         stepData = data,
-        completedAt = Instant.now()
+        completedAt = Instant.now(),
+        isNewEntity = false
     )
 
     /**
@@ -93,7 +108,8 @@ data class SagaStepResult(
     fun fail(error: String): SagaStepResult = copy(
         status = StepStatus.FAILED,
         errorMessage = error,
-        completedAt = Instant.now()
+        completedAt = Instant.now(),
+        isNewEntity = false
     )
 
     /**
@@ -101,6 +117,12 @@ data class SagaStepResult(
      */
     fun compensate(): SagaStepResult = copy(
         status = StepStatus.COMPENSATED,
-        completedAt = Instant.now()
+        completedAt = Instant.now(),
+        isNewEntity = false
     )
+
+    /**
+     * Mark this entity as persisted.
+     */
+    fun asPersisted(): SagaStepResult = copy(isNewEntity = false)
 }

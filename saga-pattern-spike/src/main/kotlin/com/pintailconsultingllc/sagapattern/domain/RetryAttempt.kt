@@ -1,6 +1,8 @@
 package com.pintailconsultingllc.sagapattern.domain
 
 import org.springframework.data.annotation.Id
+import org.springframework.data.annotation.Transient
+import org.springframework.data.domain.Persistable
 import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.mapping.Table
 import java.time.Instant
@@ -11,10 +13,13 @@ import java.util.UUID
  *
  * Tracks all retry attempts including which step execution resumed from,
  * which steps were skipped, and the outcome of the retry.
+ *
+ * Implements [Persistable] to correctly handle INSERT vs UPDATE with pre-generated UUIDs.
  */
 @Table("retry_attempts")
 data class RetryAttempt(
     @Id
+    @get:JvmName("id")
     val id: UUID = UUID.randomUUID(),
 
     @Column("order_id")
@@ -44,13 +49,22 @@ data class RetryAttempt(
     val initiatedAt: Instant = Instant.now(),
 
     @Column("completed_at")
-    val completedAt: Instant? = null
-) {
+    val completedAt: Instant? = null,
+
+    @Transient
+    private val isNewEntity: Boolean = true
+) : Persistable<UUID> {
+
+    override fun getId(): UUID = id
+
+    override fun isNew(): Boolean = isNewEntity
+
     /**
      * Create a copy with the retry execution ID set.
      */
     fun withRetryExecution(executionId: UUID): RetryAttempt = copy(
-        retryExecutionId = executionId
+        retryExecutionId = executionId,
+        isNewEntity = false
     )
 
     /**
@@ -58,7 +72,8 @@ data class RetryAttempt(
      */
     fun withStepInfo(resumedFrom: String, skipped: List<String>): RetryAttempt = copy(
         resumedFromStep = resumedFrom,
-        skippedSteps = skipped.toTypedArray()
+        skippedSteps = skipped.toTypedArray(),
+        isNewEntity = false
     )
 
     /**
@@ -66,7 +81,8 @@ data class RetryAttempt(
      */
     fun markSuccessful(): RetryAttempt = copy(
         outcome = RetryOutcome.SUCCESS,
-        completedAt = Instant.now()
+        completedAt = Instant.now(),
+        isNewEntity = false
     )
 
     /**
@@ -75,7 +91,8 @@ data class RetryAttempt(
     fun markFailed(reason: String): RetryAttempt = copy(
         outcome = RetryOutcome.FAILED,
         failureReason = reason,
-        completedAt = Instant.now()
+        completedAt = Instant.now(),
+        isNewEntity = false
     )
 
     /**
@@ -84,8 +101,14 @@ data class RetryAttempt(
     fun markCancelled(reason: String): RetryAttempt = copy(
         outcome = RetryOutcome.CANCELLED,
         failureReason = reason,
-        completedAt = Instant.now()
+        completedAt = Instant.now(),
+        isNewEntity = false
     )
+
+    /**
+     * Mark this entity as persisted.
+     */
+    fun asPersisted(): RetryAttempt = copy(isNewEntity = false)
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
