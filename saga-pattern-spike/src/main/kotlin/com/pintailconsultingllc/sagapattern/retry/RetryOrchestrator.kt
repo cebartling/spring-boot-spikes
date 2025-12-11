@@ -210,6 +210,14 @@ class RetryOrchestrator(
         sagaExecutionId: UUID,
         request: RetryRequest
     ): SagaContext {
+        val defaultShippingAddress = ShippingAddress(
+            street = "",
+            city = "",
+            state = "",
+            postalCode = "",
+            country = ""
+        )
+
         val shippingAddress = request.updatedShippingAddress?.let {
             ShippingAddress(
                 street = it.street,
@@ -218,11 +226,7 @@ class RetryOrchestrator(
                 postalCode = it.postalCode,
                 country = it.country
             )
-        } ?: order.shippingAddress
-        // If order.shippingAddress is null, you may want to throw an exception or handle it explicitly
-        if (shippingAddress == null) {
-            throw IllegalArgumentException("Shipping address must be provided for retry, either in the request or in the original order.")
-        }
+        } ?: defaultShippingAddress
 
         return SagaContext(
             order = order,
