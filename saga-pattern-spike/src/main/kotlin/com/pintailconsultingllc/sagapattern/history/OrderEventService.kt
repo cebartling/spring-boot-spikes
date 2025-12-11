@@ -1,6 +1,6 @@
 package com.pintailconsultingllc.sagapattern.history
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.module.kotlin.jacksonObjectMapper
 import com.pintailconsultingllc.sagapattern.repository.OrderEventRepository
 import io.micrometer.observation.annotation.Observed
 import org.slf4j.LoggerFactory
@@ -134,9 +134,10 @@ interface OrderEventService {
  */
 @Service
 class OrderEventServiceImpl(
-    private val orderEventRepository: OrderEventRepository,
-    private val objectMapper: ObjectMapper
+    private val orderEventRepository: OrderEventRepository
 ) : OrderEventService {
+
+    private val objectMapper = jacksonObjectMapper()
 
     private val logger = LoggerFactory.getLogger(OrderEventServiceImpl::class.java)
 

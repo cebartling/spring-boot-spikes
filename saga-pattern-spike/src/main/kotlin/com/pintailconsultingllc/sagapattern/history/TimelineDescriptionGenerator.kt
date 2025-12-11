@@ -1,7 +1,7 @@
 package com.pintailconsultingllc.sagapattern.history
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
+import tools.jackson.module.kotlin.jacksonObjectMapper
+import tools.jackson.module.kotlin.readValue
 import org.springframework.stereotype.Component
 import java.text.NumberFormat
 import java.util.Locale
@@ -30,9 +30,9 @@ interface TimelineDescriptionGenerator {
  * Default implementation of TimelineDescriptionGenerator.
  */
 @Component
-class DefaultTimelineDescriptionGenerator(
-    private val objectMapper: ObjectMapper
-) : TimelineDescriptionGenerator {
+class DefaultTimelineDescriptionGenerator : TimelineDescriptionGenerator {
+
+    private val objectMapper = jacksonObjectMapper()
 
     private val currencyFormat = NumberFormat.getCurrencyInstance(Locale.US)
 
