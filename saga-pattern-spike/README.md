@@ -18,31 +18,38 @@ This project demonstrates a comprehensive implementation of the saga orchestrati
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         Order API                                   │
-│  POST /api/orders  │  GET /api/orders/{id}/status  │  SSE stream   │
-└─────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                    Saga Orchestrator                                │
-│  ┌─────────────┐   ┌─────────────┐   ┌─────────────┐               │
-│  │  Inventory  │──▶│   Payment   │──▶│  Shipping   │               │
-│  │ Reservation │   │ Processing  │   │ Arrangement │               │
-│  └─────────────┘   └─────────────┘   └─────────────┘               │
-│         │                 │                 │                       │
-│         ▼                 ▼                 ▼                       │
-│  [compensate]      [compensate]      [compensate]                   │
-│   on failure        on failure        on failure                    │
-└─────────────────────────────────────────────────────────────────────┘
-                                    │
-            ┌───────────────────────┼───────────────────────┐
-            ▼                       ▼                       ▼
-     ┌────────────┐          ┌────────────┐          ┌────────────┐
-     │ PostgreSQL │          │   Vault    │          │  WireMock  │
-     │  (R2DBC)   │          │ (Secrets)  │          │  (Mocks)   │
-     └────────────┘          └────────────┘          └────────────┘
+```mermaid
+flowchart TB
+    subgraph API["Order API"]
+        POST["POST /api/orders"]
+        GET["GET /api/orders/{id}/status"]
+        SSE["SSE stream"]
+    end
+
+    subgraph Orchestrator["Saga Orchestrator"]
+        direction LR
+        INV["Inventory<br/>Reservation"]
+        PAY["Payment<br/>Processing"]
+        SHIP["Shipping<br/>Arrangement"]
+
+        INV -->|"success"| PAY
+        PAY -->|"success"| SHIP
+
+        INV -.->|"compensate<br/>on failure"| COMP_INV["Release Items"]
+        PAY -.->|"compensate<br/>on failure"| COMP_PAY["Void Payment"]
+        SHIP -.->|"compensate<br/>on failure"| COMP_SHIP["Cancel Shipment"]
+    end
+
+    subgraph Infrastructure["Infrastructure Services"]
+        PG[("PostgreSQL<br/>(R2DBC)")]
+        VAULT["Vault<br/>(Secrets)"]
+        WIRE["WireMock<br/>(Mocks)"]
+    end
+
+    API --> Orchestrator
+    Orchestrator --> PG
+    Orchestrator --> VAULT
+    Orchestrator --> WIRE
 ```
 
 ## Tech Stack
