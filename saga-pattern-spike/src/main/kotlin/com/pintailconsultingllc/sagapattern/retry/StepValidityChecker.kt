@@ -3,6 +3,9 @@ package com.pintailconsultingllc.sagapattern.retry
 import com.pintailconsultingllc.sagapattern.domain.SagaStepResult
 import com.pintailconsultingllc.sagapattern.domain.StepStatus
 import com.pintailconsultingllc.sagapattern.saga.SagaContext
+import com.pintailconsultingllc.sagapattern.saga.steps.InventoryReservationStep
+import com.pintailconsultingllc.sagapattern.saga.steps.PaymentProcessingStep
+import com.pintailconsultingllc.sagapattern.saga.steps.ShippingArrangementStep
 import io.micrometer.observation.annotation.Observed
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
@@ -44,20 +47,16 @@ interface StepValidityChecker {
 class DefaultStepValidityChecker(
     private val inventoryWebClient: WebClient,
     private val paymentWebClient: WebClient,
-    private val shippingWebClient: WebClient
+    private val shippingWebClient: WebClient,
+    @Value("\${saga.retry.inventory-reservation-ttl:PT1H}")
+    private val inventoryReservationTtl: String,
+    @Value("\${saga.retry.payment-authorization-ttl:PT24H}")
+    private val paymentAuthorizationTtl: String,
+    @Value("\${saga.retry.shipping-quote-ttl:PT4H}")
+    private val shippingQuoteTtl: String
 ) : StepValidityChecker {
     private val logger = LoggerFactory.getLogger(DefaultStepValidityChecker::class.java)
     private val objectMapper = jacksonObjectMapper()
-
-    @Value("\${saga.retry.inventory-reservation-ttl:PT1H}")
-    private lateinit var inventoryReservationTtl: String
-
-    @Value("\${saga.retry.payment-authorization-ttl:PT24H}")
-    private lateinit var paymentAuthorizationTtl: String
-
-    @Value("\${saga.retry.shipping-quote-ttl:PT4H}")
-    private lateinit var shippingQuoteTtl: String
-
     @Observed(name = "retry.validity.check", contextualName = "check-step-validity")
     override suspend fun isStepResultStillValid(
         stepResult: SagaStepResult,
@@ -71,9 +70,9 @@ class DefaultStepValidityChecker(
         }
 
         return when (stepResult.stepName) {
-            "Inventory Reservation" -> checkInventoryReservationValidity(stepResult)
-            "Payment Processing" -> checkPaymentAuthorizationValidity(stepResult)
-            "Shipping Arrangement" -> checkShippingQuoteValidity(stepResult)
+            InventoryReservationStep.STEP_NAME -> checkInventoryReservationValidity(stepResult)
+            PaymentProcessingStep.STEP_NAME -> checkPaymentAuthorizationValidity(stepResult)
+            ShippingArrangementStep.STEP_NAME -> checkShippingQuoteValidity(stepResult)
             else -> {
                 logger.warn("Unknown step name: ${stepResult.stepName}, assuming valid")
                 StepValidityResult.valid()
