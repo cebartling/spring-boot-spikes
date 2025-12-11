@@ -37,6 +37,7 @@ data class OrderEvent(
     val outcome: EventOutcome? = null,
 
     /** JSON-serialized additional details. */
+    @Column("details")
     val details: String? = null,
 
     /** JSON-serialized error info. */
@@ -55,13 +56,13 @@ data class OrderEvent(
      * Transient parsed details map (not persisted directly).
      */
     @Transient
-    var parsedDetails: Map<String, Any>? = null
+    var detailsMap: Map<String, Any>? = null
 
     /**
      * Transient parsed error info (not persisted directly).
      */
     @Transient
-    var parsedErrorInfo: ErrorInfo? = null
+    var errorInfoParsed: ErrorInfo? = null
 
     /**
      * Mark this entity as persisted.
