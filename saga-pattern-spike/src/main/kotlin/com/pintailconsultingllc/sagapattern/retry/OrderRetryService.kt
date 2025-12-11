@@ -290,7 +290,7 @@ class DefaultOrderRetryService(
         val skippedSteps = mutableListOf<String>()
         val stepsToReExecute = mutableListOf<String>()
         var resumeStepIndex = 0
-        var resumeStepName = "Inventory Reservation" // Default to first step
+        var resumeStepName = stepResults.firstOrNull()?.stepName ?: "" // Default to first step
 
         for (stepResult in stepResults) {
             if (stepResult.status == StepStatus.COMPLETED) {
