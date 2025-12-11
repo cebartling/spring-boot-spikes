@@ -144,3 +144,16 @@ All changes will reside in this feature branch until the implementation is compl
 Once the implementation is complete, create a pull request to merge the feature branch into the main branch.
 The pull request should include a description of the changes made and reference the implementation plan.
 ```
+
+#### Create documentation
+
+```
+Create documentation for the project in the @README.md file.
+Think hard about the documentation structure and content.
+Update any relevant documentation to reflect the changes made during the implementation.
+Ensure that the documentation adheres to best practices and standards.
+Create a feature branch and commit small changes often to this feature branch.
+All changes will reside in this feature branch until the documentation is complete.
+Once the documentation is complete, create a pull request to merge the feature branch into the main branch.
+The pull request should include a description of the changes made.
+```
