@@ -131,7 +131,7 @@ class OrderSagaOrchestrator(
     }
 
     private suspend fun createSagaExecution(context: SagaContext): SagaExecution {
-        val execution = SagaExecution(
+        val execution = SagaExecution.create(
             id = context.sagaExecutionId,
             orderId = context.order.id,
             status = SagaStatus.IN_PROGRESS,

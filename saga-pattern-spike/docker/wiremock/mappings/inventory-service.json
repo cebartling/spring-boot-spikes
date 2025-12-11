@@ -16,11 +16,7 @@
         "headers": {
           "Content-Type": "application/json"
         },
-        "jsonBody": {
-          "reservationId": "{{randomValue type='UUID'}}",
-          "status": "RESERVED",
-          "expiresAt": "{{now offset='30 minutes' format='yyyy-MM-dd\\'T\\'HH:mm:ss.SSS\\'Z\\''}}"
-        },
+        "body": "{\"reservationId\": \"{{randomValue type='UUID'}}\", \"status\": \"RESERVED\", \"expiresAt\": \"{{now offset='30 minutes' format=\"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'\"}}\"}",
         "transformers": ["response-template"]
       }
     },
@@ -73,11 +69,7 @@
         "headers": {
           "Content-Type": "application/json"
         },
-        "jsonBody": {
-          "reservationId": "{{request.pathSegments.[3]}}",
-          "status": "RESERVED",
-          "expiresAt": "{{now offset='30 minutes' format='yyyy-MM-dd\\'T\\'HH:mm:ss.SSS\\'Z\\''}}"
-        },
+        "body": "{\"reservationId\": \"{{request.pathSegments.[3]}}\", \"status\": \"RESERVED\", \"expiresAt\": \"{{now offset='30 minutes' format=\"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'\"}}\"}",
         "transformers": ["response-template"]
       }
     },

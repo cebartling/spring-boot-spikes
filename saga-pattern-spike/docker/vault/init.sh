@@ -46,7 +46,7 @@ vault write database/roles/sagapattern-readwrite \
   creation_statements="CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}'; \
     GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO \"{{name}}\"; \
     GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO \"{{name}}\";" \
-  revocation_statements="DROP ROLE IF EXISTS \"{{name}}\";" \
+  revocation_statements="REASSIGN OWNED BY \"{{name}}\" TO saga_user; DROP OWNED BY \"{{name}}\"; DROP ROLE IF EXISTS \"{{name}}\";" \
   default_ttl="1h" \
   max_ttl="24h"
 
@@ -56,7 +56,7 @@ vault write database/roles/sagapattern-readonly \
   db_name=postgresql \
   creation_statements="CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}'; \
     GRANT SELECT ON ALL TABLES IN SCHEMA public TO \"{{name}}\";" \
-  revocation_statements="DROP ROLE IF EXISTS \"{{name}}\";" \
+  revocation_statements="REASSIGN OWNED BY \"{{name}}\" TO saga_user; DROP OWNED BY \"{{name}}\"; DROP ROLE IF EXISTS \"{{name}}\";" \
   default_ttl="1h" \
   max_ttl="24h"
 

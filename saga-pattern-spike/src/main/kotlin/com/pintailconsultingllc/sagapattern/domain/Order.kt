@@ -1,6 +1,7 @@
 package com.pintailconsultingllc.sagapattern.domain
 
 import org.springframework.data.annotation.Id
+import org.springframework.data.annotation.PersistenceCreator
 import org.springframework.data.annotation.Transient
 import org.springframework.data.domain.Persistable
 import org.springframework.data.relational.core.mapping.Column
@@ -17,7 +18,7 @@ import java.util.UUID
  * whether to INSERT or UPDATE.
  */
 @Table("orders")
-data class Order(
+data class Order @PersistenceCreator constructor(
     @Id
     @get:JvmName("id")
     val id: UUID = UUID.randomUUID(),
@@ -37,7 +38,8 @@ data class Order(
     val createdAt: Instant = Instant.now(),
 
     @Column("updated_at")
-    val updatedAt: Instant = Instant.now(),
+    val updatedAt: Instant = Instant.now()
+) : Persistable<UUID> {
 
     /**
      * Order items associated with this order.
@@ -45,15 +47,10 @@ data class Order(
      * Items must be loaded separately via the repository.
      */
     @Transient
-    val items: List<OrderItem> = emptyList(),
+    var items: List<OrderItem> = emptyList()
 
-    /**
-     * Flag to indicate if this is a new entity (for INSERT) or existing (for UPDATE).
-     * Defaults to true for newly created entities.
-     */
     @Transient
-    private val isNewEntity: Boolean = true
-) : Persistable<UUID> {
+    private var isNewEntity: Boolean = false
 
     override fun getId(): UUID = id
 
@@ -64,17 +61,51 @@ data class Order(
      */
     fun withStatus(newStatus: OrderStatus): Order = copy(
         status = newStatus,
-        updatedAt = Instant.now(),
-        isNewEntity = false
+        updatedAt = Instant.now()
     )
 
     /**
      * Create a copy of this order with items loaded.
      */
-    fun withItems(items: List<OrderItem>): Order = copy(items = items, isNewEntity = false)
+    fun withItems(items: List<OrderItem>): Order = this.also { this.items = items }
 
     /**
      * Mark this entity as persisted (for use after save operations).
      */
-    fun asPersisted(): Order = copy(isNewEntity = false)
+    fun asPersisted(): Order = this.also { isNewEntity = false }
+
+    companion object {
+        /**
+         * Create a new Order instance.
+         */
+        fun create(
+            customerId: UUID,
+            totalAmountInCents: Long,
+            status: OrderStatus = OrderStatus.PENDING
+        ): Order = Order(
+            id = UUID.randomUUID(),
+            customerId = customerId,
+            totalAmountInCents = totalAmountInCents,
+            status = status
+        ).apply { isNewEntity = true }
+
+        /**
+         * Create an Order for testing (pre-generates UUID).
+         */
+        fun forTest(
+            id: UUID = UUID.randomUUID(),
+            customerId: UUID,
+            totalAmountInCents: Long,
+            status: OrderStatus = OrderStatus.PENDING,
+            items: List<OrderItem> = emptyList()
+        ): Order = Order(
+            id = id,
+            customerId = customerId,
+            totalAmountInCents = totalAmountInCents,
+            status = status
+        ).apply {
+            isNewEntity = true
+            this.items = items
+        }
+    }
 }

@@ -1,6 +1,7 @@
 package com.pintailconsultingllc.sagapattern.history
 
 import org.springframework.data.annotation.Id
+import org.springframework.data.annotation.PersistenceCreator
 import org.springframework.data.annotation.Transient
 import org.springframework.data.domain.Persistable
 import org.springframework.data.relational.core.mapping.Column
@@ -15,7 +16,7 @@ import java.util.UUID
  * Implements [Persistable] to correctly handle INSERT vs UPDATE with pre-generated UUIDs.
  */
 @Table("order_events")
-data class OrderEvent(
+data class OrderEvent @PersistenceCreator constructor(
     @Id
     @get:JvmName("id")
     val id: UUID = UUID.randomUUID(),
@@ -38,58 +39,46 @@ data class OrderEvent(
 
     /** JSON-serialized additional details. */
     @Column("details")
-    val detailsJson: String? = null,
+    val details: String? = null,
 
     /** JSON-serialized error info. */
     @Column("error_info")
-    val errorInfoJson: String? = null,
+    val errorInfo: String? = null
+) : Persistable<UUID> {
 
     @Transient
-    private val isNewEntity: Boolean = true
-) : Persistable<UUID> {
+    private var isNewEntity: Boolean = false
 
     override fun getId(): UUID = id
 
     override fun isNew(): Boolean = isNewEntity
 
     /**
-     * Transient parsed details map (not persisted directly).
-     * Named differently from detailsJson to avoid Spring Data R2DBC column mapping conflicts.
-     */
-    @Transient
-    var parsedDetails: Map<String, Any>? = null
-
-    /**
-     * Transient parsed error info (not persisted directly).
-     * Named differently from errorInfoJson to avoid Spring Data R2DBC column mapping conflicts.
-     */
-    @Transient
-    var parsedErrorInfo: ErrorInfo? = null
-
-    /**
      * Mark this entity as persisted.
      */
-    fun asPersisted(): OrderEvent = copy(isNewEntity = false)
+    fun asPersisted(): OrderEvent = this.also { isNewEntity = false }
 
     companion object {
         /**
          * Create an ORDER_CREATED event.
          */
         fun orderCreated(orderId: UUID): OrderEvent = OrderEvent(
+            id = UUID.randomUUID(),
             orderId = orderId,
             eventType = OrderEventType.ORDER_CREATED,
             outcome = EventOutcome.SUCCESS
-        )
+        ).apply { isNewEntity = true }
 
         /**
          * Create a SAGA_STARTED event.
          */
         fun sagaStarted(orderId: UUID, sagaExecutionId: UUID): OrderEvent = OrderEvent(
+            id = UUID.randomUUID(),
             orderId = orderId,
             sagaExecutionId = sagaExecutionId,
             eventType = OrderEventType.SAGA_STARTED,
             outcome = EventOutcome.NEUTRAL
-        )
+        ).apply { isNewEntity = true }
 
         /**
          * Create a STEP_STARTED event.
@@ -99,12 +88,13 @@ data class OrderEvent(
             sagaExecutionId: UUID,
             stepName: String
         ): OrderEvent = OrderEvent(
+            id = UUID.randomUUID(),
             orderId = orderId,
             sagaExecutionId = sagaExecutionId,
             eventType = OrderEventType.STEP_STARTED,
             stepName = stepName,
             outcome = EventOutcome.NEUTRAL
-        )
+        ).apply { isNewEntity = true }
 
         /**
          * Create a STEP_COMPLETED event.
@@ -113,15 +103,16 @@ data class OrderEvent(
             orderId: UUID,
             sagaExecutionId: UUID,
             stepName: String,
-            detailsJson: String? = null
+            details: String? = null
         ): OrderEvent = OrderEvent(
+            id = UUID.randomUUID(),
             orderId = orderId,
             sagaExecutionId = sagaExecutionId,
             eventType = OrderEventType.STEP_COMPLETED,
             stepName = stepName,
             outcome = EventOutcome.SUCCESS,
-            detailsJson = detailsJson
-        )
+            details = details
+        ).apply { isNewEntity = true }
 
         /**
          * Create a STEP_FAILED event.
@@ -130,15 +121,16 @@ data class OrderEvent(
             orderId: UUID,
             sagaExecutionId: UUID,
             stepName: String,
-            errorInfoJson: String? = null
+            errorInfo: String? = null
         ): OrderEvent = OrderEvent(
+            id = UUID.randomUUID(),
             orderId = orderId,
             sagaExecutionId = sagaExecutionId,
             eventType = OrderEventType.STEP_FAILED,
             stepName = stepName,
             outcome = EventOutcome.FAILED,
-            errorInfoJson = errorInfoJson
-        )
+            errorInfo = errorInfo
+        ).apply { isNewEntity = true }
 
         /**
          * Create a COMPENSATION_STARTED event.
@@ -148,12 +140,13 @@ data class OrderEvent(
             sagaExecutionId: UUID,
             failedStep: String
         ): OrderEvent = OrderEvent(
+            id = UUID.randomUUID(),
             orderId = orderId,
             sagaExecutionId = sagaExecutionId,
             eventType = OrderEventType.COMPENSATION_STARTED,
             stepName = failedStep,
             outcome = EventOutcome.NEUTRAL
-        )
+        ).apply { isNewEntity = true }
 
         /**
          * Create a STEP_COMPENSATED event.
@@ -163,12 +156,13 @@ data class OrderEvent(
             sagaExecutionId: UUID,
             stepName: String
         ): OrderEvent = OrderEvent(
+            id = UUID.randomUUID(),
             orderId = orderId,
             sagaExecutionId = sagaExecutionId,
             eventType = OrderEventType.STEP_COMPENSATED,
             stepName = stepName,
             outcome = EventOutcome.COMPENSATED
-        )
+        ).apply { isNewEntity = true }
 
         /**
          * Create a COMPENSATION_FAILED event.
@@ -177,15 +171,16 @@ data class OrderEvent(
             orderId: UUID,
             sagaExecutionId: UUID,
             stepName: String,
-            errorInfoJson: String? = null
+            errorInfo: String? = null
         ): OrderEvent = OrderEvent(
+            id = UUID.randomUUID(),
             orderId = orderId,
             sagaExecutionId = sagaExecutionId,
             eventType = OrderEventType.COMPENSATION_FAILED,
             stepName = stepName,
             outcome = EventOutcome.FAILED,
-            errorInfoJson = errorInfoJson
-        )
+            errorInfo = errorInfo
+        ).apply { isNewEntity = true }
 
         /**
          * Create a SAGA_COMPLETED event.
@@ -193,14 +188,15 @@ data class OrderEvent(
         fun sagaCompleted(
             orderId: UUID,
             sagaExecutionId: UUID,
-            detailsJson: String? = null
+            details: String? = null
         ): OrderEvent = OrderEvent(
+            id = UUID.randomUUID(),
             orderId = orderId,
             sagaExecutionId = sagaExecutionId,
             eventType = OrderEventType.SAGA_COMPLETED,
             outcome = EventOutcome.SUCCESS,
-            detailsJson = detailsJson
-        )
+            details = details
+        ).apply { isNewEntity = true }
 
         /**
          * Create a SAGA_FAILED event.
@@ -209,15 +205,16 @@ data class OrderEvent(
             orderId: UUID,
             sagaExecutionId: UUID,
             failedStep: String,
-            errorInfoJson: String? = null
+            errorInfo: String? = null
         ): OrderEvent = OrderEvent(
+            id = UUID.randomUUID(),
             orderId = orderId,
             sagaExecutionId = sagaExecutionId,
             eventType = OrderEventType.SAGA_FAILED,
             stepName = failedStep,
             outcome = EventOutcome.FAILED,
-            errorInfoJson = errorInfoJson
-        )
+            errorInfo = errorInfo
+        ).apply { isNewEntity = true }
 
         /**
          * Create a RETRY_INITIATED event.
@@ -225,32 +222,35 @@ data class OrderEvent(
         fun retryInitiated(
             orderId: UUID,
             sagaExecutionId: UUID,
-            detailsJson: String? = null
+            details: String? = null
         ): OrderEvent = OrderEvent(
+            id = UUID.randomUUID(),
             orderId = orderId,
             sagaExecutionId = sagaExecutionId,
             eventType = OrderEventType.RETRY_INITIATED,
             outcome = EventOutcome.NEUTRAL,
-            detailsJson = detailsJson
-        )
+            details = details
+        ).apply { isNewEntity = true }
 
         /**
          * Create an ORDER_COMPLETED event.
          */
         fun orderCompleted(orderId: UUID, sagaExecutionId: UUID): OrderEvent = OrderEvent(
+            id = UUID.randomUUID(),
             orderId = orderId,
             sagaExecutionId = sagaExecutionId,
             eventType = OrderEventType.ORDER_COMPLETED,
             outcome = EventOutcome.SUCCESS
-        )
+        ).apply { isNewEntity = true }
 
         /**
          * Create an ORDER_CANCELLED event.
          */
         fun orderCancelled(orderId: UUID): OrderEvent = OrderEvent(
+            id = UUID.randomUUID(),
             orderId = orderId,
             eventType = OrderEventType.ORDER_CANCELLED,
             outcome = EventOutcome.NEUTRAL
-        )
+        ).apply { isNewEntity = true }
     }
 }

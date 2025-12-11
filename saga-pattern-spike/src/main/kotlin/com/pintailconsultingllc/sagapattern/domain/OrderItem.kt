@@ -1,6 +1,7 @@
 package com.pintailconsultingllc.sagapattern.domain
 
 import org.springframework.data.annotation.Id
+import org.springframework.data.annotation.PersistenceCreator
 import org.springframework.data.annotation.Transient
 import org.springframework.data.domain.Persistable
 import org.springframework.data.relational.core.mapping.Column
@@ -14,7 +15,7 @@ import java.util.UUID
  * Implements [Persistable] to correctly handle INSERT vs UPDATE with pre-generated UUIDs.
  */
 @Table("order_items")
-data class OrderItem(
+data class OrderItem @PersistenceCreator constructor(
     @Id
     @get:JvmName("id")
     val id: UUID = UUID.randomUUID(),
@@ -37,11 +38,11 @@ data class OrderItem(
     val unitPriceInCents: Long,
 
     @Column("created_at")
-    val createdAt: Instant = Instant.now(),
+    val createdAt: Instant = Instant.now()
+) : Persistable<UUID> {
 
     @Transient
-    private val isNewEntity: Boolean = true
-) : Persistable<UUID> {
+    private var isNewEntity: Boolean = false
 
     override fun getId(): UUID = id
 
@@ -55,5 +56,25 @@ data class OrderItem(
     /**
      * Mark this entity as persisted.
      */
-    fun asPersisted(): OrderItem = copy(isNewEntity = false)
+    fun asPersisted(): OrderItem = this.also { isNewEntity = false }
+
+    companion object {
+        /**
+         * Create a new OrderItem instance.
+         */
+        fun create(
+            orderId: UUID,
+            productId: UUID,
+            productName: String,
+            quantity: Int,
+            unitPriceInCents: Long
+        ): OrderItem = OrderItem(
+            id = UUID.randomUUID(),
+            orderId = orderId,
+            productId = productId,
+            productName = productName,
+            quantity = quantity,
+            unitPriceInCents = unitPriceInCents
+        ).apply { isNewEntity = true }
+    }
 }
