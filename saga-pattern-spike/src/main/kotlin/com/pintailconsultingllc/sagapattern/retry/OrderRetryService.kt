@@ -197,8 +197,16 @@ class DefaultOrderRetryService(
         }
 
         // Get the order and saga execution
-        val order = orderRepository.findById(request.orderId)!!
-        val originalExecution = sagaExecutionRepository.findByOrderId(request.orderId)!!
+        val order = orderRepository.findById(request.orderId)
+        val originalExecution = sagaExecutionRepository.findByOrderId(request.orderId)
+        if (order == null) {
+            logger.warn("Order {} not found during retry initiation", request.orderId)
+            return RetryResult.rejected(request.orderId, "Order not found")
+        }
+        if (originalExecution == null) {
+            logger.warn("Saga execution for order {} not found during retry initiation", request.orderId)
+            return RetryResult.rejected(request.orderId, "Saga execution not found")
+        }
 
         // Create retry attempt record
         val retryCount = retryAttemptRepository.countByOrderId(request.orderId)
