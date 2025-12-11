@@ -143,8 +143,10 @@ The project uses Spring WebFlux for non-blocking, reactive HTTP handling. Key pa
 
 ## Documentation Structure
 
-- `docs/features/` - Feature specifications
+- `README.md` - Project overview, getting started, and API reference
+- `docs/features/` - Feature specifications and user stories
 - `docs/implementation-plans/` - Implementation planning documents
+- `docs/prompts.md` - Claude Code prompt templates
 
 ## Observability (OpenTelemetry + SigNoz)
 
