@@ -3,6 +3,31 @@ package com.pintailconsultingllc.sagapattern.retry
 import java.time.Instant
 
 /**
+ * Specific reasons why a retry might not be eligible.
+ */
+enum class IneligibilityReason {
+    /**
+     * Retry is in cooldown period.
+     */
+    IN_COOLDOWN,
+
+    /**
+     * Maximum retry attempts have been exceeded.
+     */
+    MAX_RETRIES_EXCEEDED,
+
+    /**
+     * A retry is already in progress.
+     */
+    RETRY_IN_PROGRESS,
+
+    /**
+     * Other general ineligibility reason.
+     */
+    OTHER
+}
+
+/**
  * Represents the eligibility status for retrying a failed order.
  *
  * Contains information about whether the order can be retried, any blockers,
@@ -18,6 +43,11 @@ data class RetryEligibility(
      * Human-readable reason if not eligible.
      */
     val reason: String? = null,
+
+    /**
+     * Specific ineligibility reason type (if not eligible).
+     */
+    val ineligibilityReason: IneligibilityReason? = null,
 
     /**
      * List of blockers preventing retry.
@@ -66,6 +96,7 @@ data class RetryEligibility(
             RetryEligibility(
                 eligible = false,
                 reason = reason,
+                ineligibilityReason = IneligibilityReason.OTHER,
                 blockers = blockers
             )
 
@@ -76,6 +107,7 @@ data class RetryEligibility(
             RetryEligibility(
                 eligible = false,
                 reason = "Retry cooldown period not elapsed",
+                ineligibilityReason = IneligibilityReason.IN_COOLDOWN,
                 nextRetryAvailableAt = nextAvailableAt,
                 retryAttemptsRemaining = attemptsRemaining
             )
@@ -86,6 +118,7 @@ data class RetryEligibility(
         fun maxRetriesExceeded(): RetryEligibility = RetryEligibility(
             eligible = false,
             reason = "Maximum retry attempts exceeded",
+            ineligibilityReason = IneligibilityReason.MAX_RETRIES_EXCEEDED,
             retryAttemptsRemaining = 0
         )
 
@@ -94,7 +127,8 @@ data class RetryEligibility(
          */
         fun retryInProgress(): RetryEligibility = RetryEligibility(
             eligible = false,
-            reason = "A retry is already in progress"
+            reason = "A retry is already in progress",
+            ineligibilityReason = IneligibilityReason.RETRY_IN_PROGRESS
         )
     }
 }
