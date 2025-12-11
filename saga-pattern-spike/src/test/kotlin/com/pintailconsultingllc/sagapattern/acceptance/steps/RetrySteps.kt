@@ -13,6 +13,9 @@ import com.pintailconsultingllc.sagapattern.repository.OrderRepository
 import com.pintailconsultingllc.sagapattern.repository.RetryAttemptRepository
 import com.pintailconsultingllc.sagapattern.repository.SagaExecutionRepository
 import com.pintailconsultingllc.sagapattern.repository.SagaStepResultRepository
+import com.pintailconsultingllc.sagapattern.saga.steps.InventoryReservationStep
+import com.pintailconsultingllc.sagapattern.saga.steps.PaymentProcessingStep
+import com.pintailconsultingllc.sagapattern.saga.steps.ShippingArrangementStep
 import io.cucumber.datatable.DataTable
 import io.cucumber.java.en.Given
 import io.cucumber.java.en.Then
@@ -61,7 +64,7 @@ class RetrySteps(
     private suspend fun createFailedOrderWithExecutionRecords(
         failureReason: String,
         failedStep: Int = 2,
-        failedStepName: String = "Payment Processing"
+        failedStepName: String = PaymentProcessingStep.STEP_NAME
     ) {
         val customerId = testContext.customerId ?: UUID.randomUUID().also { testContext.customerId = it }
         val orderId = testContext.orderId ?: UUID.randomUUID().also { testContext.orderId = it }
@@ -97,7 +100,7 @@ class RetrySteps(
             if (failedStep >= 1) {
                 val inventoryStep = SagaStepResult(
                     sagaExecutionId = sagaExecutionId,
-                    stepName = "Inventory Reservation",
+                    stepName = InventoryReservationStep.STEP_NAME,
                     stepOrder = 1,
                     status = StepStatus.COMPLETED,
                     startedAt = Instant.now().minusSeconds(55),
@@ -108,10 +111,10 @@ class RetrySteps(
             }
 
             if (failedStep >= 2) {
-                val paymentStatus = if (failedStepName == "Payment Processing") StepStatus.FAILED else StepStatus.COMPLETED
+                val paymentStatus = if (failedStepName == PaymentProcessingStep.STEP_NAME) StepStatus.FAILED else StepStatus.COMPLETED
                 val paymentStep = SagaStepResult(
                     sagaExecutionId = sagaExecutionId,
-                    stepName = "Payment Processing",
+                    stepName = PaymentProcessingStep.STEP_NAME,
                     stepOrder = 2,
                     status = paymentStatus,
                     startedAt = Instant.now().minusSeconds(45),
@@ -122,10 +125,10 @@ class RetrySteps(
                 sagaStepResultRepository.save(paymentStep)
             }
 
-            if (failedStep >= 3 && failedStepName == "Shipping Arrangement") {
+            if (failedStep >= 3 && failedStepName == ShippingArrangementStep.STEP_NAME) {
                 val shippingStep = SagaStepResult(
                     sagaExecutionId = sagaExecutionId,
-                    stepName = "Shipping Arrangement",
+                    stepName = ShippingArrangementStep.STEP_NAME,
                     stepOrder = 3,
                     status = StepStatus.FAILED,
                     startedAt = Instant.now().minusSeconds(35),
@@ -199,7 +202,7 @@ class RetrySteps(
         sagaStepResultRepository.save(
             SagaStepResult(
                 sagaExecutionId = sagaExecutionId,
-                stepName = "Inventory Reservation",
+                stepName = InventoryReservationStep.STEP_NAME,
                 stepOrder = 1,
                 status = StepStatus.COMPLETED,
                 completedAt = Instant.now().minusSeconds(50),
@@ -211,7 +214,7 @@ class RetrySteps(
         sagaStepResultRepository.save(
             SagaStepResult(
                 sagaExecutionId = sagaExecutionId,
-                stepName = "Payment Processing",
+                stepName = PaymentProcessingStep.STEP_NAME,
                 stepOrder = 2,
                 status = StepStatus.COMPLETED,
                 completedAt = Instant.now().minusSeconds(40),
@@ -223,7 +226,7 @@ class RetrySteps(
         sagaStepResultRepository.save(
             SagaStepResult(
                 sagaExecutionId = sagaExecutionId,
-                stepName = "Shipping Arrangement",
+                stepName = ShippingArrangementStep.STEP_NAME,
                 stepOrder = 3,
                 status = StepStatus.FAILED,
                 completedAt = Instant.now().minusSeconds(30),
@@ -248,7 +251,7 @@ class RetrySteps(
         createFailedOrderWithExecutionRecords(
             failureReason = "Payment declined: Card was declined",
             failedStep = 2,
-            failedStepName = "Payment Processing"
+            failedStepName = PaymentProcessingStep.STEP_NAME
         )
     }
 
@@ -261,7 +264,7 @@ class RetrySteps(
 
         val stepResult = sagaStepResultRepository.findBySagaExecutionIdAndStepName(
             sagaExecution.id,
-            "Inventory Reservation"
+            InventoryReservationStep.STEP_NAME
         )
 
         if (stepResult != null) {
@@ -280,7 +283,7 @@ class RetrySteps(
         createFailedOrderWithExecutionRecords(
             failureReason = "Payment declined: Card was declined",
             failedStep = 2,
-            failedStepName = "Payment Processing"
+            failedStepName = PaymentProcessingStep.STEP_NAME
         )
 
         val orderId = testContext.orderId ?: return@runBlocking
@@ -307,7 +310,7 @@ class RetrySteps(
         createFailedOrderWithExecutionRecords(
             failureReason = "Payment declined: Card was declined",
             failedStep = 2,
-            failedStepName = "Payment Processing"
+            failedStepName = PaymentProcessingStep.STEP_NAME
         )
         // Order failed recently, within cooldown period
     }
@@ -322,7 +325,7 @@ class RetrySteps(
         createFailedOrderWithExecutionRecords(
             failureReason = "Payment declined: Card was declined",
             failedStep = 2,
-            failedStepName = "Payment Processing"
+            failedStepName = PaymentProcessingStep.STEP_NAME
         )
 
         val orderId = testContext.orderId ?: return@runBlocking
@@ -497,7 +500,7 @@ class RetrySteps(
         @Suppress("UNCHECKED_CAST")
         val skippedSteps = response["skippedSteps"] as? List<String>
         assertTrue(
-            skippedSteps?.contains("Inventory Reservation") == true,
+            skippedSteps?.contains(InventoryReservationStep.STEP_NAME) == true,
             "Inventory Reservation should be skipped"
         )
     }
@@ -509,7 +512,7 @@ class RetrySteps(
         @Suppress("UNCHECKED_CAST")
         val skippedSteps = response["skippedSteps"] as? List<String>
         assertTrue(
-            skippedSteps?.contains("Inventory Reservation") == true,
+            skippedSteps?.contains(InventoryReservationStep.STEP_NAME) == true,
             "Inventory Reservation should be in skipped steps"
         )
     }
@@ -521,7 +524,7 @@ class RetrySteps(
         @Suppress("UNCHECKED_CAST")
         val skippedSteps = response["skippedSteps"] as? List<String>
         assertTrue(
-            skippedSteps?.contains("Inventory Reservation") == true,
+            skippedSteps?.contains(InventoryReservationStep.STEP_NAME) == true,
             "Inventory step should be skipped"
         )
     }
@@ -533,7 +536,7 @@ class RetrySteps(
         @Suppress("UNCHECKED_CAST")
         val skippedSteps = response["skippedSteps"] as? List<String>
         assertTrue(
-            skippedSteps?.contains("Payment Processing") == true,
+            skippedSteps?.contains(PaymentProcessingStep.STEP_NAME) == true,
             "Payment step should be skipped"
         )
     }
@@ -546,7 +549,7 @@ class RetrySteps(
         @Suppress("UNCHECKED_CAST")
         val skippedSteps = response["skippedSteps"] as? List<String> ?: emptyList()
         assertFalse(
-            skippedSteps.contains("Shipping Arrangement"),
+            skippedSteps.contains(ShippingArrangementStep.STEP_NAME),
             "Shipping step should not be skipped"
         )
     }
@@ -558,7 +561,7 @@ class RetrySteps(
         @Suppress("UNCHECKED_CAST")
         val skippedSteps = response["skippedSteps"] as? List<String> ?: emptyList()
         assertFalse(
-            skippedSteps.contains("Inventory Reservation"),
+            skippedSteps.contains(InventoryReservationStep.STEP_NAME),
             "Inventory step should not be skipped (new reservation needed)"
         )
     }
@@ -570,7 +573,7 @@ class RetrySteps(
         @Suppress("UNCHECKED_CAST")
         val skippedSteps = response["skippedSteps"] as? List<String> ?: emptyList()
         assertFalse(
-            skippedSteps.contains("Payment Processing"),
+            skippedSteps.contains(PaymentProcessingStep.STEP_NAME),
             "Payment step should execute"
         )
     }
