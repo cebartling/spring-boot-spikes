@@ -6,6 +6,7 @@ import com.pintailconsultingllc.sagapattern.api.dto.OrderResponse
 import com.pintailconsultingllc.sagapattern.domain.Order
 import com.pintailconsultingllc.sagapattern.domain.OrderItem
 import com.pintailconsultingllc.sagapattern.domain.OrderStatus
+import com.pintailconsultingllc.sagapattern.history.OrderEventService
 import com.pintailconsultingllc.sagapattern.repository.OrderItemRepository
 import com.pintailconsultingllc.sagapattern.repository.OrderRepository
 import com.pintailconsultingllc.sagapattern.saga.OrderSagaOrchestrator
@@ -25,7 +26,8 @@ import java.util.UUID
 class OrderService(
     private val orderRepository: OrderRepository,
     private val orderItemRepository: OrderItemRepository,
-    private val sagaOrchestrator: OrderSagaOrchestrator
+    private val sagaOrchestrator: OrderSagaOrchestrator,
+    private val orderEventService: OrderEventService
 ) {
     private val logger = LoggerFactory.getLogger(OrderService::class.java)
 
@@ -50,6 +52,9 @@ class OrderService(
         // Save the order
         val savedOrder = orderRepository.save(order)
         logger.info("Order created with ID: ${savedOrder.id}")
+
+        // Record order created event
+        orderEventService.recordOrderCreated(savedOrder.id)
 
         // Create and save order items
         val orderItems = request.items.map { item ->

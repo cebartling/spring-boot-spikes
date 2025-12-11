@@ -56,12 +56,12 @@ CREATE TABLE saga_step_results (
 CREATE TABLE order_events (
     id UUID PRIMARY KEY,
     order_id UUID NOT NULL REFERENCES orders(id),
+    saga_execution_id UUID REFERENCES saga_executions(id),
     event_type VARCHAR(100) NOT NULL,
     step_name VARCHAR(100),
     outcome VARCHAR(50),
     details JSONB,
-    error_code VARCHAR(50),
-    error_message TEXT,
+    error_info JSONB,
     timestamp TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
@@ -86,7 +86,9 @@ CREATE INDEX idx_orders_status ON orders(status);
 CREATE INDEX idx_saga_executions_order_id ON saga_executions(order_id);
 CREATE INDEX idx_saga_executions_status ON saga_executions(status);
 CREATE INDEX idx_order_events_order_id ON order_events(order_id);
+CREATE INDEX idx_order_events_saga_execution_id ON order_events(saga_execution_id);
 CREATE INDEX idx_order_events_timestamp ON order_events(timestamp);
+CREATE INDEX idx_order_events_event_type ON order_events(event_type);
 CREATE INDEX idx_retry_attempts_order_id ON retry_attempts(order_id);
 
 -- Function to auto-update updated_at timestamp

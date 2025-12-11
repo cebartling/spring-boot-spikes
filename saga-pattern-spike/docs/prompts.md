@@ -129,3 +129,18 @@ All changes will reside in this feature branch until the implementation is compl
 Once the implementation is complete, create a pull request to merge the feature branch into the main branch.
 The pull request should include a description of the changes made and reference the implementation plan.
 ```
+
+#### Implement SAGA-005-order-history
+
+```
+Implement @docs/implementation-plans/SAGA-005-order-history.md.
+Think hard about the implementation plan in detail with steps and sub-steps.
+Update any relevant documentation to reflect the changes made during the implementation.
+Ensure that the implementation adheres to best practices and coding standards.
+Create unit and integration tests as needed to verify the implementation.
+Relevant Cucumber-based acceptance tests should successfully execute, verifying the implementation.
+Create a feature branch and commit small changes often to this feature branch.
+All changes will reside in this feature branch until the implementation is complete.
+Once the implementation is complete, create a pull request to merge the feature branch into the main branch.
+The pull request should include a description of the changes made and reference the implementation plan.
+```
