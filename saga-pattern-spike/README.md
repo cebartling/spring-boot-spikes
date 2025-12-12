@@ -193,6 +193,49 @@ The project uses environment variables for configuration:
 |----------|---------|-------------|
 | `baseUrl` | `http://localhost:8080` | Application base URL |
 
+### Postman Collection
+
+A Postman collection is provided for API testing with Postman or compatible tools.
+
+**File:** `SagaPatternAPI.postman.json`
+
+#### Importing the Collection
+
+1. Open [Postman](https://www.postman.com/downloads/)
+2. Click **Import** (or use Ctrl/Cmd + O)
+3. Select `SagaPatternAPI.postman.json`
+4. The collection will appear in your Collections sidebar
+
+#### Collection Structure
+
+The collection is organized into two folders:
+
+**Create a new order**
+| Request | Description |
+|---------|-------------|
+| Success | Creates an order that completes successfully |
+| Failure: payment declined | Uses `declined-card` payment method to trigger payment failure |
+| Failure: out of stock | Uses nil UUID product to trigger inventory unavailable |
+| Failure: invalid address | Uses `00000` postal code to trigger address validation error |
+| Failure: undeliverable location | Uses `XX` country code to trigger shipping unavailable |
+
+**Other requests**
+| Request | Description |
+|---------|-------------|
+| Get an order by orderId | Retrieve order details by ID |
+| Get an order status by orderId | Get current order status |
+| Stream order status updates | SSE endpoint for real-time status updates |
+| Get an order by customerId | List all orders for a customer |
+| Get an order history by orderId | Get full saga execution history |
+| Get retry eligibility for a failed order | Check if order can be retried |
+| Retry a failed order | Retry a failed order saga |
+
+#### Usage Notes
+
+- Base URL is configured as `http://localhost:8080`
+- For requests requiring an order ID, copy the ID from a create order response and append it to the URL path
+- The SSE stream endpoint requires a client that supports Server-Sent Events
+
 ## Saga Steps
 
 The order processing saga consists of three sequential steps:
@@ -453,7 +496,8 @@ saga-pattern-spike/
 ├── docs/
 │   ├── features/               # Feature specifications
 │   └── implementation-plans/   # Implementation planning docs
-└── SagaPatternAPI.paw          # RapidAPI project for API testing
+├── SagaPatternAPI.paw          # RapidAPI project for API testing
+└── SagaPatternAPI.postman.json # Postman collection for API testing
 ```
 
 ## User Stories
