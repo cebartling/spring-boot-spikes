@@ -153,6 +153,46 @@ Access the SigNoz dashboard at http://localhost:3301
 |----------|--------|-------------|
 | `/api/orders/{id}/history` | GET | Get full order processing timeline |
 
+### RapidAPI Project
+
+A RapidAPI (Paw) project file is included for convenient API testing and exploration.
+
+**File:** `SagaPatternAPI.paw`
+
+#### Opening the Project
+
+1. Download and install [RapidAPI for Mac](https://paw.cloud/) (formerly Paw)
+2. Open `SagaPatternAPI.paw` in RapidAPI
+3. The project contains pre-configured requests for all API endpoints
+
+#### Included Requests
+
+The RapidAPI project includes requests for:
+
+- **Orders**
+  - Create Order (POST `/api/orders`)
+  - Get Order (GET `/api/orders/{id}`)
+  - Get Order Status (GET `/api/orders/{id}/status`)
+  - List Customer Orders (GET `/api/orders/customer/{customerId}`)
+
+- **Retry**
+  - Retry Failed Order (POST `/api/orders/{id}/retry`)
+  - Check Retry Eligibility (GET `/api/orders/{id}/retry/eligibility`)
+
+- **History**
+  - Get Order History (GET `/api/orders/{id}/history`)
+
+- **Health**
+  - Health Check (GET `/actuator/health`)
+
+#### Environment Variables
+
+The project uses environment variables for configuration:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `baseUrl` | `http://localhost:8080` | Application base URL |
+
 ## Saga Steps
 
 The order processing saga consists of three sequential steps:
@@ -199,7 +239,7 @@ curl -X POST http://localhost:8080/api/orders \
 | `productId` Value | Error Response | HTTP Status |
 |-------------------|----------------|-------------|
 | Any valid UUID | Success | 201 |
-| `out-of-stock-product` | INVENTORY_UNAVAILABLE | 409 |
+| `00000000-0000-0000-0000-000000000000` | INVENTORY_UNAVAILABLE | 409 |
 
 **Example - Trigger out of stock:**
 
@@ -208,7 +248,7 @@ curl -X POST http://localhost:8080/api/orders \
   -H "Content-Type: application/json" \
   -d '{
     "customerId": "550e8400-e29b-41d4-a716-446655440000",
-    "items": [{"productId": "out-of-stock-product", "productName": "Sold Out Item", "quantity": 1, "unitPriceInCents": 999}],
+    "items": [{"productId": "00000000-0000-0000-0000-000000000000", "productName": "Sold Out Item", "quantity": 1, "unitPriceInCents": 999}],
     "paymentMethodId": "valid-card",
     "shippingAddress": {"street": "123 Main St", "city": "Springfield", "state": "IL", "postalCode": "62701", "country": "US"}
   }'
@@ -410,9 +450,10 @@ saga-pattern-spike/
 │   ├── postgres/               # PostgreSQL init scripts
 │   ├── vault/                  # Vault init scripts
 │   └── wiremock/               # WireMock stubs
-└── docs/
-    ├── features/               # Feature specifications
-    └── implementation-plans/   # Implementation planning docs
+├── docs/
+│   ├── features/               # Feature specifications
+│   └── implementation-plans/   # Implementation planning docs
+└── SagaPatternAPI.paw          # RapidAPI project for API testing
 ```
 
 ## User Stories
