@@ -1,10 +1,10 @@
 # Saga Pattern Spike
 
-A Spring Boot 4.0 spike project exploring the **saga pattern** for distributed transactions. Built with Kotlin and reactive/coroutine support via WebFlux.
+A Spring Boot 4.0 spike project exploring the [saga pattern](https://learn.microsoft.com/en-us/azure/architecture/patterns/saga) for distributed transactions. Built with Kotlin and reactive/coroutine support via WebFlux.
 
 ## Overview
 
-This project demonstrates a comprehensive implementation of the saga orchestration pattern for managing distributed transactions across multiple services. The saga pattern ensures data consistency by coordinating a series of local transactions, with automatic compensation (rollback) when any step fails.
+This project demonstrates a comprehensive implementation of the [saga orchestration pattern](https://learn.microsoft.com/en-us/azure/architecture/patterns/saga) for managing distributed transactions across multiple services. The saga pattern ensures data consistency by coordinating a series of local transactions, with automatic compensation (rollback) when any step fails.
 
 ### Key Features
 
