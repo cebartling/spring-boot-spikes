@@ -153,6 +153,46 @@ Access the SigNoz dashboard at http://localhost:3301
 |----------|--------|-------------|
 | `/api/orders/{id}/history` | GET | Get full order processing timeline |
 
+### RapidAPI Project
+
+A RapidAPI (Paw) project file is included for convenient API testing and exploration.
+
+**File:** `SagaPatternAPI.paw`
+
+#### Opening the Project
+
+1. Download and install [RapidAPI for Mac](https://paw.cloud/) (formerly Paw)
+2. Open `SagaPatternAPI.paw` in RapidAPI
+3. The project contains pre-configured requests for all API endpoints
+
+#### Included Requests
+
+The RapidAPI project includes requests for:
+
+- **Orders**
+  - Create Order (POST `/api/orders`)
+  - Get Order (GET `/api/orders/{id}`)
+  - Get Order Status (GET `/api/orders/{id}/status`)
+  - List Customer Orders (GET `/api/orders/customer/{customerId}`)
+
+- **Retry**
+  - Retry Failed Order (POST `/api/orders/{id}/retry`)
+  - Check Retry Eligibility (GET `/api/orders/{id}/retry/eligibility`)
+
+- **History**
+  - Get Order History (GET `/api/orders/{id}/history`)
+
+- **Health**
+  - Health Check (GET `/actuator/health`)
+
+#### Environment Variables
+
+The project uses environment variables for configuration:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `baseUrl` | `http://localhost:8080` | Application base URL |
+
 ## Saga Steps
 
 The order processing saga consists of three sequential steps:
@@ -410,9 +450,10 @@ saga-pattern-spike/
 │   ├── postgres/               # PostgreSQL init scripts
 │   ├── vault/                  # Vault init scripts
 │   └── wiremock/               # WireMock stubs
-└── docs/
-    ├── features/               # Feature specifications
-    └── implementation-plans/   # Implementation planning docs
+├── docs/
+│   ├── features/               # Feature specifications
+│   └── implementation-plans/   # Implementation planning docs
+└── SagaPatternAPI.paw          # RapidAPI project for API testing
 ```
 
 ## User Stories
