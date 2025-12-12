@@ -1,10 +1,10 @@
 # Saga Pattern Spike
 
-A Spring Boot 4.0 spike project exploring the **saga pattern** for distributed transactions. Built with Kotlin and reactive/coroutine support via WebFlux.
+A Spring Boot 4.0 spike project exploring the [saga pattern](https://learn.microsoft.com/en-us/azure/architecture/patterns/saga) for distributed transactions. Built with Kotlin and reactive/coroutine support via WebFlux.
 
 ## Overview
 
-This project demonstrates a comprehensive implementation of the saga orchestration pattern for managing distributed transactions across multiple services. The saga pattern ensures data consistency by coordinating a series of local transactions, with automatic compensation (rollback) when any step fails.
+This project demonstrates a comprehensive implementation of the [saga orchestration pattern](https://learn.microsoft.com/en-us/azure/architecture/patterns/saga) for managing distributed transactions across multiple services. The saga pattern ensures data consistency by coordinating a series of local transactions, with automatic compensation (rollback) when any step fails.
 
 ### Key Features
 
@@ -84,7 +84,7 @@ flowchart TB
    docker compose up -d
    ```
 
-   This starts PostgreSQL, HashiCorp Vault, and WireMock.
+   This starts PostgreSQL, HashiCorp Vault, WireMock, and the SigNoz observability stack (ClickHouse, OTel Collector, SigNoz).
 
 2. **Run the application:**
 
@@ -118,13 +118,9 @@ flowchart TB
      }'
    ```
 
-### With Observability Stack
+### Observability Dashboard
 
-To enable distributed tracing and metrics visualization:
-
-```bash
-docker compose --profile observability up -d
-```
+The observability stack (SigNoz) starts by default with `docker compose up -d`.
 
 Access the SigNoz dashboard at http://localhost:3301
 
@@ -379,8 +375,9 @@ saga:
 | PostgreSQL | 5432 | Order and saga persistence |
 | Vault | 8200 | Secret management |
 | WireMock | 8081 | Mock external services |
-| SigNoz | 3301 | Observability UI (optional) |
-| OTel Collector | 4317/4318 | Telemetry collection (optional) |
+| SigNoz | 3301 | Observability UI |
+| OTel Collector | 4317/4318 | Telemetry collection |
+| ClickHouse | 8123/9000 | Telemetry storage |
 
 ### Vault Integration
 
@@ -461,7 +458,7 @@ Every saga execution creates a distributed trace with:
 
 ### Viewing Traces
 
-1. Start the observability stack: `docker compose --profile observability up -d`
+1. Start services: `docker compose up -d` (observability included by default)
 2. Open SigNoz: http://localhost:3301
 3. Navigate to Traces and filter by service "sagapattern"
 

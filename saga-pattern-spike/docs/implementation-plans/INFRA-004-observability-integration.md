@@ -2,7 +2,9 @@
 
 ## Status: ✅ COMPLETED
 
-**Implementation Date:** December 2024
+**Implementation Date:** December 2025
+
+> **Note:** As of December 2025, the observability stack (SigNoz, ClickHouse, OTel Collector) starts by default with `docker compose up -d`. No separate profile is required.
 
 ## Overview
 

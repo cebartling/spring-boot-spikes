@@ -74,8 +74,6 @@ services:
   clickhouse:
     image: clickhouse/clickhouse-server:24.1.2-alpine
     container_name: saga-clickhouse
-    profiles:
-      - observability
     ports:
       - "9000:9000"
       - "8123:8123"
@@ -94,8 +92,6 @@ services:
   clickhouse-init:
     image: clickhouse/clickhouse-server:24.1.2-alpine
     container_name: saga-clickhouse-init
-    profiles:
-      - observability
     volumes:
       - ./docker/clickhouse/init-db.sql:/init-db.sql
     entrypoint: ["sh", "-c"]
@@ -116,8 +112,6 @@ services:
   zookeeper:
     image: signoz/zookeeper:3.7.1
     container_name: saga-zookeeper
-    profiles:
-      - observability
     environment:
       - ALLOW_ANONYMOUS_LOGIN=yes
     volumes:
@@ -133,8 +127,6 @@ services:
   otel-collector:
     image: signoz/signoz-otel-collector:0.111.24
     container_name: saga-otel-collector
-    profiles:
-      - observability
     command:
       - "--config=/etc/otel-collector-config.yaml"
     ports:
@@ -158,8 +150,6 @@ services:
   signoz:
     image: signoz/signoz:latest
     container_name: saga-signoz
-    profiles:
-      - observability
     ports:
       - "3301:8080"
     environment:
