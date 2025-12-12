@@ -1,0 +1,434 @@
+{
+  "info": {
+    "name": "SagaPatternAPI.paw",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create a new order",
+      "item": [
+        {
+          "name": "Success",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "http://localhost:8080/api/orders",
+              "query": null,
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "orders"
+              ]
+            },
+            "description": "",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": false,
+                "description": null
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "disabled": false,
+              "raw": "{\"customerId\":\"550e8400-e29b-41d4-a716-446655440000\",\"items\":[{\"productId\":\"550e8400-e29b-41d4-a716-446655440001\",\"productName\":\"Widget Pro\",\"quantity\":2,\"unitPriceInCents\":2999}],\"paymentMethodId\":\"valid-card\",\"shippingAddress\":{\"street\":\"123 Main St\",\"city\":\"Springfield\",\"state\":\"IL\",\"postalCode\":\"62701\",\"country\":\"US\"}}"
+            },
+            "auth": null
+          },
+          "protocolProfileBehavior": {
+            "followRedirects": false,
+            "followOriginalHttpMethod": false,
+            "followAuthorizationHeader": false
+          },
+          "response": []
+        },
+        {
+          "name": "Failure: payment declined",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "http://localhost:8080/api/orders",
+              "query": null,
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "orders"
+              ]
+            },
+            "description": "",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": false,
+                "description": null
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "disabled": false,
+              "raw": "{\n  \"customerId\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"items\": [\n    {\n      \"productId\": \"550e8400-e29b-41d4-a716-446655440001\",\n      \"productName\": \"Widget\",\n      \"quantity\": 1,\n      \"unitPriceInCents\": 999\n    }\n  ],\n  \"paymentMethodId\": \"declined-card\",\n  \"shippingAddress\": {\n    \"city\": \"Springfield\",\n    \"country\": \"US\",\n    \"postalCode\": \"62701\",\n    \"state\": \"IL\",\n    \"street\": \"123 Main St\"\n  }\n}"
+            },
+            "auth": null
+          },
+          "protocolProfileBehavior": {
+            "followRedirects": false,
+            "followOriginalHttpMethod": false,
+            "followAuthorizationHeader": false
+          },
+          "response": []
+        },
+        {
+          "name": "Failure: out of stock",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "http://localhost:8080/api/orders",
+              "query": null,
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "orders"
+              ]
+            },
+            "description": "",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": false,
+                "description": null
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "disabled": false,
+              "raw": "{\n  \"customerId\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"items\": [\n    {\n      \"productId\": \"00000000-0000-0000-0000-000000000000\",\n      \"productName\": \"Sold Out Item\",\n      \"quantity\": 1,\n      \"unitPriceInCents\": 999\n    }\n  ],\n  \"paymentMethodId\": \"valid-card\",\n  \"shippingAddress\": {\n    \"city\": \"Springfield\",\n    \"country\": \"US\",\n    \"postalCode\": \"62701\",\n    \"state\": \"IL\",\n    \"street\": \"123 Main St\"\n  }\n}"
+            },
+            "auth": null
+          },
+          "protocolProfileBehavior": {
+            "followRedirects": false,
+            "followOriginalHttpMethod": false,
+            "followAuthorizationHeader": false
+          },
+          "response": []
+        },
+        {
+          "name": "Failure: invalid address",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "http://localhost:8080/api/orders",
+              "query": null,
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "orders"
+              ]
+            },
+            "description": "",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": false,
+                "description": null
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "disabled": false,
+              "raw": "{\n  \"customerId\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"items\": [\n    {\n      \"productId\": \"550e8400-e29b-41d4-a716-446655440001\",\n      \"productName\": \"Widget\",\n      \"quantity\": 1,\n      \"unitPriceInCents\": 999\n    }\n  ],\n  \"paymentMethodId\": \"valid-card\",\n  \"shippingAddress\": {\n    \"city\": \"Springfield\",\n    \"country\": \"US\",\n    \"postalCode\": \"00000\",\n    \"state\": \"IL\",\n    \"street\": \"123 Main St\"\n  }\n}"
+            },
+            "auth": null
+          },
+          "protocolProfileBehavior": {
+            "followRedirects": false,
+            "followOriginalHttpMethod": false,
+            "followAuthorizationHeader": false
+          },
+          "response": []
+        },
+        {
+          "name": "Failure: undeliverable location",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "http://localhost:8080/api/orders",
+              "query": null,
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "orders"
+              ]
+            },
+            "description": "",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": false,
+                "description": null
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "disabled": false,
+              "raw": "{\n  \"customerId\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"items\": [\n    {\n      \"productId\": \"550e8400-e29b-41d4-a716-446655440001\",\n      \"productName\": \"Widget\",\n      \"quantity\": 1,\n      \"unitPriceInCents\": 999\n    }\n  ],\n  \"paymentMethodId\": \"valid-card\",\n  \"shippingAddress\": {\n    \"city\": \"Nowhere\",\n    \"country\": \"XX\",\n    \"postalCode\": \"12345\",\n    \"state\": \"ZZ\",\n    \"street\": \"123 Main St\"\n  }\n}"
+            },
+            "auth": null
+          },
+          "protocolProfileBehavior": {
+            "followRedirects": false,
+            "followOriginalHttpMethod": false,
+            "followAuthorizationHeader": false
+          },
+          "response": []
+        }
+      ],
+      "protocolProfileBehavior": null,
+      "response": []
+    },
+    {
+      "name": "Other requests",
+      "item": [
+        {
+          "name": "Get an order by orderId",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8080/api/orders/",
+              "query": null,
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "orders"
+              ]
+            },
+            "description": "",
+            "header": [],
+            "body": null,
+            "auth": null
+          },
+          "protocolProfileBehavior": {
+            "followRedirects": false,
+            "followOriginalHttpMethod": false,
+            "followAuthorizationHeader": false
+          },
+          "response": []
+        },
+        {
+          "name": "Get an order status by orderId",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8080/api/orders//status",
+              "query": null,
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "orders",
+                "status"
+              ]
+            },
+            "description": "",
+            "header": [],
+            "body": null,
+            "auth": null
+          },
+          "protocolProfileBehavior": {
+            "followRedirects": false,
+            "followOriginalHttpMethod": false,
+            "followAuthorizationHeader": false
+          },
+          "response": []
+        },
+        {
+          "name": "Stream order status updates by orderId (Server-Sent Events)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8080/api/orders//status/stream",
+              "query": null,
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "orders",
+                "status",
+                "stream"
+              ]
+            },
+            "description": "",
+            "header": [],
+            "body": null,
+            "auth": null
+          },
+          "protocolProfileBehavior": {
+            "followRedirects": false,
+            "followOriginalHttpMethod": false,
+            "followAuthorizationHeader": false
+          },
+          "response": []
+        },
+        {
+          "name": "Get an order by customerId",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8080/api/orders/customers/550e8400-e29b-41d4-a716-446655440000",
+              "query": null,
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "orders",
+                "customers",
+                "550e8400-e29b-41d4-a716-446655440000"
+              ]
+            },
+            "description": "",
+            "header": [],
+            "body": null,
+            "auth": null
+          },
+          "protocolProfileBehavior": {
+            "followRedirects": false,
+            "followOriginalHttpMethod": false,
+            "followAuthorizationHeader": false
+          },
+          "response": []
+        },
+        {
+          "name": "Get an order history by orderId",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8080/api/orders//history",
+              "query": null,
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "orders",
+                "history"
+              ]
+            },
+            "description": "",
+            "header": [],
+            "body": null,
+            "auth": null
+          },
+          "protocolProfileBehavior": {
+            "followRedirects": false,
+            "followOriginalHttpMethod": false,
+            "followAuthorizationHeader": false
+          },
+          "response": []
+        },
+        {
+          "name": "Get retry eligibility for a failed order",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8080/api/orders//retry/eligibility",
+              "query": null,
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "orders",
+                "retry",
+                "eligibility"
+              ]
+            },
+            "description": "",
+            "header": [],
+            "body": null,
+            "auth": null
+          },
+          "protocolProfileBehavior": {
+            "followRedirects": false,
+            "followOriginalHttpMethod": false,
+            "followAuthorizationHeader": false
+          },
+          "response": []
+        },
+        {
+          "name": "Retry a failed order",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "http://localhost:8080/api/orders//retry",
+              "query": null,
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "orders",
+                "retry"
+              ]
+            },
+            "description": "",
+            "header": [],
+            "body": null,
+            "auth": null
+          },
+          "protocolProfileBehavior": {
+            "followRedirects": false,
+            "followOriginalHttpMethod": false,
+            "followAuthorizationHeader": false
+          },
+          "response": []
+        }
+      ],
+      "protocolProfileBehavior": null,
+      "response": []
+    }
+  ]
+}
