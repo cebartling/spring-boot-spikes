@@ -31,13 +31,13 @@ This is a Spring Boot 4.0 spike project exploring the **saga pattern** for distr
 ## Infrastructure Commands
 
 ```bash
-# Start all services (PostgreSQL, Vault, WireMock)
+# Start all services (PostgreSQL, Vault, WireMock, SigNoz observability stack)
 docker compose up -d
 
 # Stop services
 docker compose down
 
-# Reset database and Vault (destroys data)
+# Reset database, Vault, and observability data (destroys all data)
 docker compose down -v && docker compose up -d
 
 # View logs
@@ -172,10 +172,7 @@ The application uses Spring Boot 4.0's native OpenTelemetry support with SigNoz 
 ### Observability Commands
 
 ```bash
-# Start full stack including observability
-docker compose --profile observability up -d
-
-# Start only core services (without observability)
+# Start all services (observability included by default)
 docker compose up -d
 
 # Access SigNoz dashboard

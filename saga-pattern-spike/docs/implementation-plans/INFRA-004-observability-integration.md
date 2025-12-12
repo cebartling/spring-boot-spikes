@@ -4,6 +4,8 @@
 
 **Implementation Date:** December 2024
 
+> **Note:** As of December 2024, the observability stack (SigNoz, ClickHouse, OTel Collector) starts by default with `docker compose up -d`. No separate profile is required.
+
 ## Overview
 
 This document describes the implementation plan for integrating OpenTelemetry and SigNoz into the saga pattern spike application for comprehensive observability. This integration provides distributed tracing, metrics collection, and log correlation across the application and its external service interactions.
