@@ -199,7 +199,7 @@ curl -X POST http://localhost:8080/api/orders \
 | `productId` Value | Error Response | HTTP Status |
 |-------------------|----------------|-------------|
 | Any valid UUID | Success | 201 |
-| `out-of-stock-product` | INVENTORY_UNAVAILABLE | 409 |
+| `00000000-0000-0000-0000-000000000000` | INVENTORY_UNAVAILABLE | 409 |
 
 **Example - Trigger out of stock:**
 
@@ -208,7 +208,7 @@ curl -X POST http://localhost:8080/api/orders \
   -H "Content-Type: application/json" \
   -d '{
     "customerId": "550e8400-e29b-41d4-a716-446655440000",
-    "items": [{"productId": "out-of-stock-product", "productName": "Sold Out Item", "quantity": 1, "unitPriceInCents": 999}],
+    "items": [{"productId": "00000000-0000-0000-0000-000000000000", "productName": "Sold Out Item", "quantity": 1, "unitPriceInCents": 999}],
     "paymentMethodId": "valid-card",
     "shippingAddress": {"street": "123 Main St", "city": "Springfield", "state": "IL", "postalCode": "62701", "country": "US"}
   }'

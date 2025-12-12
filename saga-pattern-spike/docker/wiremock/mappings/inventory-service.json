@@ -27,7 +27,7 @@
         "urlPath": "/api/inventory/reservations",
         "bodyPatterns": [
           {
-            "matchesJsonPath": "$.items[?(@.productId == 'out-of-stock-product')]"
+            "matchesJsonPath": "$.items[?(@.productId == '00000000-0000-0000-0000-000000000000')]"
           }
         ]
       },
@@ -40,7 +40,7 @@
           "error": "INVENTORY_UNAVAILABLE",
           "message": "Insufficient stock for requested items",
           "details": {
-            "productId": "out-of-stock-product",
+            "productId": "00000000-0000-0000-0000-000000000000",
             "requested": 5,
             "available": 0
           }
