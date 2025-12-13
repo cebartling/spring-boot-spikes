@@ -143,7 +143,9 @@ signoz-init:
 
 ### Phase 2: Dashboard Configuration
 
-Create and import pre-built dashboards for saga pattern monitoring.
+Create pre-built dashboards for saga pattern monitoring (manual import required).
+
+> **Note:** SigNoz's dashboard API requires authentication even in OSS mode. Dashboards must be imported manually via the UI.
 
 #### 2.1 Saga Pattern Dashboard
 
@@ -172,28 +174,20 @@ The dashboard includes panels for:
 }
 ```
 
-#### 2.3 Import Process
+#### 2.3 Manual Import Process
 
-The init script uses SigNoz's internal API:
-
-```bash
-# Check if dashboard already exists (idempotency)
-EXISTING=$(curl -s "http://signoz:8080/api/v1/dashboards" | grep -c "Saga Pattern")
-
-if [ "$EXISTING" -eq 0 ]; then
-  curl -X POST "http://signoz:8080/api/v1/dashboards" \
-    -H "Content-Type: application/json" \
-    -d @/signoz/scripts/dashboards/saga-pattern.json
-fi
-```
+1. Open SigNoz UI: http://localhost:3301
+2. Navigate to Dashboards
+3. Click "New Dashboard" > "Import JSON"
+4. Upload `docker/signoz/dashboards/saga-pattern.json`
 
 #### 2.4 Tasks
 
 | Task | Description | Files | Status |
 |------|-------------|-------|--------|
-| 2.1.1 | Create saga-pattern.json dashboard | `docker/signoz/dashboards/saga-pattern.json` | ⬜ |
-| 2.2.1 | Add dashboard import logic to init.sh | `docker/signoz/init.sh` | ⬜ |
-| 2.3.1 | Test dashboard appears in SigNoz UI | Manual verification | ⬜ |
+| 2.1.1 | Create saga-pattern.json dashboard | `docker/signoz/dashboards/saga-pattern.json` | ✅ |
+| 2.2.1 | Add dashboard import instructions to init.sh | `docker/signoz/init.sh` | ✅ |
+| 2.3.1 | Test dashboard imports via UI | Manual verification | ⬜ |
 
 ### Phase 3: Alert Rule Configuration
 

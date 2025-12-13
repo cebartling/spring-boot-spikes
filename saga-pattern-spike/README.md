@@ -124,7 +124,12 @@ The observability stack (SigNoz) starts by default with `docker compose up -d`.
 
 Access the SigNoz dashboard at http://localhost:3301
 
-A pre-built **Saga Pattern Monitoring** dashboard is automatically imported on first startup, providing:
+A pre-built **Saga Pattern Monitoring** dashboard is available for import:
+1. Navigate to Dashboards in SigNoz
+2. Click "New Dashboard" > "Import JSON"
+3. Upload `docker/signoz/dashboards/saga-pattern.json`
+
+The dashboard provides:
 - Saga throughput (started, completed, compensated)
 - Success and compensation rates
 - Saga duration histograms (p50, p95, p99)

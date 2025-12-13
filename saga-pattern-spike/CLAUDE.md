@@ -195,11 +195,14 @@ curl http://localhost:13133/
 
 On first startup, the `signoz-init` container automatically:
 
-1. **Imports pre-built dashboards** - Saga Pattern Monitoring dashboard with key metrics
-2. **Validates telemetry pipeline** - Sends test spans/metrics to verify end-to-end flow
-3. **Reports status** - Outputs initialization summary to container logs
+1. **Validates telemetry pipeline** - Sends test spans/metrics to verify end-to-end flow
+2. **Reports status** - Outputs initialization summary to container logs
 
-The init container is idempotent and safe to re-run. Dashboards are only imported if they don't already exist.
+Pre-built dashboards are available in `docker/signoz/dashboards/` for manual import:
+1. Open SigNoz UI: http://localhost:3301
+2. Navigate to Dashboards
+3. Click "New Dashboard" > "Import JSON"
+4. Upload `docker/signoz/dashboards/saga-pattern.json`
 
 ### Configuration
 
