@@ -52,6 +52,17 @@ management:
   endpoint:
     health:
       show-details: when_authorized
+  # Prometheus metrics configuration
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        http.client.requests: true
+      percentiles:
+        http.server.requests: 0.5, 0.95, 0.99
+        http.client.requests: 0.5, 0.95, 0.99
   # OpenTelemetry Configuration (Spring Boot 4.0 native support)
   tracing:
     enabled: true
