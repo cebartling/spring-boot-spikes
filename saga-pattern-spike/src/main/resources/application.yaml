@@ -62,13 +62,10 @@ management:
       endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/traces
     metrics:
       export:
-        enabled: true
-        step: 10s
-        endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/metrics
+        enabled: false  # Jaeger only supports traces
     logging:
       export:
-        enabled: true
-        endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/logs
+        enabled: false  # Jaeger only supports traces
 
 # OpenTelemetry SDK configuration
 otel:
