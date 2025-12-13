@@ -31,13 +31,13 @@ This is a Spring Boot 4.0 spike project exploring the **saga pattern** for distr
 ## Infrastructure Commands
 
 ```bash
-# Start all services (PostgreSQL, Vault, WireMock, SigNoz observability stack)
+# Start all services (PostgreSQL, Vault, WireMock, Jaeger)
 docker compose up -d
 
 # Stop services
 docker compose down
 
-# Reset database, Vault, and observability data (destroys all data)
+# Reset database and Vault data (destroys all data)
 docker compose down -v && docker compose up -d
 
 # View logs
@@ -129,8 +129,8 @@ Reports generated at `build/reports/cucumber/cucumber-report.html`
 - **Spring Cloud Vault** for Vault integration
 - **WireMock 3.9** for external service mocks (via Docker)
 - **Cucumber 7.20** for acceptance testing
-- **OpenTelemetry** for distributed tracing and metrics
-- **SigNoz** for observability backend
+- **OpenTelemetry** for distributed tracing
+- **Jaeger** for trace visualization
 - **Micrometer** for metrics and observation API
 
 ## Architecture
@@ -148,41 +148,29 @@ The project uses Spring WebFlux for non-blocking, reactive HTTP handling. Key pa
 - `docs/implementation-plans/` - Implementation planning documents
 - `docs/prompts.md` - Claude Code prompt templates
 
-## Observability (OpenTelemetry + SigNoz)
+## Observability (OpenTelemetry + Jaeger)
 
-The application uses Spring Boot 4.0's native OpenTelemetry support with SigNoz for comprehensive observability.
-
-### Telemetry Signals
-
-- **Traces** - Distributed tracing across saga steps and external service calls
-- **Metrics** - Saga execution metrics (duration, step latency, compensation rate)
-- **Logs** - Correlated logs with trace context for debugging
+The application uses Spring Boot 4.0's native OpenTelemetry support with Jaeger for distributed tracing.
 
 ### Key Ports
 
 | Service | Port | Purpose |
 |---------|------|---------|
-| SigNoz Frontend | 3301 | Observability UI |
-| OTel Collector (gRPC) | 4317 | OTLP receiver |
-| OTel Collector (HTTP) | 4318 | OTLP receiver |
-| OTel Collector Health | 13133 | Health check endpoint |
-| ClickHouse HTTP | 8123 | ClickHouse interface |
-| ClickHouse Native | 9000 | ClickHouse protocol |
+| Jaeger UI | 16686 | Trace visualization |
+| OTLP gRPC | 4317 | OTLP receiver (gRPC) |
+| OTLP HTTP | 4318 | OTLP receiver (HTTP) |
 
 ### Observability Commands
 
 ```bash
-# Start all services (observability included by default)
+# Start all services (Jaeger included)
 docker compose up -d
 
-# Access SigNoz dashboard
-open http://localhost:3301
-
-# Check OTel Collector health
-curl http://localhost:13133/
+# Access Jaeger UI
+open http://localhost:16686
 
 # Query traces by service
-# Navigate to SigNoz UI > Traces > Filter by service "sagapattern"
+# Select "sagapattern" from the Service dropdown
 ```
 
 ### Configuration
@@ -193,7 +181,7 @@ curl http://localhost:13133/
 
 ### Custom Metrics
 
-The application exports custom saga metrics via OTLP:
+The application defines custom saga metrics via Micrometer:
 
 | Metric | Description |
 |--------|-------------|
@@ -203,6 +191,8 @@ The application exports custom saga metrics via OTLP:
 | `saga.duration` | Time to complete saga (success or compensation) |
 | `saga.step.duration` | Duration of individual saga steps |
 | `saga.step.failed` | Step failure count by step name |
+
+> **Note:** Jaeger only stores traces. Metrics are available via the `/actuator/metrics` endpoint.
 
 ### Using @Observed Annotation
 

@@ -13,7 +13,7 @@ This project demonstrates a comprehensive implementation of the [saga orchestrat
 - **Real-time Status Tracking** - Server-Sent Events (SSE) for live order progress updates
 - **Retry Support** - Resume failed orders from the point of failure
 - **Order History** - Complete timeline of saga execution with step-by-step details
-- **Distributed Tracing** - End-to-end observability with OpenTelemetry and SigNoz
+- **Distributed Tracing** - End-to-end observability with OpenTelemetry and Jaeger
 - **Dynamic Secrets** - HashiCorp Vault integration for secure credential management
 
 ## Architecture
@@ -84,7 +84,7 @@ flowchart TB
    docker compose up -d
    ```
 
-   This starts PostgreSQL, HashiCorp Vault, WireMock, and the SigNoz observability stack (ClickHouse, OTel Collector, SigNoz).
+   This starts PostgreSQL, HashiCorp Vault, WireMock, and Jaeger for distributed tracing.
 
 2. **Run the application:**
 
@@ -118,11 +118,16 @@ flowchart TB
      }'
    ```
 
-### Observability Dashboard
+### Distributed Tracing
 
-The observability stack (SigNoz) starts by default with `docker compose up -d`.
+Jaeger starts by default with `docker compose up -d`.
 
-Access the SigNoz dashboard at http://localhost:3301
+Access the Jaeger UI at http://localhost:16686
+
+To view traces:
+1. Select "sagapattern" from the Service dropdown
+2. Click "Find Traces"
+3. Click on any trace to see the full span breakdown
 
 ## API Reference
 
@@ -375,9 +380,8 @@ saga:
 | PostgreSQL | 5432 | Order and saga persistence |
 | Vault | 8200 | Secret management |
 | WireMock | 8081 | Mock external services |
-| SigNoz | 3301 | Observability UI |
-| OTel Collector | 4317/4318 | Telemetry collection |
-| ClickHouse | 8123/9000 | Telemetry storage |
+| Jaeger | 16686 | Distributed tracing UI |
+| Jaeger OTLP | 4317/4318 | OTLP trace receiver |
 
 ### Vault Integration
 
@@ -458,9 +462,9 @@ Every saga execution creates a distributed trace with:
 
 ### Viewing Traces
 
-1. Start services: `docker compose up -d` (observability included by default)
-2. Open SigNoz: http://localhost:3301
-3. Navigate to Traces and filter by service "sagapattern"
+1. Start services: `docker compose up -d`
+2. Open Jaeger: http://localhost:16686
+3. Select "sagapattern" from the Service dropdown and click "Find Traces"
 
 ## Project Structure
 
@@ -485,8 +489,6 @@ saga-pattern-spike/
 ├── src/test/kotlin/            # Unit and integration tests
 ├── src/test/resources/features/ # Cucumber feature files
 ├── docker/                     # Docker configurations
-│   ├── clickhouse/             # ClickHouse config
-│   ├── otel-collector/         # OpenTelemetry collector config
 │   ├── postgres/               # PostgreSQL init scripts
 │   ├── vault/                  # Vault init scripts
 │   └── wiremock/               # WireMock stubs
@@ -562,7 +564,7 @@ This activates Java 24.0.2-amzn and Gradle 9.2.1.
 - [Infrastructure Plan](docs/implementation-plans/INFRA-001-infrastructure.md) - Docker setup details
 - [Acceptance Testing](docs/implementation-plans/INFRA-002-acceptance-testing.md) - Cucumber configuration
 - [Vault Integration](docs/implementation-plans/INFRA-003-vault-integration.md) - Secret management setup
-- [Observability Integration](docs/implementation-plans/INFRA-004-observability-integration.md) - OpenTelemetry + SigNoz
+- [Observability Integration](docs/implementation-plans/INFRA-004-observability-integration.md) - OpenTelemetry + Jaeger
 
 ## License
 

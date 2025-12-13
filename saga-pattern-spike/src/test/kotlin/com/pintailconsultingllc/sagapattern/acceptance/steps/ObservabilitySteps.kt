@@ -13,7 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired
  * Step definitions for observability-related scenarios across all features.
  *
  * These steps cover distributed tracing, metrics, and log correlation functionality.
- * Marked as pending until observability infrastructure (OpenTelemetry + SigNoz) is implemented.
+ * Traces can be viewed in Jaeger UI at http://localhost:16686
  */
 class ObservabilitySteps(
     @Autowired private val testContext: TestContext
@@ -30,7 +30,7 @@ class ObservabilitySteps(
 
     @When("I view the trace in the observability platform")
     fun iViewTheTraceInTheObservabilityPlatform() {
-        throw PendingException("Observability infrastructure not yet implemented - SigNoz integration required")
+        throw PendingException("Observability infrastructure not yet implemented - Jaeger integration required")
     }
 
     // ==================== Then Steps ====================
@@ -38,7 +38,7 @@ class ObservabilitySteps(
     @Then("a distributed trace should be created for the saga execution")
     fun aDistributedTraceShouldBeCreatedForTheSagaExecution() {
         // Tracing is enabled via @Observed annotations on saga components
-        // Full verification requires SigNoz integration
+        // Full verification requires Jaeger integration
     }
 
     @Then("the trace should include spans for:")
@@ -175,7 +175,7 @@ class ObservabilitySteps(
 
     @Then("I should be able to query logs by trace ID in the observability platform")
     fun iShouldBeAbleToQueryLogsByTraceIdInTheObservabilityPlatform() {
-        throw PendingException("Observability infrastructure not yet implemented - SigNoz integration required")
+        throw PendingException("Observability infrastructure not yet implemented - Jaeger integration required")
     }
 
     @Then("the trace should show a span event for the saga failure")
@@ -200,7 +200,7 @@ class ObservabilitySteps(
 
     @Then("I should be able to use the trace ID to find the trace in observability tools")
     fun iShouldBeAbleToUseTheTraceIdToFindTheTraceInObservabilityTools() {
-        throw PendingException("Observability infrastructure not yet implemented - SigNoz integration required")
+        throw PendingException("Observability infrastructure not yet implemented - Jaeger integration required")
     }
 
     @Then("the response should include a traceparent header")
@@ -225,7 +225,7 @@ class ObservabilitySteps(
 
     @Then("the link should be visible in the observability platform")
     fun theLinkShouldBeVisibleInTheObservabilityPlatform() {
-        throw PendingException("Observability infrastructure not yet implemented - SigNoz integration required")
+        throw PendingException("Observability infrastructure not yet implemented - Jaeger integration required")
     }
 
     @Then("a retry initiated metric should be recorded")
@@ -255,7 +255,7 @@ class ObservabilitySteps(
 
     @Then("I should be able to use the trace ID to navigate to the observability dashboard")
     fun iShouldBeAbleToUseTheTraceIdToNavigateToTheObservabilityDashboard() {
-        throw PendingException("Observability infrastructure not yet implemented - SigNoz integration required")
+        throw PendingException("Observability infrastructure not yet implemented - Jaeger integration required")
     }
 
     @Then("the history response should include {string}")
