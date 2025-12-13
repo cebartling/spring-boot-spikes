@@ -108,6 +108,37 @@ services:
       clickhouse:
         condition: service_healthy
 
+  # SigNoz schema migrator (creates required ClickHouse tables)
+  schema-migrator-sync:
+    image: signoz/signoz-schema-migrator:v0.129.12
+    container_name: saga-schema-migrator-sync
+    command:
+      - sync
+      - --dsn=tcp://clickhouse:9000
+      - --up=
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+      clickhouse-init:
+        condition: service_completed_successfully
+    restart: on-failure
+
+  schema-migrator-async:
+    image: signoz/signoz-schema-migrator:v0.129.12
+    container_name: saga-schema-migrator-async
+    command:
+      - async
+      - --dsn=tcp://clickhouse:9000
+      - --up=
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+      clickhouse-init:
+        condition: service_completed_successfully
+      schema-migrator-sync:
+        condition: service_completed_successfully
+    restart: on-failure
+
   # ZooKeeper for ClickHouse coordination
   zookeeper:
     image: signoz/zookeeper:3.7.1
@@ -138,7 +169,9 @@ services:
     depends_on:
       clickhouse:
         condition: service_healthy
-      clickhouse-init:
+      schema-migrator-sync:
+        condition: service_completed_successfully
+      schema-migrator-async:
         condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:13133/"]
@@ -161,6 +194,10 @@ services:
     depends_on:
       clickhouse:
         condition: service_healthy
+      schema-migrator-sync:
+        condition: service_completed_successfully
+      schema-migrator-async:
+        condition: service_completed_successfully
       otel-collector:
         condition: service_healthy
     healthcheck:
