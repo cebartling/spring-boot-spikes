@@ -15,7 +15,7 @@ import java.time.Duration
  * - Compensation flow monitoring
  *
  * These metrics complement the automatic tracing from OpenTelemetry
- * and can be visualized in SigNoz or any Prometheus-compatible dashboard.
+ * and can be visualized via the /actuator/metrics endpoint or any Prometheus-compatible dashboard.
  */
 @Component
 class SagaMetrics(private val meterRegistry: MeterRegistry) {
