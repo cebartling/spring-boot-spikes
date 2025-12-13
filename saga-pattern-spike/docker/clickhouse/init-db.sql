@@ -1,4 +1,0 @@
--- Create databases required by SigNoz
-CREATE DATABASE IF NOT EXISTS signoz_traces;
-CREATE DATABASE IF NOT EXISTS signoz_metrics;
-CREATE DATABASE IF NOT EXISTS signoz_logs;
