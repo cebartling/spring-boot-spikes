@@ -57,22 +57,15 @@ management:
     enabled: true
     sampling:
       probability: 1.0
-  otlp:
+  opentelemetry:
     tracing:
-      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/traces
+      export:
+        otlp:
+          endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/traces
+  otlp:
     metrics:
       export:
         enabled: false  # Jaeger only supports traces
     logging:
       export:
         enabled: false  # Jaeger only supports traces
-
-# OpenTelemetry SDK configuration
-otel:
-  service:
-    name: sagapattern
-  resource:
-    attributes:
-      deployment.environment: ${DEPLOYMENT_ENV:development}
-      service.namespace: saga-spike
-      service.version: ${APP_VERSION:0.0.1-SNAPSHOT}
