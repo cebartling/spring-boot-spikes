@@ -169,6 +169,20 @@ services:
       timeout: 5s
       retries: 5
 
+  # SigNoz initialization (dashboards, validation)
+  signoz-init:
+    image: curlimages/curl:8.5.0
+    container_name: saga-signoz-init
+    volumes:
+      - ./docker/signoz:/signoz/scripts
+    entrypoint: /bin/sh
+    command: /signoz/scripts/init.sh
+    depends_on:
+      signoz:
+        condition: service_healthy
+      otel-collector:
+        condition: service_healthy
+
 volumes:
   postgres_data:
   clickhouse_data:

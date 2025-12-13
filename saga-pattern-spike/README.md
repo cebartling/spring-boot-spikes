@@ -124,6 +124,12 @@ The observability stack (SigNoz) starts by default with `docker compose up -d`.
 
 Access the SigNoz dashboard at http://localhost:3301
 
+A pre-built **Saga Pattern Monitoring** dashboard is automatically imported on first startup, providing:
+- Saga throughput (started, completed, compensated)
+- Success and compensation rates
+- Saga duration histograms (p50, p95, p99)
+- Per-step latency and failure metrics
+
 ## API Reference
 
 ### Orders
@@ -488,6 +494,7 @@ saga-pattern-spike/
 │   ├── clickhouse/             # ClickHouse config
 │   ├── otel-collector/         # OpenTelemetry collector config
 │   ├── postgres/               # PostgreSQL init scripts
+│   ├── signoz/                 # SigNoz init scripts and dashboards
 │   ├── vault/                  # Vault init scripts
 │   └── wiremock/               # WireMock stubs
 ├── docs/
@@ -563,6 +570,7 @@ This activates Java 24.0.2-amzn and Gradle 9.2.1.
 - [Acceptance Testing](docs/implementation-plans/INFRA-002-acceptance-testing.md) - Cucumber configuration
 - [Vault Integration](docs/implementation-plans/INFRA-003-vault-integration.md) - Secret management setup
 - [Observability Integration](docs/implementation-plans/INFRA-004-observability-integration.md) - OpenTelemetry + SigNoz
+- [Observability Bootstrap](docs/implementation-plans/INFRA-005-observability-bootstrap.md) - Dashboard auto-import and initialization
 
 ## License
 

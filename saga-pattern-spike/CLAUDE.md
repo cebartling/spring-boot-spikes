@@ -175,6 +175,9 @@ The application uses Spring Boot 4.0's native OpenTelemetry support with SigNoz 
 # Start all services (observability included by default)
 docker compose up -d
 
+# Watch initialization logs (dashboards are auto-imported)
+docker compose logs -f saga-signoz-init
+
 # Access SigNoz dashboard
 open http://localhost:3301
 
@@ -183,7 +186,20 @@ curl http://localhost:13133/
 
 # Query traces by service
 # Navigate to SigNoz UI > Traces > Filter by service "sagapattern"
+
+# View pre-imported Saga Pattern dashboard
+# Navigate to SigNoz UI > Dashboards > "Saga Pattern Monitoring"
 ```
+
+### Bootstrap Initialization
+
+On first startup, the `signoz-init` container automatically:
+
+1. **Imports pre-built dashboards** - Saga Pattern Monitoring dashboard with key metrics
+2. **Validates telemetry pipeline** - Sends test spans/metrics to verify end-to-end flow
+3. **Reports status** - Outputs initialization summary to container logs
+
+The init container is idempotent and safe to re-run. Dashboards are only imported if they don't already exist.
 
 ### Configuration
 
@@ -214,6 +230,7 @@ suspend fun executeStep() { ... }
 ```
 
 See `docs/implementation-plans/INFRA-004-observability-integration.md` for full implementation details.
+See `docs/implementation-plans/INFRA-005-observability-bootstrap.md` for bootstrap initialization details.
 
 ## SDK Management
 

@@ -1,0 +1,80 @@
+{
+  "_comment": "SigNoz Alert Rules for Saga Pattern Monitoring",
+  "_note": "These alerts are defined for reference but may require manual configuration in SigNoz UI",
+  "_reason": "SigNoz's alert API is not fully documented for programmatic creation in OSS version",
+  "alerts": [
+    {
+      "name": "HighSagaCompensationRate",
+      "description": "More than 10% of sagas are requiring compensation",
+      "condition": "saga_compensated_total / saga_started_total > 0.10",
+      "for": "5m",
+      "severity": "warning",
+      "labels": {
+        "team": "backend",
+        "component": "saga"
+      },
+      "annotations": {
+        "summary": "High saga compensation rate detected",
+        "description": "{{ $value | printf \"%.2f\" }}% of sagas are being compensated in the last 5 minutes",
+        "runbook": "Check the Failed Steps dashboard panel to identify which step is causing failures"
+      }
+    },
+    {
+      "name": "SagaStepLatencyHigh",
+      "description": "Saga step taking longer than 5 seconds (p95)",
+      "condition": "histogram_quantile(0.95, saga_step_duration) > 5000",
+      "for": "2m",
+      "severity": "warning",
+      "labels": {
+        "team": "backend",
+        "component": "saga"
+      },
+      "annotations": {
+        "summary": "Saga step latency is high",
+        "description": "Step {{ $labels.step_name }} p95 latency is {{ $value | printf \"%.0f\" }}ms",
+        "runbook": "Check external service dependencies and Step Duration dashboard panel"
+      }
+    },
+    {
+      "name": "NoSagaMetrics",
+      "description": "No saga metrics received for 5 minutes - telemetry pipeline may be down",
+      "condition": "absent(saga_started_total) for 5m",
+      "for": "5m",
+      "severity": "critical",
+      "labels": {
+        "team": "platform",
+        "component": "observability"
+      },
+      "annotations": {
+        "summary": "No saga metrics received",
+        "description": "The saga application may be down or the telemetry pipeline is broken",
+        "runbook": "1. Check application health at :8080/actuator/health\n2. Check OTel Collector at :13133/\n3. Check ClickHouse connectivity"
+      }
+    },
+    {
+      "name": "SagaFailureSpike",
+      "description": "Sudden increase in saga failures",
+      "condition": "rate(saga_step_failed_total[5m]) > 2 * rate(saga_step_failed_total[30m])",
+      "for": "3m",
+      "severity": "critical",
+      "labels": {
+        "team": "backend",
+        "component": "saga"
+      },
+      "annotations": {
+        "summary": "Sudden spike in saga failures",
+        "description": "Failure rate has more than doubled compared to the 30-minute baseline",
+        "runbook": "Check recent deployments and external service health"
+      }
+    }
+  ],
+  "manual_setup_instructions": [
+    "1. Open SigNoz UI at http://localhost:3301",
+    "2. Navigate to Alerts section",
+    "3. Click 'New Alert Rule'",
+    "4. Select alert type (Metric Based Alert)",
+    "5. Configure the query based on the conditions above",
+    "6. Set threshold, evaluation interval, and notification channels",
+    "7. Save the alert rule"
+  ]
+}
