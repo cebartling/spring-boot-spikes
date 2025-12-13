@@ -6,6 +6,7 @@ set -e
 
 SIGNOZ_URL="http://signoz:8080"
 OTEL_COLLECTOR_URL="http://otel-collector:4318"
+OTEL_COLLECTOR_HEALTH_URL="http://otel-collector:13133"
 SCRIPT_DIR="/signoz/scripts"
 
 echo "=============================================="
@@ -172,7 +173,7 @@ send_test_metrics() {
 # Main initialization sequence
 echo "Step 1: Waiting for services..."
 wait_for_service "${SIGNOZ_URL}/api/v1/health" "SigNoz"
-wait_for_service "${OTEL_COLLECTOR_URL}/v1/traces" "OTel Collector" || true
+wait_for_service "${OTEL_COLLECTOR_HEALTH_URL}" "OTel Collector"
 
 echo ""
 echo "Step 2: Importing dashboards..."
