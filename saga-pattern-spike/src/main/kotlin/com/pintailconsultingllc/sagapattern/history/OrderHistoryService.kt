@@ -172,7 +172,8 @@ class OrderHistoryServiceImpl(
             outcome = outcome,
             failedStep = failedStepName,
             stepsCompleted = stepsCompleted,
-            isRetry = isRetry
+            isRetry = isRetry,
+            traceId = execution.traceId
         )
     }
 }

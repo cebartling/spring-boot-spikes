@@ -6,10 +6,11 @@ import com.pintailconsultingllc.sagapattern.api.dto.OrderResponse
 import com.pintailconsultingllc.sagapattern.domain.Order
 import com.pintailconsultingllc.sagapattern.domain.OrderItem
 import com.pintailconsultingllc.sagapattern.domain.OrderStatus
+import com.pintailconsultingllc.sagapattern.domain.ShippingAddress
 import com.pintailconsultingllc.sagapattern.history.OrderEventService
+import com.pintailconsultingllc.sagapattern.observability.TraceContextService
 import com.pintailconsultingllc.sagapattern.repository.OrderItemRepository
 import com.pintailconsultingllc.sagapattern.repository.OrderRepository
-import com.pintailconsultingllc.sagapattern.domain.ShippingAddress
 import com.pintailconsultingllc.sagapattern.saga.OrderSagaOrchestrator
 import com.pintailconsultingllc.sagapattern.saga.SagaContext
 import com.pintailconsultingllc.sagapattern.saga.SagaResult
@@ -27,7 +28,8 @@ class OrderService(
     private val orderRepository: OrderRepository,
     private val orderItemRepository: OrderItemRepository,
     private val sagaOrchestrator: OrderSagaOrchestrator,
-    private val orderEventService: OrderEventService
+    private val orderEventService: OrderEventService,
+    private val traceContextService: TraceContextService
 ) {
     private val logger = LoggerFactory.getLogger(OrderService::class.java)
 
@@ -84,22 +86,23 @@ class OrderService(
         )
 
         // Execute the saga
+        val traceId = traceContextService.getCurrentTraceId()
         return when (val result = sagaOrchestrator.executeSaga(context)) {
             is SagaResult.Success -> {
                 logger.info("Order ${savedOrder.id} completed successfully")
-                OrderCreationResult.Success(OrderResponse.fromSuccess(result))
+                OrderCreationResult.Success(OrderResponse.fromSuccess(result, traceId))
             }
             is SagaResult.Failed -> {
                 logger.warn("Order ${savedOrder.id} failed: ${result.failureReason}")
-                OrderCreationResult.Failure(OrderFailureResponse.fromFailed(result))
+                OrderCreationResult.Failure(OrderFailureResponse.fromFailed(result, traceId))
             }
             is SagaResult.Compensated -> {
                 logger.warn("Order ${savedOrder.id} compensated: ${result.failureReason}")
-                OrderCreationResult.Failure(OrderFailureResponse.fromCompensated(result))
+                OrderCreationResult.Failure(OrderFailureResponse.fromCompensated(result, traceId))
             }
             is SagaResult.PartiallyCompensated -> {
                 logger.error("Order ${savedOrder.id} partially compensated: ${result.failureReason}")
-                OrderCreationResult.Failure(OrderFailureResponse.fromPartiallyCompensated(result))
+                OrderCreationResult.Failure(OrderFailureResponse.fromPartiallyCompensated(result, traceId))
             }
         }
     }

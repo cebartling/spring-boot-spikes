@@ -39,7 +39,10 @@ data class SagaExecutionSummary(
     val stepsCompleted: Int = 0,
 
     /** Whether this was a retry attempt. */
-    val isRetry: Boolean = false
+    val isRetry: Boolean = false,
+
+    /** Trace ID for distributed tracing correlation (W3C format, 32 hex chars). */
+    val traceId: String? = null
 ) {
     companion object {
         /**
@@ -51,7 +54,8 @@ data class SagaExecutionSummary(
             startedAt: Instant,
             completedAt: Instant,
             stepsCompleted: Int,
-            isRetry: Boolean = false
+            isRetry: Boolean = false,
+            traceId: String? = null
         ): SagaExecutionSummary = SagaExecutionSummary(
             executionId = executionId,
             attemptNumber = attemptNumber,
@@ -59,7 +63,8 @@ data class SagaExecutionSummary(
             completedAt = completedAt,
             outcome = SagaOutcome.SUCCESS,
             stepsCompleted = stepsCompleted,
-            isRetry = isRetry
+            isRetry = isRetry,
+            traceId = traceId
         )
 
         /**
@@ -72,7 +77,8 @@ data class SagaExecutionSummary(
             completedAt: Instant,
             failedStep: String,
             stepsCompleted: Int,
-            isRetry: Boolean = false
+            isRetry: Boolean = false,
+            traceId: String? = null
         ): SagaExecutionSummary = SagaExecutionSummary(
             executionId = executionId,
             attemptNumber = attemptNumber,
@@ -81,7 +87,8 @@ data class SagaExecutionSummary(
             outcome = SagaOutcome.FAILED,
             failedStep = failedStep,
             stepsCompleted = stepsCompleted,
-            isRetry = isRetry
+            isRetry = isRetry,
+            traceId = traceId
         )
 
         /**
@@ -94,7 +101,8 @@ data class SagaExecutionSummary(
             completedAt: Instant,
             failedStep: String,
             stepsCompleted: Int,
-            isRetry: Boolean = false
+            isRetry: Boolean = false,
+            traceId: String? = null
         ): SagaExecutionSummary = SagaExecutionSummary(
             executionId = executionId,
             attemptNumber = attemptNumber,
@@ -103,7 +111,8 @@ data class SagaExecutionSummary(
             outcome = SagaOutcome.COMPENSATED,
             failedStep = failedStep,
             stepsCompleted = stepsCompleted,
-            isRetry = isRetry
+            isRetry = isRetry,
+            traceId = traceId
         )
 
         /**
@@ -114,14 +123,16 @@ data class SagaExecutionSummary(
             attemptNumber: Int,
             startedAt: Instant,
             stepsCompleted: Int,
-            isRetry: Boolean = false
+            isRetry: Boolean = false,
+            traceId: String? = null
         ): SagaExecutionSummary = SagaExecutionSummary(
             executionId = executionId,
             attemptNumber = attemptNumber,
             startedAt = startedAt,
             outcome = SagaOutcome.IN_PROGRESS,
             stepsCompleted = stepsCompleted,
-            isRetry = isRetry
+            isRetry = isRetry,
+            traceId = traceId
         )
     }
 

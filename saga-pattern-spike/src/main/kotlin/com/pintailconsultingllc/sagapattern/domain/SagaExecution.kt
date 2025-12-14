@@ -35,6 +35,9 @@ data class SagaExecution @PersistenceCreator constructor(
     @Column("failure_reason")
     val failureReason: String? = null,
 
+    @Column("trace_id")
+    val traceId: String? = null,
+
     @Column("started_at")
     val startedAt: Instant = Instant.now(),
 
@@ -111,9 +114,10 @@ data class SagaExecution @PersistenceCreator constructor(
         /**
          * Create a new SagaExecution instance.
          */
-        fun create(orderId: UUID): SagaExecution = SagaExecution(
+        fun create(orderId: UUID, traceId: String? = null): SagaExecution = SagaExecution(
             id = UUID.randomUUID(),
-            orderId = orderId
+            orderId = orderId,
+            traceId = traceId
         ).apply { isNewEntity = true }
 
         /**
@@ -123,12 +127,14 @@ data class SagaExecution @PersistenceCreator constructor(
             id: UUID,
             orderId: UUID,
             status: SagaStatus,
-            startedAt: Instant
+            startedAt: Instant,
+            traceId: String? = null
         ): SagaExecution = SagaExecution(
             id = id,
             orderId = orderId,
             status = status,
-            startedAt = startedAt
+            startedAt = startedAt,
+            traceId = traceId
         ).apply { isNewEntity = true }
 
         /**
@@ -142,6 +148,7 @@ data class SagaExecution @PersistenceCreator constructor(
             currentStep: Int = 0,
             failedStep: Int? = null,
             failureReason: String? = null,
+            traceId: String? = null,
             startedAt: Instant = Instant.now(),
             completedAt: Instant? = null,
             compensationStartedAt: Instant? = null,
@@ -153,6 +160,7 @@ data class SagaExecution @PersistenceCreator constructor(
             currentStep = currentStep,
             failedStep = failedStep,
             failureReason = failureReason,
+            traceId = traceId,
             startedAt = startedAt,
             completedAt = completedAt,
             compensationStartedAt = compensationStartedAt,
