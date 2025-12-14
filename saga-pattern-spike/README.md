@@ -425,10 +425,16 @@ docker exec saga-vault vault read database/creds/sagapattern-readwrite
 ### Acceptance Tests (Cucumber)
 
 ```bash
-# Run all acceptance tests
+# Run all acceptance tests (recommended)
+./gradlew acceptanceTest
+
+# Alternative: Run via test runner class
 ./gradlew test --tests "*.CucumberTestRunner"
 
-# Run by user story
+# Run by JUnit tag
+./gradlew test -DincludeTags=acceptance
+
+# Run by user story (Cucumber tags)
 ./gradlew test -Dcucumber.filter.tags="@saga-001"  # Multi-step process
 ./gradlew test -Dcucumber.filter.tags="@saga-002"  # Automatic rollback
 ./gradlew test -Dcucumber.filter.tags="@saga-003"  # Order status
@@ -446,8 +452,18 @@ Test reports are generated at `build/reports/cucumber/cucumber-report.html`
 ### Integration Tests
 
 ```bash
-./gradlew test -Dcucumber.filter.tags="@integration"
+./gradlew integrationTest
 ```
+
+### Test Tags
+
+Tests are organized using JUnit 5 `@Tag` annotations:
+
+| Tag | Command | Description |
+|-----|---------|-------------|
+| `unit` | `./gradlew unitTest` | Fast unit tests with mocked dependencies (no Docker) |
+| `integration` | `./gradlew integrationTest` | Infrastructure tests requiring Docker |
+| `acceptance` | `./gradlew acceptanceTest` | Cucumber acceptance tests (Docker for @integration scenarios) |
 
 ## Observability
 

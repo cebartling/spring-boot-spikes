@@ -33,9 +33,13 @@ This is a Spring Boot 4.0 spike project exploring the **saga pattern** for distr
 # Run only integration tests (requires Docker)
 ./gradlew integrationTest
 
+# Run only acceptance tests (Cucumber, requires Docker)
+./gradlew acceptanceTest
+
 # Run tests by JUnit tag
 ./gradlew test -DincludeTags=unit
 ./gradlew test -DincludeTags=integration
+./gradlew test -DincludeTags=acceptance
 ./gradlew test -DexcludeTags=integration
 ```
 
@@ -47,6 +51,7 @@ Tests are organized using JUnit 5 `@Tag` annotations:
 |-----|-------------|
 | `unit` | Fast unit tests with mocked dependencies (no Docker required) |
 | `integration` | Infrastructure tests requiring Docker (PostgreSQL, WireMock) |
+| `acceptance` | Cucumber acceptance tests (requires Docker for @integration scenarios) |
 
 ### Dedicated Test Tasks
 
@@ -54,6 +59,7 @@ Tests are organized using JUnit 5 `@Tag` annotations:
 |------|---------|-------------|
 | `unitTest` | `./gradlew unitTest` | Run unit tests only (fast, no Docker) |
 | `integrationTest` | `./gradlew integrationTest` | Run integration tests only (requires Docker) |
+| `acceptanceTest` | `./gradlew acceptanceTest` | Run acceptance tests only (Cucumber, requires Docker) |
 
 ### Integration Test Infrastructure
 
@@ -90,6 +96,40 @@ The `InfrastructureTestSupport` class provides reusable utilities for integratio
 - Service availability checking
 - Clear skip messaging
 - Centralized service configuration (hosts, ports)
+
+### Acceptance Test Infrastructure
+
+Acceptance tests (Cucumber) that are tagged with `@integration` also detect Docker infrastructure availability and skip gracefully.
+
+**Required Docker Services for Acceptance Tests with @integration tag:**
+
+| Service | Port | Purpose |
+|---------|------|-------|
+| PostgreSQL | 5432 | Database persistence |
+| WireMock | 8081 | External service mocking |
+
+**Example output when Docker is not running:**
+```
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  ACCEPTANCE TEST SKIPPED - Docker Infrastructure Not Available               ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║  Scenario: Process a simple order                                            ║
+║                                                                              ║
+║  The following Docker services are required but not available:               ║
+║                                                                              ║
+║    • PostgreSQL (localhost:5432)                                             ║
+║    • WireMock (localhost:8081)                                               ║
+║                                                                              ║
+║  To start the Docker infrastructure, run:                                    ║
+║                                                                              ║
+║      docker compose up -d                                                    ║
+║                                                                              ║
+║  Then re-run the acceptance tests:                                           ║
+║                                                                              ║
+║      ./gradlew acceptanceTest                                                ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+```
 
 ## Infrastructure Commands
 
@@ -160,10 +200,16 @@ See `docs/implementation-plans/INFRA-003-vault-integration.md` for full implemen
 ## Acceptance Tests (Cucumber)
 
 ```bash
-# Run all acceptance tests
+# Run all acceptance tests (recommended)
+./gradlew acceptanceTest
+
+# Alternative: Run via test runner class
 ./gradlew test --tests "*.CucumberTestRunner"
 
-# Run by user story tag
+# Run by JUnit tag
+./gradlew test -DincludeTags=acceptance
+
+# Run by user story tag (Cucumber tags)
 ./gradlew test -Dcucumber.filter.tags="@saga-001"
 ./gradlew test -Dcucumber.filter.tags="@saga-002"
 
@@ -174,7 +220,7 @@ See `docs/implementation-plans/INFRA-003-vault-integration.md` for full implemen
 # Run observability scenarios
 ./gradlew test -Dcucumber.filter.tags="@observability"
 
-# Exclude integration tests
+# Exclude integration scenarios
 ./gradlew test -Dcucumber.filter.tags="@saga and not @integration"
 ```
 
