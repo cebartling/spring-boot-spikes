@@ -16,6 +16,7 @@ DOCKER_COMPOSE := docker compose
 K6_SCRIPTS_DIR := load-tests/scripts/scenarios
 K6_RESULTS_DIR := load-tests/results
 BASE_URL ?= http://localhost:8080
+K6_PROMETHEUS_RW_SERVER_URL ?= http://localhost:9090/api/v1/write
 
 # Colors for output
 CYAN := \033[36m
@@ -97,16 +98,18 @@ $(K6_RESULTS_DIR):
 
 load-test-smoke: $(K6_RESULTS_DIR) ## Run smoke test (1-2 VUs, 1 min)
 	@echo "$(CYAN)Running smoke test...$(RESET)"
-	$(K6) run \
+	K6_PROMETHEUS_RW_SERVER_URL=$(K6_PROMETHEUS_RW_SERVER_URL) $(K6) run \
 		--env BASE_URL=$(BASE_URL) \
+		--out experimental-prometheus-rw \
 		--out json=$(K6_RESULTS_DIR)/smoke-$$(date +%Y%m%d-%H%M%S).json \
 		$(K6_SCRIPTS_DIR)/smoke.js
 	@echo "$(GREEN)Smoke test complete$(RESET)"
 
 load-test-load: $(K6_RESULTS_DIR) ## Run load test (10-50 VUs, 5 min)
 	@echo "$(CYAN)Running load test...$(RESET)"
-	$(K6) run \
+	K6_PROMETHEUS_RW_SERVER_URL=$(K6_PROMETHEUS_RW_SERVER_URL) $(K6) run \
 		--env BASE_URL=$(BASE_URL) \
+		--out experimental-prometheus-rw \
 		--out json=$(K6_RESULTS_DIR)/load-$$(date +%Y%m%d-%H%M%S).json \
 		$(K6_SCRIPTS_DIR)/load.js
 	@echo "$(GREEN)Load test complete$(RESET)"
@@ -114,8 +117,9 @@ load-test-load: $(K6_RESULTS_DIR) ## Run load test (10-50 VUs, 5 min)
 load-test-stress: $(K6_RESULTS_DIR) ## Run stress test (100-200 VUs, 10 min)
 	@echo "$(CYAN)Running stress test...$(RESET)"
 	@echo "$(YELLOW)WARNING: This test will push the system to its limits!$(RESET)"
-	$(K6) run \
+	K6_PROMETHEUS_RW_SERVER_URL=$(K6_PROMETHEUS_RW_SERVER_URL) $(K6) run \
 		--env BASE_URL=$(BASE_URL) \
+		--out experimental-prometheus-rw \
 		--out json=$(K6_RESULTS_DIR)/stress-$$(date +%Y%m%d-%H%M%S).json \
 		$(K6_SCRIPTS_DIR)/stress.js
 	@echo "$(GREEN)Stress test complete$(RESET)"
@@ -123,8 +127,9 @@ load-test-stress: $(K6_RESULTS_DIR) ## Run stress test (100-200 VUs, 10 min)
 load-test-soak: $(K6_RESULTS_DIR) ## Run soak test (30 VUs, 30 min)
 	@echo "$(CYAN)Running soak test...$(RESET)"
 	@echo "$(YELLOW)This test will run for approximately 30 minutes$(RESET)"
-	$(K6) run \
+	K6_PROMETHEUS_RW_SERVER_URL=$(K6_PROMETHEUS_RW_SERVER_URL) $(K6) run \
 		--env BASE_URL=$(BASE_URL) \
+		--out experimental-prometheus-rw \
 		--out json=$(K6_RESULTS_DIR)/soak-$$(date +%Y%m%d-%H%M%S).json \
 		$(K6_SCRIPTS_DIR)/soak.js
 	@echo "$(GREEN)Soak test complete$(RESET)"
@@ -139,7 +144,9 @@ load-test-docker: $(K6_RESULTS_DIR) ## Run smoke test using Docker (no k6 instal
 		--add-host=host.docker.internal:host-gateway \
 		-v $(PWD)/load-tests:/load-tests \
 		-e BASE_URL=http://host.docker.internal:8080 \
+		-e K6_PROMETHEUS_RW_SERVER_URL=http://host.docker.internal:9090/api/v1/write \
 		grafana/k6:latest run \
+		--out experimental-prometheus-rw \
 		--out json=/load-tests/results/smoke-docker-$$(date +%Y%m%d-%H%M%S).json \
 		/load-tests/scripts/scenarios/smoke.js
 	@echo "$(GREEN)Docker smoke test complete$(RESET)"

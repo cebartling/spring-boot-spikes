@@ -100,6 +100,7 @@ services:
       - '--storage.tsdb.path=/prometheus'
       - '--storage.tsdb.retention.time=7d'
       - '--web.enable-lifecycle'
+      - '--web.enable-remote-write-receiver'
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
       interval: 10s
