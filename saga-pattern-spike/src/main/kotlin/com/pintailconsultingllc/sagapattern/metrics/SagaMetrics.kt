@@ -5,6 +5,7 @@ import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Timer
 import org.springframework.stereotype.Component
 import java.time.Duration
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Custom metrics for saga pattern observability.
@@ -16,11 +17,15 @@ import java.time.Duration
  *
  * These metrics complement the automatic tracing from OpenTelemetry
  * and can be visualized via the /actuator/metrics endpoint or any Prometheus-compatible dashboard.
+ *
+ * Note: Meters are cached to avoid repeated registration overhead. While Micrometer
+ * internally deduplicates meters, caching them here improves performance by avoiding
+ * repeated map lookups and builder allocations.
  */
 @Component
 class SagaMetrics(private val meterRegistry: MeterRegistry) {
 
-    // Saga lifecycle counters
+    // Saga lifecycle counters (pre-registered, no tags)
     private val sagaStartedCounter: Counter = Counter.builder("saga.started")
         .description("Number of sagas started")
         .register(meterRegistry)
@@ -33,10 +38,16 @@ class SagaMetrics(private val meterRegistry: MeterRegistry) {
         .description("Number of sagas that required compensation")
         .register(meterRegistry)
 
-    // Saga duration timer
+    // Saga duration timer (pre-registered, no tags)
     private val sagaDurationTimer: Timer = Timer.builder("saga.duration")
         .description("Time taken to complete a saga (success or compensation)")
         .register(meterRegistry)
+
+    // Cached meters for step-level metrics (keyed by step name)
+    private val stepFailedCounters = ConcurrentHashMap<String, Counter>()
+    private val stepCompletedCounters = ConcurrentHashMap<String, Counter>()
+    private val stepDurationTimers = ConcurrentHashMap<String, Timer>()
+    private val compensationExecutedCounters = ConcurrentHashMap<String, Counter>()
 
     /**
      * Record that a saga has started.
@@ -59,11 +70,7 @@ class SagaMetrics(private val meterRegistry: MeterRegistry) {
      */
     fun sagaCompensated(failedStep: String) {
         sagaCompensatedCounter.increment()
-        Counter.builder("saga.step.failed")
-            .tag("step", failedStep)
-            .description("Number of times a specific saga step failed")
-            .register(meterRegistry)
-            .increment()
+        getOrCreateStepFailedCounter(failedStep).increment()
     }
 
     /**
@@ -83,10 +90,7 @@ class SagaMetrics(private val meterRegistry: MeterRegistry) {
      * @return The result of the step execution
      */
     fun <T : Any> timeStep(stepName: String, block: () -> T): T {
-        val timer = Timer.builder("saga.step.duration")
-            .tag("step", stepName)
-            .description("Duration of individual saga steps")
-            .register(meterRegistry)
+        val timer = getOrCreateStepDurationTimer(stepName)
         val sample = Timer.start(meterRegistry)
         return try {
             block()
@@ -103,10 +107,7 @@ class SagaMetrics(private val meterRegistry: MeterRegistry) {
      * @return The result of the step execution
      */
     suspend fun <T : Any> timeStepSuspend(stepName: String, block: suspend () -> T): T {
-        val timer = Timer.builder("saga.step.duration")
-            .tag("step", stepName)
-            .description("Duration of individual saga steps")
-            .register(meterRegistry)
+        val timer = getOrCreateStepDurationTimer(stepName)
         val sample = Timer.start(meterRegistry)
         return try {
             block()
@@ -121,11 +122,7 @@ class SagaMetrics(private val meterRegistry: MeterRegistry) {
      * @param stepName The name of the completed step
      */
     fun stepCompleted(stepName: String) {
-        Counter.builder("saga.step.completed")
-            .tag("step", stepName)
-            .description("Number of times a specific saga step completed successfully")
-            .register(meterRegistry)
-            .increment()
+        getOrCreateStepCompletedCounter(stepName).increment()
     }
 
     /**
@@ -134,10 +131,40 @@ class SagaMetrics(private val meterRegistry: MeterRegistry) {
      * @param stepName The name of the step being compensated
      */
     fun compensationExecuted(stepName: String) {
-        Counter.builder("saga.compensation.executed")
-            .tag("step", stepName)
-            .description("Number of times compensation was executed for a step")
-            .register(meterRegistry)
-            .increment()
+        getOrCreateCompensationExecutedCounter(stepName).increment()
     }
+
+    // Private helper methods to get or create cached meters
+
+    private fun getOrCreateStepFailedCounter(stepName: String): Counter =
+        stepFailedCounters.computeIfAbsent(stepName) {
+            Counter.builder("saga.step.failed")
+                .tag("step", stepName)
+                .description("Number of times a specific saga step failed")
+                .register(meterRegistry)
+        }
+
+    private fun getOrCreateStepCompletedCounter(stepName: String): Counter =
+        stepCompletedCounters.computeIfAbsent(stepName) {
+            Counter.builder("saga.step.completed")
+                .tag("step", stepName)
+                .description("Number of times a specific saga step completed successfully")
+                .register(meterRegistry)
+        }
+
+    private fun getOrCreateStepDurationTimer(stepName: String): Timer =
+        stepDurationTimers.computeIfAbsent(stepName) {
+            Timer.builder("saga.step.duration")
+                .tag("step", stepName)
+                .description("Duration of individual saga steps")
+                .register(meterRegistry)
+        }
+
+    private fun getOrCreateCompensationExecutedCounter(stepName: String): Counter =
+        compensationExecutedCounters.computeIfAbsent(stepName) {
+            Counter.builder("saga.compensation.executed")
+                .tag("step", stepName)
+                .description("Number of times compensation was executed for a step")
+                .register(meterRegistry)
+        }
 }
