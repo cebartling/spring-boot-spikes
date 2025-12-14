@@ -1,6 +1,7 @@
 package com.pintailconsultingllc.sagapattern.acceptance
 
 import io.cucumber.junit.platform.engine.Constants
+import org.junit.jupiter.api.Tag
 import org.junit.platform.suite.api.ConfigurationParameter
 import org.junit.platform.suite.api.IncludeEngines
 import org.junit.platform.suite.api.SelectClasspathResource
@@ -52,4 +53,5 @@ import org.junit.platform.suite.api.Suite
     key = Constants.SNIPPET_TYPE_PROPERTY_NAME,
     value = "camelcase"
 )
+@Tag("acceptance")
 class CucumberTestRunner

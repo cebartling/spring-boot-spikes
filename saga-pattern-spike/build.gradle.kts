@@ -120,3 +120,21 @@ tasks.register<Test>("integrationTest") {
 		exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
 	}
 }
+
+// Task to run only acceptance tests (Cucumber)
+tasks.register<Test>("acceptanceTest") {
+	description = "Runs acceptance tests only (Cucumber)"
+	group = "verification"
+	testClassesDirs = sourceSets["test"].output.classesDirs
+	classpath = sourceSets["test"].runtimeClasspath
+	useJUnitPlatform()
+	// Include only the Cucumber test runner
+	include("**/CucumberTestRunner*")
+	// Show standard output/error for acceptance tests
+	// This ensures Docker infrastructure messages are visible
+	testLogging {
+		showStandardStreams = true
+		events("skipped", "failed")
+		exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+	}
+}

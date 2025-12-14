@@ -21,6 +21,13 @@ class ScenarioHooks {
 
     private val logger = LoggerFactory.getLogger(ScenarioHooks::class.java)
 
+    // ANSI color codes for terminal output
+    private companion object {
+        private const val RESET = "\u001B[0m"
+        private const val RED = "\u001B[31m"
+        private const val GREEN = "\u001B[32m"
+    }
+
     @Autowired
     private lateinit var testContext: TestContext
 
@@ -59,18 +66,29 @@ class ScenarioHooks {
     fun beforeIntegrationScenario(scenario: Scenario) {
         logger.info("Integration test - verifying infrastructure...")
 
+        val unavailableServices = mutableListOf<String>()
+
         // Check PostgreSQL
         val postgresAvailable = isPortOpen("localhost", 5432)
         if (!postgresAvailable) {
-            logger.warn("PostgreSQL is not available at localhost:5432")
-            Assumptions.assumeTrue(false, "PostgreSQL is not running. Start with: docker compose up -d")
+            unavailableServices.add("PostgreSQL (localhost:5432)")
         }
 
         // Check WireMock
         val wireMockAvailable = isPortOpen("localhost", 8081)
         if (!wireMockAvailable) {
-            logger.warn("WireMock is not available at localhost:8081")
-            Assumptions.assumeTrue(false, "WireMock is not running. Start with: docker compose up -d")
+            unavailableServices.add("WireMock (localhost:8081)")
+        }
+
+        // If any services are unavailable, print clear message and skip
+        if (unavailableServices.isNotEmpty()) {
+            val message = buildInfrastructureUnavailableMessage(unavailableServices, scenario.name)
+            System.err.println(message)
+            System.err.flush()
+            Assumptions.assumeTrue(
+                false,
+                "Docker infrastructure not available: ${unavailableServices.joinToString(", ")}"
+            )
         }
 
         // Verify WireMock health
@@ -82,13 +100,21 @@ class ScenarioHooks {
                 .block()
 
             if (response?.statusCode?.is2xxSuccessful != true) {
+                val message = buildWireMockHealthFailedMessage(scenario.name)
+                System.err.println(message)
+                System.err.flush()
                 Assumptions.assumeTrue(false, "WireMock health check failed")
             }
         } catch (e: Exception) {
             logger.warn("WireMock health check failed: ${e.message}")
+            val message = buildWireMockHealthFailedMessage(scenario.name)
+            System.err.println(message)
+            System.err.flush()
             Assumptions.assumeTrue(false, "WireMock health check failed: ${e.message}")
         }
 
+        System.out.println("$GREEN✓ PostgreSQL is available at localhost:5432$RESET")
+        System.out.println("$GREEN✓ WireMock is available at localhost:8081$RESET")
         logger.info("Infrastructure verified successfully")
     }
 
@@ -135,6 +161,80 @@ class ScenarioHooks {
             Socket(host, port).use { true }
         } catch (e: Exception) {
             false
+        }
+    }
+
+    private fun buildInfrastructureUnavailableMessage(unavailableServices: List<String>, scenarioName: String): String {
+        val boxWidth = 78
+        val border = "═".repeat(boxWidth)
+        val emptyLine = "║" + " ".repeat(boxWidth) + "║"
+
+        fun padLine(content: String): String {
+            val padding = boxWidth - content.length
+            return "║  $content${" ".repeat(maxOf(0, padding - 2))}║"
+        }
+
+        val title = "ACCEPTANCE TEST SKIPPED - Docker Infrastructure Not Available"
+
+        return buildString {
+            appendLine()
+            appendLine("$RED╔$border╗$RESET")
+            appendLine("$RED${padLine(title)}$RESET")
+            appendLine("$RED╠$border╣$RESET")
+            appendLine("$RED$emptyLine$RESET")
+            appendLine("$RED${padLine("Scenario: $scenarioName")}$RESET")
+            appendLine("$RED$emptyLine$RESET")
+            appendLine("$RED${padLine("The following Docker services are required but not available:")}$RESET")
+            appendLine("$RED$emptyLine$RESET")
+            unavailableServices.forEach { service ->
+                appendLine("$RED${padLine("  • $service")}$RESET")
+            }
+            appendLine("$RED$emptyLine$RESET")
+            appendLine("$RED${padLine("To start the Docker infrastructure, run:")}$RESET")
+            appendLine("$RED$emptyLine$RESET")
+            appendLine("$RED${padLine("    docker compose up -d")}$RESET")
+            appendLine("$RED$emptyLine$RESET")
+            appendLine("$RED${padLine("Then re-run the acceptance tests:")}$RESET")
+            appendLine("$RED$emptyLine$RESET")
+            appendLine("$RED${padLine("    ./gradlew acceptanceTest")}$RESET")
+            appendLine("$RED$emptyLine$RESET")
+            appendLine("$RED╚$border╝$RESET")
+            appendLine()
+        }
+    }
+
+    private fun buildWireMockHealthFailedMessage(scenarioName: String): String {
+        val boxWidth = 78
+        val border = "═".repeat(boxWidth)
+        val emptyLine = "║" + " ".repeat(boxWidth) + "║"
+
+        fun padLine(content: String): String {
+            val padding = boxWidth - content.length
+            return "║  $content${" ".repeat(maxOf(0, padding - 2))}║"
+        }
+
+        val title = "ACCEPTANCE TEST SKIPPED - WireMock Health Check Failed"
+
+        return buildString {
+            appendLine()
+            appendLine("$RED╔$border╗$RESET")
+            appendLine("$RED${padLine(title)}$RESET")
+            appendLine("$RED╠$border╣$RESET")
+            appendLine("$RED$emptyLine$RESET")
+            appendLine("$RED${padLine("Scenario: $scenarioName")}$RESET")
+            appendLine("$RED$emptyLine$RESET")
+            appendLine("$RED${padLine("WireMock is running but health check failed.")}$RESET")
+            appendLine("$RED$emptyLine$RESET")
+            appendLine("$RED${padLine("Try restarting the Docker infrastructure:")}$RESET")
+            appendLine("$RED$emptyLine$RESET")
+            appendLine("$RED${padLine("    docker compose restart wiremock")}$RESET")
+            appendLine("$RED$emptyLine$RESET")
+            appendLine("$RED${padLine("Or reset all services:")}$RESET")
+            appendLine("$RED$emptyLine$RESET")
+            appendLine("$RED${padLine("    docker compose down && docker compose up -d")}$RESET")
+            appendLine("$RED$emptyLine$RESET")
+            appendLine("$RED╚$border╝$RESET")
+            appendLine()
         }
     }
 }
