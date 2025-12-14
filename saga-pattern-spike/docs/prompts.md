@@ -179,3 +179,16 @@ All changes will reside in this feature branch until the implementation is compl
 Once the implementation is complete, create a pull request to merge the feature branch into the main branch.
 The pull request should include a description of the changes made and reference the implementation plan.
 ```
+### Code review prompts
+
+#### Find and build plan
+
+```
+Review the Kotlin/Spring Boot implementation of the saga pattern in the spike solution project.
+Think hard about the code structure, readability, and adherence to best practices.
+Provide constructive feedback and suggestions for improvement.
+Save the improvement feedback and suggestions to @docs/implementation-plans/REFACTORING-001.md.
+Create a feature branch and commit the documentation to this feature branch.
+Do not make any code changes in this feature branch.
+The pull request should include a description of the changes made and reference the refactoring implementation plan.
+```
