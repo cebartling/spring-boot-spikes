@@ -3,7 +3,6 @@ package com.pintailconsultingllc.sagapattern.infrastructure
 import io.r2dbc.spi.ConnectionFactories
 import io.r2dbc.spi.ConnectionFactory
 import io.r2dbc.spi.ConnectionFactoryOptions
-import org.junit.jupiter.api.Assumptions
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
@@ -12,7 +11,6 @@ import org.junit.jupiter.api.Test
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
-import java.net.Socket
 
 /**
  * Integration tests for PostgreSQL database infrastructure.
@@ -22,14 +20,18 @@ import java.net.Socket
  *
  * Requires Docker Compose services to be running:
  *   docker compose up -d
+ *
+ * Run these tests with:
+ *   ./gradlew integrationTest
+ *
+ * Or run only PostgreSQL tests:
+ *   ./gradlew integrationTest --tests "*PostgresIntegrationTest"
  */
 @Tag("integration")
 @DisplayName("PostgreSQL Infrastructure Integration Tests")
 class PostgresIntegrationTest {
 
     companion object {
-        private const val POSTGRES_HOST = "localhost"
-        private const val POSTGRES_PORT = 5432
         private const val POSTGRES_DB = "saga_db"
         private const val POSTGRES_USER = "saga_user"
         private const val POSTGRES_PASSWORD = "saga_password"
@@ -39,30 +41,21 @@ class PostgresIntegrationTest {
         @JvmStatic
         @BeforeAll
         fun setup() {
-            // Skip tests if PostgreSQL is not running
-            Assumptions.assumeTrue(
-                isPortOpen(POSTGRES_HOST, POSTGRES_PORT),
-                "PostgreSQL server is not running at $POSTGRES_HOST:$POSTGRES_PORT. Start with: docker compose up -d"
+            // Skip tests with clear messaging if PostgreSQL is not running
+            InfrastructureTestSupport.assumeServiceAvailable(
+                InfrastructureTestSupport.Service.POSTGRESQL
             )
 
             connectionFactory = ConnectionFactories.get(
                 ConnectionFactoryOptions.builder()
                     .option(ConnectionFactoryOptions.DRIVER, "postgresql")
-                    .option(ConnectionFactoryOptions.HOST, POSTGRES_HOST)
-                    .option(ConnectionFactoryOptions.PORT, POSTGRES_PORT)
+                    .option(ConnectionFactoryOptions.HOST, InfrastructureTestSupport.Service.POSTGRESQL.host)
+                    .option(ConnectionFactoryOptions.PORT, InfrastructureTestSupport.Service.POSTGRESQL.port)
                     .option(ConnectionFactoryOptions.DATABASE, POSTGRES_DB)
                     .option(ConnectionFactoryOptions.USER, POSTGRES_USER)
                     .option(ConnectionFactoryOptions.PASSWORD, POSTGRES_PASSWORD)
                     .build()
             )
-        }
-
-        private fun isPortOpen(host: String, port: Int): Boolean {
-            return try {
-                Socket(host, port).use { true }
-            } catch (e: Exception) {
-                false
-            }
         }
     }
 
@@ -171,7 +164,7 @@ class PostgresIntegrationTest {
         @Test
         @DisplayName("Orders table should have required columns")
         fun ordersTableShouldHaveRequiredColumns() {
-            val expectedColumns = listOf("id", "customer_id", "total_amount", "status", "created_at", "updated_at")
+            val expectedColumns = listOf("id", "customer_id", "total_amount_in_cents", "status", "created_at", "updated_at")
             verifyTableColumns("orders", expectedColumns)
         }
 
@@ -189,8 +182,8 @@ class PostgresIntegrationTest {
         @DisplayName("Order events table should have required columns")
         fun orderEventsTableShouldHaveRequiredColumns() {
             val expectedColumns = listOf(
-                "id", "order_id", "event_type", "step_name", "outcome",
-                "details", "error_code", "error_message", "timestamp"
+                "id", "order_id", "saga_execution_id", "event_type", "step_name",
+                "outcome", "details", "error_info", "timestamp"
             )
             verifyTableColumns("order_events", expectedColumns)
         }

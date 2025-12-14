@@ -1,6 +1,5 @@
 package com.pintailconsultingllc.sagapattern.infrastructure
 
-import org.junit.jupiter.api.Assumptions
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
@@ -10,7 +9,6 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.test.StepVerifier
-import java.net.Socket
 import java.util.UUID
 
 /**
@@ -21,38 +19,34 @@ import java.util.UUID
  *
  * Requires Docker Compose services to be running:
  *   docker compose up -d
+ *
+ * Run these tests with:
+ *   ./gradlew integrationTest
+ *
+ * Or run only WireMock tests:
+ *   ./gradlew integrationTest --tests "*WireMockIntegrationTest"
  */
 @Tag("integration")
 @DisplayName("WireMock Infrastructure Integration Tests")
 class WireMockIntegrationTest {
 
     companion object {
-        private const val WIREMOCK_HOST = "localhost"
-        private const val WIREMOCK_PORT = 8081
-        private const val WIREMOCK_BASE_URL = "http://$WIREMOCK_HOST:$WIREMOCK_PORT"
+        private val wiremockBaseUrl: String
+            get() = "http://${InfrastructureTestSupport.Service.WIREMOCK.host}:${InfrastructureTestSupport.Service.WIREMOCK.port}"
 
         private lateinit var webClient: WebClient
 
         @JvmStatic
         @BeforeAll
         fun setup() {
-            // Skip tests if WireMock is not running
-            Assumptions.assumeTrue(
-                isPortOpen(WIREMOCK_HOST, WIREMOCK_PORT),
-                "WireMock server is not running at $WIREMOCK_BASE_URL. Start with: docker compose up -d"
+            // Skip tests with clear messaging if WireMock is not running
+            InfrastructureTestSupport.assumeServiceAvailable(
+                InfrastructureTestSupport.Service.WIREMOCK
             )
 
             webClient = WebClient.builder()
-                .baseUrl(WIREMOCK_BASE_URL)
+                .baseUrl(wiremockBaseUrl)
                 .build()
-        }
-
-        private fun isPortOpen(host: String, port: Int): Boolean {
-            return try {
-                Socket(host, port).use { true }
-            } catch (e: Exception) {
-                false
-            }
         }
     }
 
@@ -123,10 +117,12 @@ class WireMockIntegrationTest {
         @DisplayName("Should return conflict for out-of-stock product")
         fun shouldReturnConflictForOutOfStockProduct() {
             val orderId = UUID.randomUUID()
+            // Use the specific productId that WireMock stub expects for out-of-stock scenario
+            val outOfStockProductId = "00000000-0000-0000-0000-000000000000"
             val requestBody = """
                 {
                     "orderId": "$orderId",
-                    "items": [{"productId": "out-of-stock-product", "quantity": 5}]
+                    "items": [{"productId": "$outOfStockProductId", "quantity": 5}]
                 }
             """.trimIndent()
 

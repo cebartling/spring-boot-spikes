@@ -55,6 +55,42 @@ Tests are organized using JUnit 5 `@Tag` annotations:
 | `unitTest` | `./gradlew unitTest` | Run unit tests only (fast, no Docker) |
 | `integrationTest` | `./gradlew integrationTest` | Run integration tests only (requires Docker) |
 
+### Integration Test Infrastructure
+
+Integration tests automatically detect Docker infrastructure availability and skip gracefully with clear messaging when services are unavailable.
+
+**Required Docker Services for Integration Tests:**
+
+| Service | Port | Test Class |
+|---------|------|------------|
+| PostgreSQL | 5432 | `PostgresIntegrationTest` |
+| WireMock | 8081 | `WireMockIntegrationTest` |
+
+**When Docker is unavailable**, tests are skipped with a detailed message including:
+- Which service is required
+- The expected host and port
+- Instructions to start Docker infrastructure
+
+**Example output when Docker is not running:**
+```
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  INTEGRATION TEST SKIPPED - Docker Infrastructure Not Available              ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║  Required Service: PostgreSQL                                                ║
+║  Expected at:      localhost:5432                                            ║
+║                                                                              ║
+║  To start the Docker infrastructure, run:                                    ║
+║      docker compose up -d                                                    ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+```
+
+**Infrastructure Test Support Utility:**
+
+The `InfrastructureTestSupport` class provides reusable utilities for integration tests:
+- Service availability checking
+- Clear skip messaging
+- Centralized service configuration (hosts, ports)
+
 ## Infrastructure Commands
 
 ```bash

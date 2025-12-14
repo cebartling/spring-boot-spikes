@@ -112,4 +112,11 @@ tasks.register<Test>("integrationTest") {
 	useJUnitPlatform {
 		includeTags("integration")
 	}
+	// Show standard output/error for integration tests
+	// This ensures Docker infrastructure messages are visible
+	testLogging {
+		showStandardStreams = true
+		events("skipped", "failed")
+		exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+	}
 }
