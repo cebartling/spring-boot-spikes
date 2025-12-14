@@ -75,7 +75,7 @@ infra-up: ## Start all infrastructure services
 	@echo "  - Prometheus:  localhost:9090"
 	@echo "  - Pushgateway: localhost:9091"
 	@echo "  - Loki:        localhost:3100"
-	@echo "  - Grafana:     localhost:3000 (admin/admin)"
+	@echo "  - Grafana:     localhost:3000 (no login required)"
 
 infra-down: ## Stop all infrastructure services
 	$(DOCKER_COMPOSE) down

@@ -390,7 +390,7 @@ saga:
 | Prometheus | 9090 | Metrics database and query UI |
 | Pushgateway | 9091 | k6 load test metrics |
 | Loki | 3100 | Log aggregation |
-| Grafana | 3000 | Unified visualization (admin/admin) |
+| Grafana | 3000 | Unified visualization (no login required) |
 
 ### Vault Integration
 
@@ -465,7 +465,7 @@ Metrics are collected via Prometheus and visualized in Grafana.
 **Viewing Metrics:**
 
 1. Start services: `docker compose up -d`
-2. Open Grafana: http://localhost:3000 (admin/admin)
+2. Open Grafana: http://localhost:3000 (no login required)
 3. Navigate to the "Saga Pattern" folder to see pre-configured dashboards
 
 **Pre-configured Dashboards:**
@@ -634,7 +634,6 @@ make help
 
 1. Start services: `docker compose up -d`
 2. Open the k6 dashboard directly: http://localhost:3000/d/k6-load-testing/k6-load-testing?orgId=1&refresh=5s&from=now-5m&to=now
-3. Login with `admin/admin` if prompted
 
 ### Test Scenarios
 

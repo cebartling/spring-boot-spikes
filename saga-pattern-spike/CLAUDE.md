@@ -176,7 +176,7 @@ docker compose up -d
 open http://localhost:16686
 
 # Access Grafana (metrics, logs, traces)
-open http://localhost:3000  # admin/admin
+open http://localhost:3000  # no login required
 
 # Access Prometheus (metrics queries)
 open http://localhost:9090
