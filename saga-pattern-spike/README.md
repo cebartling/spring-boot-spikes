@@ -419,7 +419,7 @@ docker exec saga-vault vault read database/creds/sagapattern-readwrite
 ### Unit Tests
 
 ```bash
-./gradlew test
+./gradlew test -DincludeTags=unit
 ```
 
 ### Acceptance Tests (Cucumber)
