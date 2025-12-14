@@ -185,9 +185,9 @@ object InfrastructureTestSupport {
 
         return buildString {
             appendLine()
-            appendLine("$RED$BOLD╔$border╗$RESET")
-            appendLine("$RED$BOLD${padLine(title)}$RESET")
-            appendLine("$RED$BOLD╠$border╣$RESET")
+            appendLine("$RED╔$border╗$RESET")
+            appendLine("$RED${padLine(title)}$RESET")
+            appendLine("$RED╠$border╣$RESET")
             appendLine("$RED$emptyLine$RESET")
             appendLine("$RED${padLine("Required Service: $serviceName")}$RESET")
             appendLine("$RED${padLine("Description:      $serviceDesc")}$RESET")
@@ -195,13 +195,13 @@ object InfrastructureTestSupport {
             appendLine("$RED$emptyLine$RESET")
             appendLine("$RED${padLine("To start the Docker infrastructure, run:")}$RESET")
             appendLine("$RED$emptyLine$RESET")
-            appendLine("$RED$BOLD${padLine("    docker compose up -d")}$RESET")
+            appendLine("$RED${padLine("    docker compose up -d")}$RESET")
             appendLine("$RED$emptyLine$RESET")
             appendLine("$RED${padLine("Then re-run the integration tests:")}$RESET")
             appendLine("$RED$emptyLine$RESET")
-            appendLine("$RED$BOLD${padLine("    ./gradlew integrationTest")}$RESET")
+            appendLine("$RED${padLine("    ./gradlew integrationTest")}$RESET")
             appendLine("$RED$emptyLine$RESET")
-            appendLine("$RED$BOLD╚$border╝$RESET")
+            appendLine("$RED╚$border╝$RESET")
             appendLine()
         }
     }
