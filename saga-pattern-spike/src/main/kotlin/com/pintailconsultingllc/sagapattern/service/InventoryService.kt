@@ -17,7 +17,8 @@ import java.util.UUID
  */
 @Service
 class InventoryService(
-    @Qualifier("inventoryWebClient") private val webClient: WebClient
+    @Qualifier("inventoryWebClient") private val webClient: WebClient,
+    private val errorResponseParser: ErrorResponseParser
 ) {
     private val logger = LoggerFactory.getLogger(InventoryService::class.java)
 
@@ -56,7 +57,7 @@ class InventoryService(
             logger.error("Inventory reservation failed: ${e.statusCode} - ${e.responseBodyAsString}")
             throw InventoryException(
                 message = "Failed to reserve inventory: ${e.responseBodyAsString}",
-                errorCode = extractErrorCode(e.responseBodyAsString),
+                errorCode = errorResponseParser.extractErrorCode(e.responseBodyAsString),
                 cause = e
             )
         }
@@ -86,15 +87,6 @@ class InventoryService(
             )
         }
     }
-
-    private fun extractErrorCode(responseBody: String): String? {
-        return try {
-            val regex = """"error"\s*:\s*"([^"]+)"""".toRegex()
-            regex.find(responseBody)?.groupValues?.get(1)
-        } catch (e: Exception) {
-            null
-        }
-    }
 }
 
 data class ReservationRequest(
@@ -115,6 +107,7 @@ data class ReservationResponse(
 
 class InventoryException(
     message: String,
-    val errorCode: String? = null,
+    override val errorCode: String? = null,
+    override val retryable: Boolean = false,
     cause: Throwable? = null
-) : RuntimeException(message, cause)
+) : SagaServiceException(message, errorCode, retryable, cause)

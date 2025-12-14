@@ -9,10 +9,10 @@ import com.pintailconsultingllc.sagapattern.domain.OrderStatus
 import com.pintailconsultingllc.sagapattern.history.OrderEventService
 import com.pintailconsultingllc.sagapattern.repository.OrderItemRepository
 import com.pintailconsultingllc.sagapattern.repository.OrderRepository
+import com.pintailconsultingllc.sagapattern.domain.ShippingAddress
 import com.pintailconsultingllc.sagapattern.saga.OrderSagaOrchestrator
 import com.pintailconsultingllc.sagapattern.saga.SagaContext
 import com.pintailconsultingllc.sagapattern.saga.SagaResult
-import com.pintailconsultingllc.sagapattern.saga.ShippingAddress
 import io.micrometer.observation.annotation.Observed
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service

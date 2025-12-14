@@ -4,7 +4,7 @@ import com.pintailconsultingllc.sagapattern.domain.Order
 import com.pintailconsultingllc.sagapattern.domain.OrderItem
 import com.pintailconsultingllc.sagapattern.domain.OrderStatus
 import com.pintailconsultingllc.sagapattern.saga.SagaContext
-import com.pintailconsultingllc.sagapattern.saga.ShippingAddress
+import com.pintailconsultingllc.sagapattern.domain.ShippingAddress
 import com.pintailconsultingllc.sagapattern.service.InventoryException
 import com.pintailconsultingllc.sagapattern.service.InventoryService
 import com.pintailconsultingllc.sagapattern.service.ReservationResponse

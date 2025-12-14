@@ -1,6 +1,6 @@
 package com.pintailconsultingllc.sagapattern.service
 
-import com.pintailconsultingllc.sagapattern.saga.ShippingAddress
+import com.pintailconsultingllc.sagapattern.domain.ShippingAddress
 import io.micrometer.observation.annotation.Observed
 import kotlinx.coroutines.reactor.awaitSingle
 import org.slf4j.LoggerFactory
@@ -16,7 +16,8 @@ import java.util.UUID
  */
 @Service
 class ShippingService(
-    @Qualifier("shippingWebClient") private val webClient: WebClient
+    @Qualifier("shippingWebClient") private val webClient: WebClient,
+    private val errorResponseParser: ErrorResponseParser
 ) {
     private val logger = LoggerFactory.getLogger(ShippingService::class.java)
 
@@ -59,8 +60,8 @@ class ShippingService(
             logger.error("Shipment creation failed: ${e.statusCode} - ${e.responseBodyAsString}")
             throw ShippingException(
                 message = "Failed to create shipment: ${e.responseBodyAsString}",
-                errorCode = extractErrorCode(e.responseBodyAsString),
-                retryable = isRetryable(e.responseBodyAsString),
+                errorCode = errorResponseParser.extractErrorCode(e.responseBodyAsString),
+                retryable = errorResponseParser.isRetryable(e.responseBodyAsString),
                 cause = e
             )
         }
@@ -90,24 +91,6 @@ class ShippingService(
             )
         }
     }
-
-    private fun extractErrorCode(responseBody: String): String? {
-        return try {
-            val regex = """"error"\s*:\s*"([^"]+)"""".toRegex()
-            regex.find(responseBody)?.groupValues?.get(1)
-        } catch (e: Exception) {
-            null
-        }
-    }
-
-    private fun isRetryable(responseBody: String): Boolean {
-        return try {
-            val regex = """"retryable"\s*:\s*(true|false)""".toRegex()
-            regex.find(responseBody)?.groupValues?.get(1)?.toBoolean() ?: false
-        } catch (e: Exception) {
-            false
-        }
-    }
 }
 
 data class ShipmentRequest(
@@ -134,7 +117,7 @@ data class ShipmentResponse(
 
 class ShippingException(
     message: String,
-    val errorCode: String? = null,
-    val retryable: Boolean = false,
+    override val errorCode: String? = null,
+    override val retryable: Boolean = false,
     cause: Throwable? = null
-) : RuntimeException(message, cause)
+) : SagaServiceException(message, errorCode, retryable, cause)

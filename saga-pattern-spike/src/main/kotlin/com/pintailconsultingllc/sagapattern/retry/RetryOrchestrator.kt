@@ -20,7 +20,7 @@ import com.pintailconsultingllc.sagapattern.saga.SagaContext
 import com.pintailconsultingllc.sagapattern.saga.SagaResult
 import com.pintailconsultingllc.sagapattern.saga.SagaStep
 import com.pintailconsultingllc.sagapattern.saga.SagaStepRegistry
-import com.pintailconsultingllc.sagapattern.saga.ShippingAddress
+import com.pintailconsultingllc.sagapattern.domain.ShippingAddress
 import com.pintailconsultingllc.sagapattern.saga.StepResult
 import com.pintailconsultingllc.sagapattern.saga.compensation.CompensationSummary
 import io.micrometer.observation.annotation.Observed

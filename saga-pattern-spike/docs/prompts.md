@@ -192,3 +192,12 @@ Create a feature branch and commit the documentation to this feature branch.
 Do not make any code changes in this feature branch.
 The pull request should include a description of the changes made and reference the refactoring implementation plan.
 ```
+
+#### Implementation of refactoring plan
+
+```
+Implement phase 1 of refactoring opportunities found in @docs/implementation-plans/REFACTORING-001.md.
+Create a feature branch and commit changes often to this feature branch.
+Once all the changes for phase 1 are complete, create a pull request to merge the feature branch into the main branch.
+The pull request should include a description of the changes made and reference the refactoring implementation plan.
+```
