@@ -3,6 +3,7 @@ package com.pintailconsultingllc.sagapattern.saga
 import com.pintailconsultingllc.sagapattern.domain.Order
 import com.pintailconsultingllc.sagapattern.domain.OrderItem
 import com.pintailconsultingllc.sagapattern.domain.OrderStatus
+import com.pintailconsultingllc.sagapattern.domain.ShippingAddress
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.util.UUID

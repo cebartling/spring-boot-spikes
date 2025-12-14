@@ -13,7 +13,7 @@ import com.pintailconsultingllc.sagapattern.repository.RetryAttemptRepository
 import com.pintailconsultingllc.sagapattern.repository.SagaExecutionRepository
 import com.pintailconsultingllc.sagapattern.repository.SagaStepResultRepository
 import com.pintailconsultingllc.sagapattern.saga.SagaContext
-import com.pintailconsultingllc.sagapattern.saga.ShippingAddress as SagaShippingAddress
+import com.pintailconsultingllc.sagapattern.domain.ShippingAddress as SagaShippingAddress
 import com.pintailconsultingllc.sagapattern.saga.steps.InventoryReservationStep
 import io.micrometer.observation.annotation.Observed
 import org.slf4j.LoggerFactory

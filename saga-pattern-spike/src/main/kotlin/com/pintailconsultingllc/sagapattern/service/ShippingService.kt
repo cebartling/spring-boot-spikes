@@ -1,6 +1,6 @@
 package com.pintailconsultingllc.sagapattern.service
 
-import com.pintailconsultingllc.sagapattern.saga.ShippingAddress
+import com.pintailconsultingllc.sagapattern.domain.ShippingAddress
 import io.micrometer.observation.annotation.Observed
 import kotlinx.coroutines.reactor.awaitSingle
 import org.slf4j.LoggerFactory

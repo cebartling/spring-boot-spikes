@@ -1,6 +1,7 @@
 package com.pintailconsultingllc.sagapattern.saga
 
 import com.pintailconsultingllc.sagapattern.domain.Order
+import com.pintailconsultingllc.sagapattern.domain.ShippingAddress
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
@@ -103,14 +104,3 @@ data class SagaContext(
         const val KEY_ESTIMATED_DELIVERY = "estimatedDelivery"
     }
 }
-
-/**
- * Shipping address details for order fulfillment.
- */
-data class ShippingAddress(
-    val street: String,
-    val city: String,
-    val state: String,
-    val postalCode: String,
-    val country: String
-)
