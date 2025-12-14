@@ -2,6 +2,7 @@ package com.pintailconsultingllc.sagapattern.progress
 
 import com.pintailconsultingllc.sagapattern.domain.SagaStepResult
 import com.pintailconsultingllc.sagapattern.domain.StepStatus
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import java.time.Instant
 import java.util.UUID
@@ -13,6 +14,7 @@ import kotlin.test.assertTrue
 /**
  * Unit tests for StepProgress.
  */
+@Tag("unit")
 class StepProgressTest {
 
     private val testExecutionId = UUID.randomUUID()

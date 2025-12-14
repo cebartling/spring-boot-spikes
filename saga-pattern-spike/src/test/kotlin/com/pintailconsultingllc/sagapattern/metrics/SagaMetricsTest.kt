@@ -2,6 +2,7 @@ package com.pintailconsultingllc.sagapattern.metrics
 
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import java.time.Duration
 import kotlin.test.assertEquals
@@ -11,6 +12,7 @@ import kotlin.test.assertTrue
 /**
  * Unit tests for SagaMetrics.
  */
+@Tag("unit")
 class SagaMetricsTest {
 
     private lateinit var meterRegistry: SimpleMeterRegistry

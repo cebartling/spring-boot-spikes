@@ -1,6 +1,7 @@
 package com.pintailconsultingllc.sagapattern.event
 
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import reactor.test.StepVerifier
 import java.time.Duration
@@ -12,6 +13,7 @@ import kotlin.test.assertTrue
 /**
  * Unit tests for OrderStatusEventPublisher.
  */
+@Tag("unit")
 class OrderStatusEventPublisherTest {
 
     private lateinit var publisher: OrderStatusEventPublisher

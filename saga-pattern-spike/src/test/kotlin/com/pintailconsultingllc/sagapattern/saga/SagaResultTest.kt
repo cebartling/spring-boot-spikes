@@ -2,6 +2,7 @@ package com.pintailconsultingllc.sagapattern.saga
 
 import com.pintailconsultingllc.sagapattern.domain.Order
 import com.pintailconsultingllc.sagapattern.domain.OrderStatus
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import java.time.LocalDate
 import java.util.UUID
@@ -12,6 +13,7 @@ import kotlin.test.assertTrue
 /**
  * Unit tests for SagaResult.
  */
+@Tag("unit")
 class SagaResultTest {
 
     private val testOrder = Order(

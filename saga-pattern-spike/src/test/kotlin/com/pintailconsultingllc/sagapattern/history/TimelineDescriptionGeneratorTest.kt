@@ -1,5 +1,6 @@
 package com.pintailconsultingllc.sagapattern.history
 
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import java.util.UUID
 import kotlin.test.assertEquals
@@ -8,6 +9,7 @@ import kotlin.test.assertTrue
 /**
  * Unit tests for DefaultTimelineDescriptionGenerator.
  */
+@Tag("unit")
 class TimelineDescriptionGeneratorTest {
 
     private val generator = DefaultTimelineDescriptionGenerator()

@@ -3,6 +3,7 @@ package com.pintailconsultingllc.sagapattern.retry
 import com.pintailconsultingllc.sagapattern.domain.Order
 import com.pintailconsultingllc.sagapattern.domain.OrderStatus
 import com.pintailconsultingllc.sagapattern.saga.SagaResult
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import java.time.LocalDate
 import java.util.UUID
@@ -12,6 +13,7 @@ import kotlin.test.assertTrue
 /**
  * Unit tests for SagaRetryResult sealed class.
  */
+@Tag("unit")
 class SagaRetryResultTest {
 
     private val testOrderId = UUID.randomUUID()

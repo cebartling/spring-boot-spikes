@@ -1,5 +1,6 @@
 package com.pintailconsultingllc.sagapattern.history
 
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import java.time.Instant
 import kotlin.test.assertEquals
@@ -8,6 +9,7 @@ import kotlin.test.assertNull
 /**
  * Unit tests for TimelineEntry factory methods.
  */
+@Tag("unit")
 class TimelineEntryTest {
 
     private val testTimestamp = Instant.now()

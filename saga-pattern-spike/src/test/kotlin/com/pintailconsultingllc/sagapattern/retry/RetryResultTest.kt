@@ -1,6 +1,7 @@
 package com.pintailconsultingllc.sagapattern.retry
 
 import com.pintailconsultingllc.sagapattern.domain.OrderStatus
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import java.time.Instant
 import java.util.UUID
@@ -12,6 +13,7 @@ import kotlin.test.assertTrue
 /**
  * Unit tests for RetryResult.
  */
+@Tag("unit")
 class RetryResultTest {
 
     private val testOrderId = UUID.randomUUID()
@@ -121,6 +123,7 @@ class RetryResultTest {
 /**
  * Unit tests for PriceChange.
  */
+@Tag("unit")
 class PriceChangeTest {
 
     @Test

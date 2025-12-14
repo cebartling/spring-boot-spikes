@@ -1,6 +1,7 @@
 package com.pintailconsultingllc.sagapattern.history
 
 import com.pintailconsultingllc.sagapattern.domain.OrderStatus
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import java.time.Instant
 import java.util.UUID
@@ -12,6 +13,7 @@ import kotlin.test.assertTrue
 /**
  * Unit tests for OrderTimeline.
  */
+@Tag("unit")
 class OrderTimelineTest {
 
     private val testOrderId = UUID.randomUUID()
