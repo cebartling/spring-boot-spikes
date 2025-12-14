@@ -633,8 +633,8 @@ make help
 ### Viewing Results
 
 1. Start services: `docker compose up -d`
-2. Open Grafana: http://localhost:3000 (admin/admin)
-3. Navigate to the "k6 Load Testing" dashboard
+2. Open the k6 dashboard directly: http://localhost:3000/d/k6-load-testing/k6-load-testing?orgId=1&refresh=5s&from=now-5m&to=now
+3. Login with `admin/admin` if prompted
 
 ### Test Scenarios
 

@@ -172,7 +172,9 @@ BASE_URL=http://my-server:8080 make load-test-smoke
 
 ### Grafana Dashboard
 
-The k6 Load Testing dashboard is automatically provisioned in Grafana at http://localhost:3000.
+The k6 Load Testing dashboard is automatically provisioned in Grafana.
+
+**Direct URL**: http://localhost:3000/d/k6-load-testing/k6-load-testing?orgId=1&refresh=5s&from=now-5m&to=now
 
 **Dashboard Panels**:
 - **Overview**: Active VUs, request rate, error rate, p95 latency

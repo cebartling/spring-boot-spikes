@@ -284,6 +284,8 @@ The "k6 Load Testing" dashboard is auto-provisioned in Grafana showing:
 - Request rate by endpoint
 - Custom saga metrics
 
+**Direct URL**: http://localhost:3000/d/k6-load-testing/k6-load-testing?orgId=1&refresh=5s&from=now-5m&to=now
+
 See `docs/implementation-plans/LOAD-001-k6-load-testing.md` for full implementation details.
 See `load-tests/README.md` for detailed usage guide.
 
