@@ -17,6 +17,7 @@ This project demonstrates a comprehensive implementation of the [saga orchestrat
 - **Metrics Dashboard** - JVM, HTTP, and saga metrics with Prometheus and Grafana
 - **Centralized Logging** - Log aggregation with Loki and Grafana
 - **Dynamic Secrets** - HashiCorp Vault integration for secure credential management
+- **Load Testing** - k6 performance testing with Prometheus/Grafana integration
 
 ## Architecture
 
@@ -69,6 +70,7 @@ flowchart TB
 | Grafana | 10.2 | Unified visualization |
 | Micrometer | - | Metrics and observations |
 | Cucumber | 7.20 | Acceptance testing |
+| k6 | latest | Load and performance testing |
 | WireMock | 3.9 | External service mocking |
 | Gradle | 9.2 | Build system (Kotlin DSL) |
 | JVM | 24 | Amazon Corretto |
@@ -476,6 +478,7 @@ Metrics are collected via Prometheus and visualized in Grafana.
 | Spring Boot HTTP | Request rate, latency, error rate |
 | Saga Pattern Metrics | Saga execution, compensation, step timing |
 | Application Logs | Log volume, errors, warnings, log stream |
+| k6 Load Testing | VUs, request rate, response times, error rate |
 
 ### Custom Metrics
 
@@ -599,50 +602,125 @@ This activates Java 24.0.2-amzn and Gradle 9.2.1.
 
 ## Load Testing
 
-The project includes k6 load testing for performance validation.
+The project includes comprehensive [k6](https://k6.io/) load testing for performance validation with real-time metrics visualization in Grafana.
+
+### Prerequisites
+
+**Option 1: Install k6 locally**
+
+```bash
+# macOS
+brew install k6
+
+# Windows (Chocolatey)
+choco install k6
+
+# Linux (Debian/Ubuntu)
+sudo apt-get install k6
+```
+
+**Option 2: Use Docker (no installation required)**
+
+```bash
+make load-test-docker
+```
 
 ### Quick Start
 
 ```bash
-# Install k6 (macOS)
-brew install k6
+# 1. Start infrastructure
+docker compose up -d
 
-# Or run with Docker (no installation required)
-make load-test-docker
-```
+# 2. Start the application
+./gradlew bootRun
 
-### Running Tests
-
-```bash
-# Smoke test - quick validation (1-2 VUs, 1 min)
+# 3. Run smoke test
 make load-test-smoke
 
-# Load test - normal production load (10-50 VUs, 5 min)
-make load-test-load
-
-# Stress test - find breaking points (100-200 VUs, 10 min)
-make load-test-stress
-
-# Soak test - detect memory leaks (30 VUs, 30 min)
-make load-test-soak
-
-# View all available commands
-make help
+# 4. View results in Grafana
+open http://localhost:3000/d/k6-load-testing/k6-load-testing?orgId=1&refresh=5s&from=now-5m&to=now
 ```
-
-### Viewing Results
-
-1. Start services: `docker compose up -d`
-2. Open the k6 dashboard directly: http://localhost:3000/d/k6-load-testing/k6-load-testing?orgId=1&refresh=5s&from=now-5m&to=now
 
 ### Test Scenarios
 
-| Scenario | VUs | Duration | Purpose |
-|----------|-----|----------|---------|
-| Smoke | 1-2 | 1 min | Quick validation |
-| Load | 10-50 | 5 min | Normal production load |
-| Stress | 100-200 | 10 min | Find breaking points |
-| Soak | 30 | 30 min | Detect memory leaks |
+| Scenario | Command | VUs | Duration | Purpose |
+|----------|---------|-----|----------|---------|
+| Smoke | `make load-test-smoke` | 1-2 | 1 min | Quick validation |
+| Load | `make load-test-load` | 10-50 | 5 min | Normal production load |
+| Stress | `make load-test-stress` | 100-200 | 10 min | Find breaking points |
+| Soak | `make load-test-soak` | 30 | 30 min | Detect memory leaks |
+| Docker | `make load-test-docker` | 1-2 | 1 min | No k6 install required |
+
+### Performance Thresholds
+
+| Scenario | p95 Latency | p99 Latency | Error Rate |
+|----------|-------------|-------------|------------|
+| Smoke | < 500ms | < 1000ms | < 1% |
+| Load | < 1000ms | < 2000ms | < 5% |
+| Stress | < 3000ms | < 5000ms | < 15% |
+| Soak | < 1500ms | < 3000ms | < 5% |
+
+### Grafana Dashboard
+
+The **k6 Load Testing** dashboard is auto-provisioned and displays:
+
+- **Overview**: Active VUs, request rate, error rate, p95 latency, total requests
+- **Response Times**: Percentile trends (p50, p90, p95, p99), VU count over time
+- **Throughput**: Request rate by endpoint, error rate timeline
+- **Custom Metrics**: Orders created, saga duration
+- **Data Transfer**: Sent/received rates, request timing breakdown
+
+**Direct URL**: http://localhost:3000/d/k6-load-testing/k6-load-testing?orgId=1&refresh=5s&from=now-5m&to=now
+
+### API Endpoints Tested
+
+| Endpoint | Method | Priority |
+|----------|--------|----------|
+| `/api/orders` | POST | High - Creates order (full saga execution) |
+| `/api/orders/{id}` | GET | High - Retrieve order details |
+| `/api/orders/{id}/status` | GET | High - Order processing status |
+| `/api/orders/customer/{id}` | GET | Medium - List customer orders |
+| `/actuator/health` | GET | High - Health check |
+
+### Project Structure
+
+```
+load-tests/
+├── scripts/
+│   ├── lib/
+│   │   ├── config.js           # Shared configuration and thresholds
+│   │   ├── helpers.js          # Utility functions
+│   │   └── data-generators.js  # Test data generation
+│   ├── scenarios/
+│   │   ├── smoke.js            # Smoke test (quick validation)
+│   │   ├── load.js             # Load test (normal traffic)
+│   │   ├── stress.js           # Stress test (peak load)
+│   │   └── soak.js             # Soak test (endurance)
+│   └── api/
+│       ├── orders.js           # Order API test functions
+│       └── health.js           # Health check tests
+├── results/                     # Test output (gitignored)
+└── README.md                    # Detailed load testing documentation
+```
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `BASE_URL` | `http://localhost:8080` | Application base URL |
+| `K6_PROMETHEUS_RW_SERVER_URL` | `http://localhost:9090/api/v1/write` | Prometheus remote write endpoint |
+
+### Makefile Targets
+
+```bash
+make help              # Show all available commands
+make load-test-smoke   # Run smoke test
+make load-test-load    # Run load test
+make load-test-stress  # Run stress test
+make load-test-soak    # Run soak test
+make load-test-docker  # Run smoke test with Docker
+make load-test-clean   # Clean test results
+```
 
 See [load-tests/README.md](load-tests/README.md) for detailed documentation.
 
