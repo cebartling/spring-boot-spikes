@@ -267,7 +267,7 @@ docker compose up -d
 
 ### Access Dashboards
 
-- **Grafana**: http://localhost:3000 (admin/admin)
+- **Grafana**: http://localhost:3000 (no login required)
 - **Prometheus**: http://localhost:9090
 
 ### Verify Metrics Collection

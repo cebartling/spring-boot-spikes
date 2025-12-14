@@ -17,6 +17,7 @@ This project demonstrates a comprehensive implementation of the [saga orchestrat
 - **Metrics Dashboard** - JVM, HTTP, and saga metrics with Prometheus and Grafana
 - **Centralized Logging** - Log aggregation with Loki and Grafana
 - **Dynamic Secrets** - HashiCorp Vault integration for secure credential management
+- **Load Testing** - k6 performance testing with Prometheus/Grafana integration
 
 ## Architecture
 
@@ -69,6 +70,7 @@ flowchart TB
 | Grafana | 10.2 | Unified visualization |
 | Micrometer | - | Metrics and observations |
 | Cucumber | 7.20 | Acceptance testing |
+| k6 | latest | Load and performance testing |
 | WireMock | 3.9 | External service mocking |
 | Gradle | 9.2 | Build system (Kotlin DSL) |
 | JVM | 24 | Amazon Corretto |
@@ -388,8 +390,9 @@ saga:
 | Jaeger | 16686 | Distributed tracing UI |
 | Jaeger OTLP | 4317/4318 | OTLP trace receiver |
 | Prometheus | 9090 | Metrics database and query UI |
+| Pushgateway | 9091 | k6 load test metrics |
 | Loki | 3100 | Log aggregation |
-| Grafana | 3000 | Unified visualization (admin/admin) |
+| Grafana | 3000 | Unified visualization (no login required) |
 
 ### Vault Integration
 
@@ -464,7 +467,7 @@ Metrics are collected via Prometheus and visualized in Grafana.
 **Viewing Metrics:**
 
 1. Start services: `docker compose up -d`
-2. Open Grafana: http://localhost:3000 (admin/admin)
+2. Open Grafana: http://localhost:3000 (no login required)
 3. Navigate to the "Saga Pattern" folder to see pre-configured dashboards
 
 **Pre-configured Dashboards:**
@@ -475,6 +478,7 @@ Metrics are collected via Prometheus and visualized in Grafana.
 | Spring Boot HTTP | Request rate, latency, error rate |
 | Saga Pattern Metrics | Saga execution, compensation, step timing |
 | Application Logs | Log volume, errors, warnings, log stream |
+| k6 Load Testing | VUs, request rate, response times, error rate |
 
 ### Custom Metrics
 
@@ -594,6 +598,131 @@ This activates Java 24.0.2-amzn and Gradle 9.2.1.
 - [Observability Integration](docs/implementation-plans/INFRA-004-observability-integration.md) - OpenTelemetry + Jaeger
 - [Prometheus/Grafana](docs/implementation-plans/INFRA-006-prometheus-grafana.md) - Metrics collection and visualization
 - [Loki Log Aggregation](docs/implementation-plans/INFRA-007-loki-log-aggregation.md) - Centralized logging
+- [k6 Load Testing](docs/implementation-plans/LOAD-001-k6-load-testing.md) - Performance testing framework
+
+## Load Testing
+
+The project includes comprehensive [k6](https://k6.io/) load testing for performance validation with real-time metrics visualization in Grafana.
+
+### Prerequisites
+
+**Option 1: Install k6 locally**
+
+```bash
+# macOS
+brew install k6
+
+# Windows (Chocolatey)
+choco install k6
+
+# Linux (Debian/Ubuntu)
+sudo apt-get install k6
+```
+
+**Option 2: Use Docker (no installation required)**
+
+```bash
+make load-test-docker
+```
+
+### Quick Start
+
+```bash
+# 1. Start infrastructure
+docker compose up -d
+
+# 2. Start the application
+./gradlew bootRun
+
+# 3. Run smoke test
+make load-test-smoke
+
+# 4. View results in Grafana
+open http://localhost:3000/d/k6-load-testing/k6-load-testing?orgId=1&refresh=5s&from=now-5m&to=now
+```
+
+### Test Scenarios
+
+| Scenario | Command | VUs | Duration | Purpose |
+|----------|---------|-----|----------|---------|
+| Smoke | `make load-test-smoke` | 1-2 | 1 min | Quick validation |
+| Load | `make load-test-load` | 10-50 | 5 min | Normal production load |
+| Stress | `make load-test-stress` | 100-200 | 10 min | Find breaking points |
+| Soak | `make load-test-soak` | 30 | 30 min | Detect memory leaks |
+| Docker | `make load-test-docker` | 1-2 | 1 min | No k6 install required |
+
+### Performance Thresholds
+
+| Scenario | p95 Latency | p99 Latency | Error Rate |
+|----------|-------------|-------------|------------|
+| Smoke | < 500ms | < 1000ms | < 1% |
+| Load | < 1000ms | < 2000ms | < 5% |
+| Stress | < 3000ms | < 5000ms | < 15% |
+| Soak | < 1500ms | < 3000ms | < 5% |
+
+### Grafana Dashboard
+
+The **k6 Load Testing** dashboard is auto-provisioned and displays:
+
+- **Overview**: Active VUs, request rate, error rate, p95 latency, total requests
+- **Response Times**: Percentile trends (p50, p90, p95, p99), VU count over time
+- **Throughput**: Request rate by endpoint, error rate timeline
+- **Custom Metrics**: Orders created, saga duration
+- **Data Transfer**: Sent/received rates, request timing breakdown
+
+**Direct URL**: http://localhost:3000/d/k6-load-testing/k6-load-testing?orgId=1&refresh=5s&from=now-5m&to=now
+
+### API Endpoints Tested
+
+| Endpoint | Method | Priority |
+|----------|--------|----------|
+| `/api/orders` | POST | High - Creates order (full saga execution) |
+| `/api/orders/{id}` | GET | High - Retrieve order details |
+| `/api/orders/{id}/status` | GET | High - Order processing status |
+| `/api/orders/customer/{id}` | GET | Medium - List customer orders |
+| `/actuator/health` | GET | High - Health check |
+
+### Project Structure
+
+```
+load-tests/
+├── scripts/
+│   ├── lib/
+│   │   ├── config.js           # Shared configuration and thresholds
+│   │   ├── helpers.js          # Utility functions
+│   │   └── data-generators.js  # Test data generation
+│   ├── scenarios/
+│   │   ├── smoke.js            # Smoke test (quick validation)
+│   │   ├── load.js             # Load test (normal traffic)
+│   │   ├── stress.js           # Stress test (peak load)
+│   │   └── soak.js             # Soak test (endurance)
+│   └── api/
+│       ├── orders.js           # Order API test functions
+│       └── health.js           # Health check tests
+├── results/                     # Test output (gitignored)
+└── README.md                    # Detailed load testing documentation
+```
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `BASE_URL` | `http://localhost:8080` | Application base URL |
+| `K6_PROMETHEUS_RW_SERVER_URL` | `http://localhost:9090/api/v1/write` | Prometheus remote write endpoint |
+
+### Makefile Targets
+
+```bash
+make help              # Show all available commands
+make load-test-smoke   # Run smoke test
+make load-test-load    # Run load test
+make load-test-stress  # Run stress test
+make load-test-soak    # Run soak test
+make load-test-docker  # Run smoke test with Docker
+make load-test-clean   # Clean test results
+```
+
+See [load-tests/README.md](load-tests/README.md) for detailed documentation.
 
 ## License
 

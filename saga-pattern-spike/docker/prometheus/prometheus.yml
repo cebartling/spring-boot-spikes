@@ -18,3 +18,9 @@ scrape_configs:
       - source_labels: [__address__]
         target_label: instance
         replacement: 'sagapattern-app'
+
+  # Prometheus Pushgateway for k6 load test metrics
+  - job_name: 'pushgateway'
+    honor_labels: true
+    static_configs:
+      - targets: ['pushgateway:9091']
