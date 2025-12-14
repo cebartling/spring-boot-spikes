@@ -134,10 +134,11 @@ load-test-all: load-test-smoke load-test-load ## Run smoke and load tests sequen
 
 load-test-docker: $(K6_RESULTS_DIR) ## Run smoke test using Docker (no k6 install required)
 	@echo "$(CYAN)Running smoke test with Docker...$(RESET)"
+	@echo "$(YELLOW)Note: On macOS, ensure the app is running on localhost:8080$(RESET)"
 	docker run --rm -i \
-		--network host \
+		--add-host=host.docker.internal:host-gateway \
 		-v $(PWD)/load-tests:/load-tests \
-		-e BASE_URL=$(BASE_URL) \
+		-e BASE_URL=http://host.docker.internal:8080 \
 		grafana/k6:latest run \
 		--out json=/load-tests/results/smoke-docker-$$(date +%Y%m%d-%H%M%S).json \
 		/load-tests/scripts/scenarios/smoke.js
