@@ -48,6 +48,9 @@ dependencies {
 	// Prometheus metrics registry for /actuator/prometheus endpoint
 	implementation("io.micrometer:micrometer-registry-prometheus")
 
+	// Loki4j for log aggregation
+	implementation("com.github.loki4j:loki-logback-appender:1.5.2")
+
 	developmentOnly("org.springframework.boot:spring-boot-devtools")
 	testImplementation("org.springframework.boot:spring-boot-starter-webclient-test")
 	testImplementation("io.projectreactor:reactor-test")

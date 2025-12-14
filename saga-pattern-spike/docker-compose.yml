@@ -106,7 +106,23 @@ services:
       timeout: 5s
       retries: 5
 
-  # Grafana for metrics visualization
+  # Loki for log aggregation
+  loki:
+    image: grafana/loki:3.0.0
+    container_name: saga-loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./docker/loki/loki-config.yaml:/etc/loki/local-config.yaml
+      - loki_data:/loki
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3100/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Grafana for visualization (metrics, logs, traces)
   grafana:
     image: grafana/grafana:10.2.0
     container_name: saga-grafana
@@ -122,6 +138,8 @@ services:
     depends_on:
       prometheus:
         condition: service_healthy
+      loki:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
       interval: 10s
@@ -131,4 +149,5 @@ services:
 volumes:
   postgres_data:
   prometheus_data:
+  loki_data:
   grafana_data:

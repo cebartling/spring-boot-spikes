@@ -15,6 +15,7 @@ This project demonstrates a comprehensive implementation of the [saga orchestrat
 - **Order History** - Complete timeline of saga execution with step-by-step details
 - **Distributed Tracing** - End-to-end observability with OpenTelemetry and Jaeger
 - **Metrics Dashboard** - JVM, HTTP, and saga metrics with Prometheus and Grafana
+- **Centralized Logging** - Log aggregation with Loki and Grafana
 - **Dynamic Secrets** - HashiCorp Vault integration for secure credential management
 
 ## Architecture
@@ -64,7 +65,8 @@ flowchart TB
 | Spring Cloud Vault | 2025.1.0 | Secret management |
 | OpenTelemetry | (native) | Distributed tracing |
 | Prometheus | 2.48 | Metrics collection |
-| Grafana | 10.2 | Metrics visualization |
+| Loki | 3.0 | Log aggregation |
+| Grafana | 10.2 | Unified visualization |
 | Micrometer | - | Metrics and observations |
 | Cucumber | 7.20 | Acceptance testing |
 | WireMock | 3.9 | External service mocking |
@@ -87,7 +89,7 @@ flowchart TB
    docker compose up -d
    ```
 
-   This starts PostgreSQL, HashiCorp Vault, WireMock, Jaeger, Prometheus, and Grafana.
+   This starts PostgreSQL, HashiCorp Vault, WireMock, Jaeger, Prometheus, Loki, and Grafana.
 
 2. **Run the application:**
 
@@ -386,7 +388,8 @@ saga:
 | Jaeger | 16686 | Distributed tracing UI |
 | Jaeger OTLP | 4317/4318 | OTLP trace receiver |
 | Prometheus | 9090 | Metrics database and query UI |
-| Grafana | 3000 | Metrics visualization (admin/admin) |
+| Loki | 3100 | Log aggregation |
+| Grafana | 3000 | Unified visualization (admin/admin) |
 
 ### Vault Integration
 
@@ -471,6 +474,7 @@ Metrics are collected via Prometheus and visualized in Grafana.
 | JVM Metrics | Memory, GC, threads, class loading |
 | Spring Boot HTTP | Request rate, latency, error rate |
 | Saga Pattern Metrics | Saga execution, compensation, step timing |
+| Application Logs | Log volume, errors, warnings, log stream |
 
 ### Custom Metrics
 
@@ -589,6 +593,7 @@ This activates Java 24.0.2-amzn and Gradle 9.2.1.
 - [Vault Integration](docs/implementation-plans/INFRA-003-vault-integration.md) - Secret management setup
 - [Observability Integration](docs/implementation-plans/INFRA-004-observability-integration.md) - OpenTelemetry + Jaeger
 - [Prometheus/Grafana](docs/implementation-plans/INFRA-006-prometheus-grafana.md) - Metrics collection and visualization
+- [Loki Log Aggregation](docs/implementation-plans/INFRA-007-loki-log-aggregation.md) - Centralized logging
 
 ## License
 

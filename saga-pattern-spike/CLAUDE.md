@@ -31,7 +31,7 @@ This is a Spring Boot 4.0 spike project exploring the **saga pattern** for distr
 ## Infrastructure Commands
 
 ```bash
-# Start all services (PostgreSQL, Vault, WireMock, Jaeger, Prometheus, Grafana)
+# Start all services (PostgreSQL, Vault, WireMock, Jaeger, Prometheus, Grafana, Loki)
 docker compose up -d
 
 # Stop services
@@ -132,7 +132,8 @@ Reports generated at `build/reports/cucumber/cucumber-report.html`
 - **OpenTelemetry** for distributed tracing
 - **Jaeger** for trace visualization
 - **Prometheus** for metrics collection
-- **Grafana** for metrics visualization
+- **Loki** for log aggregation
+- **Grafana** for metrics, logs, and traces visualization
 - **Micrometer** for metrics and observation API
 
 ## Architecture
@@ -150,9 +151,9 @@ The project uses Spring WebFlux for non-blocking, reactive HTTP handling. Key pa
 - `docs/implementation-plans/` - Implementation planning documents
 - `docs/prompts.md` - Claude Code prompt templates
 
-## Observability (Tracing + Metrics)
+## Observability (Tracing + Metrics + Logs)
 
-The application uses Spring Boot 4.0's native OpenTelemetry support with Jaeger for distributed tracing and Prometheus/Grafana for metrics.
+The application uses Spring Boot 4.0's native OpenTelemetry support with Jaeger for distributed tracing, Prometheus/Grafana for metrics, and Loki for log aggregation.
 
 ### Key Ports
 
@@ -162,7 +163,8 @@ The application uses Spring Boot 4.0's native OpenTelemetry support with Jaeger 
 | OTLP gRPC | 4317 | OTLP receiver (gRPC) |
 | OTLP HTTP | 4318 | OTLP receiver (HTTP) |
 | Prometheus | 9090 | Metrics database and query UI |
-| Grafana | 3000 | Metrics visualization dashboards |
+| Loki | 3100 | Log aggregation |
+| Grafana | 3000 | Unified visualization (metrics, logs, traces) |
 
 ### Observability Commands
 
@@ -173,11 +175,14 @@ docker compose up -d
 # Access Jaeger UI (traces)
 open http://localhost:16686
 
-# Access Grafana (metrics)
+# Access Grafana (metrics, logs, traces)
 open http://localhost:3000  # admin/admin
 
 # Access Prometheus (metrics queries)
 open http://localhost:9090
+
+# Check Loki ready status
+curl http://localhost:3100/ready
 
 # Check Prometheus targets
 curl http://localhost:9090/api/v1/targets | jq '.data.activeTargets[].health'
@@ -188,19 +193,20 @@ curl http://localhost:8080/actuator/prometheus | head -50
 
 ### Configuration
 
-- **Development**: OTLP exports to localhost:4318, Prometheus scrapes localhost:8080
-- **Production**: Set `OTEL_EXPORTER_OTLP_ENDPOINT` environment variable
-- **Testing**: Tracing disabled via `management.tracing.enabled=false`
+- **Development**: OTLP exports to localhost:4318, Prometheus scrapes localhost:8080, Loki receives logs on localhost:3100
+- **Production**: Set `OTEL_EXPORTER_OTLP_ENDPOINT` and `LOKI_URL` environment variables
+- **Testing**: Tracing and Loki appender disabled via Spring profiles
 
 ### Pre-configured Grafana Dashboards
 
-Three dashboards are auto-provisioned in Grafana:
+Four dashboards are auto-provisioned in Grafana:
 
 | Dashboard | Description |
 |-----------|-------------|
 | JVM Metrics | Memory, GC, threads, class loading |
 | Spring Boot HTTP | Request rate, latency, errors |
 | Saga Pattern Metrics | Saga execution, compensation, step timing |
+| Application Logs | Log volume, errors, warnings, log stream |
 
 ### Custom Metrics
 
@@ -226,6 +232,7 @@ suspend fun executeStep() { ... }
 
 See `docs/implementation-plans/INFRA-004-observability-integration.md` for tracing details.
 See `docs/implementation-plans/INFRA-006-prometheus-grafana.md` for metrics details.
+See `docs/implementation-plans/INFRA-007-loki-log-aggregation.md` for log aggregation details.
 
 ## SDK Management
 
