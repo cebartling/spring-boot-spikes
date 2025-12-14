@@ -168,27 +168,40 @@ object InfrastructureTestSupport {
     }
 
     private fun buildUnavailableMessage(service: Service): String {
-        return """
-            |
-            |$YELLOW$BOLD╔══════════════════════════════════════════════════════════════════════════════╗
-            |║  INTEGRATION TEST SKIPPED - Docker Infrastructure Not Available              ║
-            |╠══════════════════════════════════════════════════════════════════════════════╣$RESET
-            |$YELLOW║                                                                              ║
-            |║  ${RED}Required Service:$YELLOW ${service.displayName.padEnd(55)}║
-            |║  Description:      ${service.description.padEnd(55)}║
-            |║  Expected at:      ${(service.host + ":" + service.port).padEnd(55)}║
-            |║                                                                              ║
-            |║  $BOLD${GREEN}To start the Docker infrastructure, run:$RESET$YELLOW                                    ║
-            |║                                                                              ║
-            |║      $BOLD${GREEN}docker compose up -d$RESET$YELLOW                                                    ║
-            |║                                                                              ║
-            |║  Then re-run the integration tests:                                          ║
-            |║                                                                              ║
-            |║      $BOLD${GREEN}./gradlew integrationTest$RESET$YELLOW                                               ║
-            |║                                                                              ║
-            |╚══════════════════════════════════════════════════════════════════════════════╝$RESET
-            |
-        """.trimMargin()
+        val boxWidth = 78  // Inner width between the vertical bars
+        val border = "═".repeat(boxWidth)
+        val emptyLine = "║" + " ".repeat(boxWidth) + "║"
+
+        fun padLine(content: String): String {
+            val padding = boxWidth - content.length
+            return "║  $content${" ".repeat(maxOf(0, padding - 2))}║"
+        }
+
+        val serviceName = service.displayName
+        val serviceDesc = service.description
+        val serviceAddr = "${service.host}:${service.port}"
+
+        return buildString {
+            appendLine()
+            appendLine("$YELLOW$BOLD╔$border╗$RESET")
+            appendLine("$YELLOW$BOLD║  INTEGRATION TEST SKIPPED - Docker Infrastructure Not Available            ║$RESET")
+            appendLine("$YELLOW$BOLD╠$border╣$RESET")
+            appendLine("$YELLOW$emptyLine$RESET")
+            appendLine("$YELLOW${padLine("Required Service: $serviceName")}$RESET")
+            appendLine("$YELLOW${padLine("Description:      $serviceDesc")}$RESET")
+            appendLine("$YELLOW${padLine("Expected at:      $serviceAddr")}$RESET")
+            appendLine("$YELLOW$emptyLine$RESET")
+            appendLine("$YELLOW${padLine("To start the Docker infrastructure, run:")}$RESET")
+            appendLine("$YELLOW$emptyLine$RESET")
+            appendLine("$GREEN$BOLD${padLine("    docker compose up -d")}$RESET")
+            appendLine("$YELLOW$emptyLine$RESET")
+            appendLine("$YELLOW${padLine("Then re-run the integration tests:")}$RESET")
+            appendLine("$YELLOW$emptyLine$RESET")
+            appendLine("$GREEN$BOLD${padLine("    ./gradlew integrationTest")}$RESET")
+            appendLine("$YELLOW$emptyLine$RESET")
+            appendLine("$YELLOW$BOLD╚$border╝$RESET")
+            appendLine()
+        }
     }
 
     private fun buildMultipleServicesUnavailableMessage(unavailable: List<Service>): String {
