@@ -164,7 +164,7 @@ class PostgresIntegrationTest {
         @Test
         @DisplayName("Orders table should have required columns")
         fun ordersTableShouldHaveRequiredColumns() {
-            val expectedColumns = listOf("id", "customer_id", "total_amount", "status", "created_at", "updated_at")
+            val expectedColumns = listOf("id", "customer_id", "total_amount_in_cents", "status", "created_at", "updated_at")
             verifyTableColumns("orders", expectedColumns)
         }
 
@@ -182,8 +182,8 @@ class PostgresIntegrationTest {
         @DisplayName("Order events table should have required columns")
         fun orderEventsTableShouldHaveRequiredColumns() {
             val expectedColumns = listOf(
-                "id", "order_id", "event_type", "step_name", "outcome",
-                "details", "error_code", "error_message", "timestamp"
+                "id", "order_id", "saga_execution_id", "event_type", "step_name",
+                "outcome", "details", "error_info", "timestamp"
             )
             verifyTableColumns("order_events", expectedColumns)
         }

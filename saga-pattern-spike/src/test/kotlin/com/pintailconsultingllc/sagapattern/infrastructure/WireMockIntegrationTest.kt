@@ -117,10 +117,12 @@ class WireMockIntegrationTest {
         @DisplayName("Should return conflict for out-of-stock product")
         fun shouldReturnConflictForOutOfStockProduct() {
             val orderId = UUID.randomUUID()
+            // Use the specific productId that WireMock stub expects for out-of-stock scenario
+            val outOfStockProductId = "00000000-0000-0000-0000-000000000000"
             val requestBody = """
                 {
                     "orderId": "$orderId",
-                    "items": [{"productId": "out-of-stock-product", "quantity": 5}]
+                    "items": [{"productId": "$outOfStockProductId", "quantity": 5}]
                 }
             """.trimIndent()
 
