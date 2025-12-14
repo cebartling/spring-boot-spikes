@@ -107,6 +107,7 @@ data class ReservationResponse(
 
 class InventoryException(
     message: String,
-    val errorCode: String? = null,
+    override val errorCode: String? = null,
+    override val retryable: Boolean = false,
     cause: Throwable? = null
-) : RuntimeException(message, cause)
+) : SagaServiceException(message, errorCode, retryable, cause)

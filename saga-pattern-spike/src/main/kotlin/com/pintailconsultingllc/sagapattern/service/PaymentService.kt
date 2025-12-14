@@ -111,7 +111,7 @@ data class AuthorizationResponse(
 
 class PaymentException(
     message: String,
-    val errorCode: String? = null,
-    val retryable: Boolean = false,
+    override val errorCode: String? = null,
+    override val retryable: Boolean = false,
     cause: Throwable? = null
-) : RuntimeException(message, cause)
+) : SagaServiceException(message, errorCode, retryable, cause)
