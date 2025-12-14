@@ -31,7 +31,7 @@ This is a Spring Boot 4.0 spike project exploring the **saga pattern** for distr
 ## Infrastructure Commands
 
 ```bash
-# Start all services (PostgreSQL, Vault, WireMock, Jaeger)
+# Start all services (PostgreSQL, Vault, WireMock, Jaeger, Prometheus, Grafana, Loki)
 docker compose up -d
 
 # Stop services
@@ -131,6 +131,9 @@ Reports generated at `build/reports/cucumber/cucumber-report.html`
 - **Cucumber 7.20** for acceptance testing
 - **OpenTelemetry** for distributed tracing
 - **Jaeger** for trace visualization
+- **Prometheus** for metrics collection
+- **Loki** for log aggregation
+- **Grafana** for metrics, logs, and traces visualization
 - **Micrometer** for metrics and observation API
 
 ## Architecture
@@ -148,9 +151,9 @@ The project uses Spring WebFlux for non-blocking, reactive HTTP handling. Key pa
 - `docs/implementation-plans/` - Implementation planning documents
 - `docs/prompts.md` - Claude Code prompt templates
 
-## Observability (OpenTelemetry + Jaeger)
+## Observability (Tracing + Metrics + Logs)
 
-The application uses Spring Boot 4.0's native OpenTelemetry support with Jaeger for distributed tracing.
+The application uses Spring Boot 4.0's native OpenTelemetry support with Jaeger for distributed tracing, Prometheus/Grafana for metrics, and Loki for log aggregation.
 
 ### Key Ports
 
@@ -159,25 +162,51 @@ The application uses Spring Boot 4.0's native OpenTelemetry support with Jaeger 
 | Jaeger UI | 16686 | Trace visualization |
 | OTLP gRPC | 4317 | OTLP receiver (gRPC) |
 | OTLP HTTP | 4318 | OTLP receiver (HTTP) |
+| Prometheus | 9090 | Metrics database and query UI |
+| Loki | 3100 | Log aggregation |
+| Grafana | 3000 | Unified visualization (metrics, logs, traces) |
 
 ### Observability Commands
 
 ```bash
-# Start all services (Jaeger included)
+# Start all services
 docker compose up -d
 
-# Access Jaeger UI
+# Access Jaeger UI (traces)
 open http://localhost:16686
 
-# Query traces by service
-# Select "sagapattern" from the Service dropdown
+# Access Grafana (metrics, logs, traces)
+open http://localhost:3000  # admin/admin
+
+# Access Prometheus (metrics queries)
+open http://localhost:9090
+
+# Check Loki ready status
+curl http://localhost:3100/ready
+
+# Check Prometheus targets
+curl http://localhost:9090/api/v1/targets | jq '.data.activeTargets[].health'
+
+# Check Spring Boot metrics endpoint
+curl http://localhost:8080/actuator/prometheus | head -50
 ```
 
 ### Configuration
 
-- **Development**: OTLP exports to localhost:4318
-- **Production**: Set `OTEL_EXPORTER_OTLP_ENDPOINT` environment variable
-- **Testing**: OTLP disabled via `management.tracing.enabled=false`
+- **Development**: OTLP exports to localhost:4318, Prometheus scrapes localhost:8080, Loki receives logs on localhost:3100
+- **Production**: Set `OTEL_EXPORTER_OTLP_ENDPOINT` and `LOKI_URL` environment variables
+- **Testing**: Tracing and Loki appender disabled via Spring profiles
+
+### Pre-configured Grafana Dashboards
+
+Four dashboards are auto-provisioned in Grafana:
+
+| Dashboard | Description |
+|-----------|-------------|
+| JVM Metrics | Memory, GC, threads, class loading |
+| Spring Boot HTTP | Request rate, latency, errors |
+| Saga Pattern Metrics | Saga execution, compensation, step timing |
+| Application Logs | Log volume, errors, warnings, log stream |
 
 ### Custom Metrics
 
@@ -185,14 +214,12 @@ The application defines custom saga metrics via Micrometer:
 
 | Metric | Description |
 |--------|-------------|
-| `saga.started` | Number of sagas started |
-| `saga.completed` | Number of sagas completed successfully |
-| `saga.compensated` | Number of sagas requiring compensation |
-| `saga.duration` | Time to complete saga (success or compensation) |
-| `saga.step.duration` | Duration of individual saga steps |
-| `saga.step.failed` | Step failure count by step name |
-
-> **Note:** Jaeger only stores traces. Metrics are available via the `/actuator/metrics` endpoint.
+| `saga_started_total` | Number of sagas started |
+| `saga_completed_total` | Number of sagas completed successfully |
+| `saga_compensated_total` | Number of sagas requiring compensation |
+| `saga_duration_seconds` | Time to complete saga (success or compensation) |
+| `saga_step_duration_seconds` | Duration of individual saga steps |
+| `saga_step_failed_total` | Step failure count by step name |
 
 ### Using @Observed Annotation
 
@@ -203,7 +230,9 @@ Add observability to any method using the `@Observed` annotation:
 suspend fun executeStep() { ... }
 ```
 
-See `docs/implementation-plans/INFRA-004-observability-integration.md` for full implementation details.
+See `docs/implementation-plans/INFRA-004-observability-integration.md` for tracing details.
+See `docs/implementation-plans/INFRA-006-prometheus-grafana.md` for metrics details.
+See `docs/implementation-plans/INFRA-007-loki-log-aggregation.md` for log aggregation details.
 
 ## SDK Management
 

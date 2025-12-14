@@ -3,8 +3,30 @@
     <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
     <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
 
+    <!-- Loki Appender - enabled for all profiles except test -->
+    <springProfile name="!test">
+        <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
+            <http>
+                <url>${LOKI_URL:-http://localhost:3100}/loki/api/v1/push</url>
+            </http>
+            <format>
+                <label>
+                    <pattern>application=${APP_NAME:-sagapattern},host=${HOSTNAME:-localhost},level=%level,logger=%logger{36},traceId=%X{traceId:-none},spanId=%X{spanId:-none}</pattern>
+                    <readMarkers>true</readMarkers>
+                </label>
+                <message>
+                    <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+                </message>
+                <sortByTime>true</sortByTime>
+            </format>
+        </appender>
+    </springProfile>
+
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
+        <springProfile name="!test">
+            <appender-ref ref="LOKI"/>
+        </springProfile>
     </root>
 
     <!-- Saga-specific logging -->
@@ -16,4 +38,7 @@
 
     <!-- Reduce noise from OpenTelemetry internals -->
     <logger name="io.opentelemetry" level="INFO"/>
+
+    <!-- Reduce noise from Loki4j internals -->
+    <logger name="com.github.loki4j" level="WARN"/>
 </configuration>

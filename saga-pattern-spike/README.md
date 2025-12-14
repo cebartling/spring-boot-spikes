@@ -14,6 +14,8 @@ This project demonstrates a comprehensive implementation of the [saga orchestrat
 - **Retry Support** - Resume failed orders from the point of failure
 - **Order History** - Complete timeline of saga execution with step-by-step details
 - **Distributed Tracing** - End-to-end observability with OpenTelemetry and Jaeger
+- **Metrics Dashboard** - JVM, HTTP, and saga metrics with Prometheus and Grafana
+- **Centralized Logging** - Log aggregation with Loki and Grafana
 - **Dynamic Secrets** - HashiCorp Vault integration for secure credential management
 
 ## Architecture
@@ -62,6 +64,9 @@ flowchart TB
 | R2DBC PostgreSQL | - | Reactive database access |
 | Spring Cloud Vault | 2025.1.0 | Secret management |
 | OpenTelemetry | (native) | Distributed tracing |
+| Prometheus | 2.48 | Metrics collection |
+| Loki | 3.0 | Log aggregation |
+| Grafana | 10.2 | Unified visualization |
 | Micrometer | - | Metrics and observations |
 | Cucumber | 7.20 | Acceptance testing |
 | WireMock | 3.9 | External service mocking |
@@ -84,7 +89,7 @@ flowchart TB
    docker compose up -d
    ```
 
-   This starts PostgreSQL, HashiCorp Vault, WireMock, and Jaeger for distributed tracing.
+   This starts PostgreSQL, HashiCorp Vault, WireMock, Jaeger, Prometheus, Loki, and Grafana.
 
 2. **Run the application:**
 
@@ -382,6 +387,9 @@ saga:
 | WireMock | 8081 | Mock external services |
 | Jaeger | 16686 | Distributed tracing UI |
 | Jaeger OTLP | 4317/4318 | OTLP trace receiver |
+| Prometheus | 9090 | Metrics database and query UI |
+| Loki | 3100 | Log aggregation |
+| Grafana | 3000 | Unified visualization (admin/admin) |
 
 ### Vault Integration
 
@@ -449,16 +457,35 @@ Every saga execution creates a distributed trace with:
 - Compensation spans when rollback occurs
 - HTTP client spans for external service calls
 
+### Metrics
+
+Metrics are collected via Prometheus and visualized in Grafana.
+
+**Viewing Metrics:**
+
+1. Start services: `docker compose up -d`
+2. Open Grafana: http://localhost:3000 (admin/admin)
+3. Navigate to the "Saga Pattern" folder to see pre-configured dashboards
+
+**Pre-configured Dashboards:**
+
+| Dashboard | Description |
+|-----------|-------------|
+| JVM Metrics | Memory, GC, threads, class loading |
+| Spring Boot HTTP | Request rate, latency, error rate |
+| Saga Pattern Metrics | Saga execution, compensation, step timing |
+| Application Logs | Log volume, errors, warnings, log stream |
+
 ### Custom Metrics
 
 | Metric | Description |
 |--------|-------------|
-| `saga.started` | Counter of sagas initiated |
-| `saga.completed` | Counter of successful sagas |
-| `saga.compensated` | Counter of compensated sagas |
-| `saga.duration` | Histogram of saga execution time |
-| `saga.step.duration` | Histogram of individual step times |
-| `saga.step.failed` | Counter of step failures by step name |
+| `saga_started_total` | Counter of sagas initiated |
+| `saga_completed_total` | Counter of successful sagas |
+| `saga_compensated_total` | Counter of compensated sagas |
+| `saga_duration_seconds` | Histogram of saga execution time |
+| `saga_step_duration_seconds` | Histogram of individual step times |
+| `saga_step_failed_total` | Counter of step failures by step name |
 
 ### Viewing Traces
 
@@ -565,6 +592,8 @@ This activates Java 24.0.2-amzn and Gradle 9.2.1.
 - [Acceptance Testing](docs/implementation-plans/INFRA-002-acceptance-testing.md) - Cucumber configuration
 - [Vault Integration](docs/implementation-plans/INFRA-003-vault-integration.md) - Secret management setup
 - [Observability Integration](docs/implementation-plans/INFRA-004-observability-integration.md) - OpenTelemetry + Jaeger
+- [Prometheus/Grafana](docs/implementation-plans/INFRA-006-prometheus-grafana.md) - Metrics collection and visualization
+- [Loki Log Aggregation](docs/implementation-plans/INFRA-007-loki-log-aggregation.md) - Centralized logging
 
 ## License
 
