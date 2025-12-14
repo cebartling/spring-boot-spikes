@@ -1,17 +1,22 @@
 package com.pintailconsultingllc.sagapattern.infrastructure
 
 import org.junit.jupiter.api.Assumptions
-import org.slf4j.LoggerFactory
 import java.net.Socket
 
 /**
  * Shared utilities for integration tests that depend on Docker infrastructure.
  *
  * Provides consistent port checking and clear messaging when infrastructure is unavailable.
+ * Messages are printed directly to System.err to ensure visibility in Gradle output.
  */
 object InfrastructureTestSupport {
 
-    private val logger = LoggerFactory.getLogger(InfrastructureTestSupport::class.java)
+    // ANSI color codes for terminal output
+    private const val RESET = "\u001B[0m"
+    private const val RED = "\u001B[31m"
+    private const val YELLOW = "\u001B[33m"
+    private const val GREEN = "\u001B[32m"
+    private const val BOLD = "\u001B[1m"
 
     /**
      * Docker infrastructure service definitions.
@@ -94,8 +99,8 @@ object InfrastructureTestSupport {
     /**
      * Assume a Docker service is available, skipping the test with a clear message if not.
      *
-     * This method logs detailed information about the infrastructure requirement and
-     * provides clear instructions for starting the Docker infrastructure.
+     * This method prints detailed information about the infrastructure requirement
+     * directly to System.err to ensure visibility in Gradle output.
      *
      * @param service The required Docker service
      */
@@ -103,15 +108,18 @@ object InfrastructureTestSupport {
         val available = isServiceAvailable(service)
 
         if (!available) {
-            logger.warn(buildUnavailableMessage(service))
+            // Print directly to System.err to ensure visibility in Gradle output
+            System.err.println(buildUnavailableMessage(service))
+            System.err.flush()
         }
 
         Assumptions.assumeTrue(
             available,
-            buildAssumptionMessage(service)
+            "Docker service ${service.displayName} is not available at ${service.host}:${service.port}"
         )
 
-        logger.info("✓ ${service.displayName} is available at ${service.host}:${service.port}")
+        // Print success message
+        System.out.println("$GREEN✓ ${service.displayName} is available at ${service.host}:${service.port}$RESET")
     }
 
     /**
@@ -124,12 +132,13 @@ object InfrastructureTestSupport {
 
         if (unavailable.isNotEmpty()) {
             val message = buildMultipleServicesUnavailableMessage(unavailable)
-            logger.warn(message)
-            Assumptions.assumeTrue(false, message)
+            System.err.println(message)
+            System.err.flush()
+            Assumptions.assumeTrue(false, "Required Docker services are not available")
         }
 
         services.forEach { service ->
-            logger.info("✓ ${service.displayName} is available at ${service.host}:${service.port}")
+            System.out.println("$GREEN✓ ${service.displayName} is available at ${service.host}:${service.port}$RESET")
         }
     }
 
@@ -143,48 +152,41 @@ object InfrastructureTestSupport {
     }
 
     /**
-     * Log the status of all Docker services.
+     * Print the status of all Docker services to console.
      */
     fun logServicesStatus() {
-        logger.info("Docker Infrastructure Status:")
-        logger.info("=" .repeat(60))
+        println()
+        println("${BOLD}Docker Infrastructure Status:$RESET")
+        println("=" .repeat(60))
         Service.entries.forEach { service ->
-            val status = if (isServiceAvailable(service)) "✓ AVAILABLE" else "✗ UNAVAILABLE"
-            logger.info("  ${service.displayName.padEnd(20)} ${service.host}:${service.port.toString().padEnd(6)} $status")
+            val available = isServiceAvailable(service)
+            val status = if (available) "${GREEN}✓ AVAILABLE$RESET" else "${RED}✗ UNAVAILABLE$RESET"
+            println("  ${service.displayName.padEnd(20)} ${service.host}:${service.port.toString().padEnd(6)} $status")
         }
-        logger.info("=" .repeat(60))
-    }
-
-    private fun buildAssumptionMessage(service: Service): String {
-        return """
-            |
-            |╔══════════════════════════════════════════════════════════════════════════════╗
-            |║  INTEGRATION TEST SKIPPED - Docker Infrastructure Not Available              ║
-            |╠══════════════════════════════════════════════════════════════════════════════╣
-            |║                                                                              ║
-            |║  Required Service: ${service.displayName.padEnd(55)}║
-            |║  Description:      ${service.description.padEnd(55)}║
-            |║  Expected at:      ${service.host}:${service.port}                                               ║
-            |║                                                                              ║
-            |║  To start the Docker infrastructure, run:                                    ║
-            |║                                                                              ║
-            |║      docker compose up -d                                                    ║
-            |║                                                                              ║
-            |║  Then re-run the integration tests:                                          ║
-            |║                                                                              ║
-            |║      ./gradlew integrationTest                                               ║
-            |║                                                                              ║
-            |╚══════════════════════════════════════════════════════════════════════════════╝
-        """.trimMargin()
+        println("=" .repeat(60))
+        println()
     }
 
     private fun buildUnavailableMessage(service: Service): String {
         return """
             |
-            |⚠️  ${service.displayName} is not available at ${service.host}:${service.port}
-            |    ${service.description}
-            |
-            |    Start Docker infrastructure with: docker compose up -d
+            |$YELLOW$BOLD╔══════════════════════════════════════════════════════════════════════════════╗
+            |║  INTEGRATION TEST SKIPPED - Docker Infrastructure Not Available              ║
+            |╠══════════════════════════════════════════════════════════════════════════════╣$RESET
+            |$YELLOW║                                                                              ║
+            |║  ${RED}Required Service:$YELLOW ${service.displayName.padEnd(55)}║
+            |║  Description:      ${service.description.padEnd(55)}║
+            |║  Expected at:      ${(service.host + ":" + service.port).padEnd(55)}║
+            |║                                                                              ║
+            |║  $BOLD${GREEN}To start the Docker infrastructure, run:$RESET$YELLOW                                    ║
+            |║                                                                              ║
+            |║      $BOLD${GREEN}docker compose up -d$RESET$YELLOW                                                    ║
+            |║                                                                              ║
+            |║  Then re-run the integration tests:                                          ║
+            |║                                                                              ║
+            |║      $BOLD${GREEN}./gradlew integrationTest$RESET$YELLOW                                               ║
+            |║                                                                              ║
+            |╚══════════════════════════════════════════════════════════════════════════════╝$RESET
             |
         """.trimMargin()
     }
