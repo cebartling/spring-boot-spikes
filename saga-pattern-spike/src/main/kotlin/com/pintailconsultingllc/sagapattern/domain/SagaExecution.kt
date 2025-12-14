@@ -130,5 +130,33 @@ data class SagaExecution @PersistenceCreator constructor(
             status = status,
             startedAt = startedAt
         ).apply { isNewEntity = true }
+
+        /**
+         * Create a new SagaExecution instance with all fields.
+         * Used primarily for testing and data migration.
+         */
+        fun createWithDetails(
+            id: UUID = UUID.randomUUID(),
+            orderId: UUID,
+            status: SagaStatus = SagaStatus.PENDING,
+            currentStep: Int = 0,
+            failedStep: Int? = null,
+            failureReason: String? = null,
+            startedAt: Instant = Instant.now(),
+            completedAt: Instant? = null,
+            compensationStartedAt: Instant? = null,
+            compensationCompletedAt: Instant? = null
+        ): SagaExecution = SagaExecution(
+            id = id,
+            orderId = orderId,
+            status = status,
+            currentStep = currentStep,
+            failedStep = failedStep,
+            failureReason = failureReason,
+            startedAt = startedAt,
+            completedAt = completedAt,
+            compensationStartedAt = compensationStartedAt,
+            compensationCompletedAt = compensationCompletedAt
+        ).apply { isNewEntity = true }
     }
 }

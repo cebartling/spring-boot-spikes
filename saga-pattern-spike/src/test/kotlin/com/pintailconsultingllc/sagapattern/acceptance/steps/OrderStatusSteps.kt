@@ -420,7 +420,7 @@ class OrderStatusSteps(
     // ==================== Helper Methods ====================
 
     private suspend fun createTestOrder(status: OrderStatus): Order {
-        val order = Order(
+        val order = Order.forTest(
             id = UUID.randomUUID(),
             customerId = UUID.randomUUID(),
             totalAmountInCents = 9999L,
@@ -437,7 +437,7 @@ class OrderStatusSteps(
         completedAt: Instant? = null,
         compensationStartedAt: Instant? = null
     ): SagaExecution {
-        val execution = SagaExecution(
+        val execution = SagaExecution.createWithDetails(
             id = UUID.randomUUID(),
             orderId = orderId,
             status = status,
@@ -462,8 +462,7 @@ class OrderStatusSteps(
             Instant.now()
         } else null
 
-        val result = SagaStepResult(
-            id = UUID.randomUUID(),
+        val result = SagaStepResult.createWithDetails(
             sagaExecutionId = sagaExecutionId,
             stepName = stepName,
             stepOrder = stepOrder,

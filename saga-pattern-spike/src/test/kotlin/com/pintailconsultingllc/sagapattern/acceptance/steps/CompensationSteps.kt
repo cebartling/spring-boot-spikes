@@ -68,6 +68,10 @@ class CompensationSteps(
 
     @Given("I have submitted an order that will fail at shipping")
     fun iHaveSubmittedAnOrderThatWillFailAtShipping() {
+        // Set up customer if not already set
+        if (testContext.customerId == null) {
+            testContext.customerId = UUID.randomUUID()
+        }
         // Set up for shipping failure
         testContext.cartItems.add(
             mapOf(
@@ -98,6 +102,10 @@ class CompensationSteps(
 
     @Given("I have an order that failed due to payment decline")
     fun iHaveAnOrderThatFailedDueToPaymentDecline() {
+        // Set up customer if not already set
+        if (testContext.customerId == null) {
+            testContext.customerId = UUID.randomUUID()
+        }
         // Set up for payment failure
         testContext.cartItems.add(
             mapOf(
@@ -126,6 +134,10 @@ class CompensationSteps(
 
     @Given("I have an order that will fail at the payment step")
     fun iHaveAnOrderThatWillFailAtThePaymentStep() {
+        // Set up customer if not already set
+        if (testContext.customerId == null) {
+            testContext.customerId = UUID.randomUUID()
+        }
         testContext.cartItems.add(
             mapOf(
                 "productId" to UUID.randomUUID().toString(),

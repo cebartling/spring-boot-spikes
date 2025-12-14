@@ -159,6 +159,35 @@ data class RetryAttempt @PersistenceCreator constructor(
             originalExecutionId = originalExecutionId,
             attemptNumber = attemptNumber
         ).apply { isNewEntity = true }
+
+        /**
+         * Create a new RetryAttempt instance with all fields.
+         * Used primarily for testing historical retry records.
+         */
+        fun createWithDetails(
+            orderId: UUID,
+            originalExecutionId: UUID,
+            attemptNumber: Int,
+            initiatedAt: Instant = Instant.now(),
+            completedAt: Instant? = null,
+            outcome: RetryOutcome? = null,
+            failureReason: String? = null,
+            resumedFromStep: String? = null,
+            skippedSteps: Array<String>? = null,
+            retryExecutionId: UUID? = null
+        ): RetryAttempt = RetryAttempt(
+            id = UUID.randomUUID(),
+            orderId = orderId,
+            originalExecutionId = originalExecutionId,
+            attemptNumber = attemptNumber,
+            initiatedAt = initiatedAt,
+            completedAt = completedAt,
+            outcome = outcome,
+            failureReason = failureReason,
+            resumedFromStep = resumedFromStep,
+            skippedSteps = skippedSteps,
+            retryExecutionId = retryExecutionId
+        ).apply { isNewEntity = true }
     }
 }
 

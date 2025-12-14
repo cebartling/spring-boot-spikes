@@ -77,6 +77,9 @@ class OrderProcessSteps(
     @Given("I have placed a successful order")
     fun iHavePlacedASuccessfulOrder() {
         // Set up prerequisites
+        if (testContext.customerId == null) {
+            testContext.customerId = java.util.UUID.randomUUID()
+        }
         iHaveItemsInMyCartWithAvailableInventory()
         iHaveAValidPaymentMethodOnFile()
         iHaveAValidShippingAddress()
@@ -90,6 +93,9 @@ class OrderProcessSteps(
     @Given("I have submitted an order")
     fun iHaveSubmittedAnOrder() {
         // Set up prerequisites
+        if (testContext.customerId == null) {
+            testContext.customerId = java.util.UUID.randomUUID()
+        }
         iHaveItemsInMyCartWithAvailableInventory()
         iHaveAValidPaymentMethodOnFile()
         iHaveAValidShippingAddress()

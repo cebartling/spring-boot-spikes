@@ -73,7 +73,7 @@ class RetrySteps(
         // Create the order if not already exists
         val existingOrder = orderRepository.findById(orderId)
         if (existingOrder == null) {
-            val order = Order(
+            val order = Order.forTest(
                 id = orderId,
                 customerId = customerId,
                 totalAmountInCents = 5000,
@@ -85,7 +85,7 @@ class RetrySteps(
         // Create saga execution if not already exists
         val existingExecution = sagaExecutionRepository.findByOrderId(orderId)
         if (existingExecution == null) {
-            val sagaExecution = SagaExecution(
+            val sagaExecution = SagaExecution.createWithDetails(
                 id = sagaExecutionId,
                 orderId = orderId,
                 status = SagaStatus.FAILED,
@@ -98,7 +98,7 @@ class RetrySteps(
 
             // Create step results based on failed step
             if (failedStep >= 1) {
-                val inventoryStep = SagaStepResult(
+                val inventoryStep = SagaStepResult.createWithDetails(
                     sagaExecutionId = sagaExecutionId,
                     stepName = InventoryReservationStep.STEP_NAME,
                     stepOrder = 1,
@@ -112,7 +112,7 @@ class RetrySteps(
 
             if (failedStep >= 2) {
                 val paymentStatus = if (failedStepName == PaymentProcessingStep.STEP_NAME) StepStatus.FAILED else StepStatus.COMPLETED
-                val paymentStep = SagaStepResult(
+                val paymentStep = SagaStepResult.createWithDetails(
                     sagaExecutionId = sagaExecutionId,
                     stepName = PaymentProcessingStep.STEP_NAME,
                     stepOrder = 2,
@@ -126,7 +126,7 @@ class RetrySteps(
             }
 
             if (failedStep >= 3 && failedStepName == ShippingArrangementStep.STEP_NAME) {
-                val shippingStep = SagaStepResult(
+                val shippingStep = SagaStepResult.createWithDetails(
                     sagaExecutionId = sagaExecutionId,
                     stepName = ShippingArrangementStep.STEP_NAME,
                     stepOrder = 3,
@@ -146,7 +146,7 @@ class RetrySteps(
         val orderId = UUID.randomUUID()
         val sagaExecutionId = UUID.randomUUID()
 
-        val order = Order(
+        val order = Order.forTest(
             id = orderId,
             customerId = customerId,
             totalAmountInCents = 5000,
@@ -155,7 +155,7 @@ class RetrySteps(
         orderRepository.save(order)
         testContext.orderId = orderId
 
-        val sagaExecution = SagaExecution(
+        val sagaExecution = SagaExecution.createWithDetails(
             id = sagaExecutionId,
             orderId = orderId,
             status = SagaStatus.FAILED,
@@ -178,7 +178,7 @@ class RetrySteps(
         val orderId = UUID.randomUUID()
         val sagaExecutionId = UUID.randomUUID()
 
-        val order = Order(
+        val order = Order.forTest(
             id = orderId,
             customerId = customerId,
             totalAmountInCents = 5000,
@@ -187,7 +187,7 @@ class RetrySteps(
         orderRepository.save(order)
         testContext.orderId = orderId
 
-        val sagaExecution = SagaExecution(
+        val sagaExecution = SagaExecution.createWithDetails(
             id = sagaExecutionId,
             orderId = orderId,
             status = SagaStatus.FAILED,
@@ -200,7 +200,7 @@ class RetrySteps(
 
         // Inventory step completed
         sagaStepResultRepository.save(
-            SagaStepResult(
+            SagaStepResult.createWithDetails(
                 sagaExecutionId = sagaExecutionId,
                 stepName = InventoryReservationStep.STEP_NAME,
                 stepOrder = 1,
@@ -212,7 +212,7 @@ class RetrySteps(
 
         // Payment step completed
         sagaStepResultRepository.save(
-            SagaStepResult(
+            SagaStepResult.createWithDetails(
                 sagaExecutionId = sagaExecutionId,
                 stepName = PaymentProcessingStep.STEP_NAME,
                 stepOrder = 2,
@@ -224,7 +224,7 @@ class RetrySteps(
 
         // Shipping step failed
         sagaStepResultRepository.save(
-            SagaStepResult(
+            SagaStepResult.createWithDetails(
                 sagaExecutionId = sagaExecutionId,
                 stepName = ShippingArrangementStep.STEP_NAME,
                 stepOrder = 3,
@@ -292,7 +292,7 @@ class RetrySteps(
         // Create retry attempt records
         repeat(retryCount) { index ->
             retryAttemptRepository.save(
-                RetryAttempt(
+                RetryAttempt.createWithDetails(
                     orderId = orderId,
                     originalExecutionId = sagaExecution.id,
                     attemptNumber = index + 1,
@@ -333,7 +333,7 @@ class RetrySteps(
 
         // Create an active retry attempt (no completedAt, no outcome)
         retryAttemptRepository.save(
-            RetryAttempt(
+            RetryAttempt.createWithDetails(
                 orderId = orderId,
                 originalExecutionId = sagaExecution.id,
                 attemptNumber = 1,
@@ -348,6 +348,20 @@ class RetrySteps(
         // This would typically be tracked in a separate price change table
         // For now, we'll set a flag in the context
         testContext.orderResponse = (testContext.orderResponse ?: emptyMap()) + mapOf("priceChanged" to true)
+    }
+
+    @Given("I have not fixed the payment issue")
+    fun iHaveNotFixedThePaymentIssue() {
+        // Keep the declined card payment method - don't update it
+        // paymentMethodId should still be "declined-card" from the previous step
+    }
+
+    @When("the retry fails")
+    fun theRetryFails() {
+        // Verify the retry failed
+        val response = testContext.retryResponse
+        assertNotNull(response, "Should have retry response")
+        assertFalse(response["success"] == true, "Retry should have failed")
     }
 
     // ==================== When Steps ====================

@@ -272,4 +272,44 @@ class ObservabilitySteps(
     fun eachTraceIdShouldBeUnique() {
         throw PendingException("Observability infrastructure not yet implemented")
     }
+
+    @Then("the saga.retry.initiated counter should be incremented")
+    fun theSagaRetryInitiatedCounterShouldBeIncremented() {
+        throw PendingException("Observability infrastructure not yet implemented")
+    }
+
+    @Then("the saga.retry.success counter should be incremented on success")
+    fun theSagaRetrySuccessCounterShouldBeIncrementedOnSuccess() {
+        throw PendingException("Observability infrastructure not yet implemented")
+    }
+
+    @Then("the saga.retry.failed counter should be incremented")
+    fun theSagaRetryFailedCounterShouldBeIncremented() {
+        throw PendingException("Observability infrastructure not yet implemented")
+    }
+
+    @Then("the retry trace should include error attributes")
+    fun theRetryTraceShouldIncludeErrorAttributes() {
+        throw PendingException("Observability infrastructure not yet implemented")
+    }
+
+    @Then("both original and retry traces should be queryable together")
+    fun bothOriginalAndRetryTracesShouldBeQueryableTogether() {
+        throw PendingException("Observability infrastructure not yet implemented")
+    }
+
+    @Then("the new trace should include a link to the original failed trace")
+    fun theNewTraceShouldIncludeALinkToTheOriginalFailedTrace() {
+        throw PendingException("Observability infrastructure not yet implemented")
+    }
+
+    @Then("the retry trace should include an attribute {string}")
+    fun theRetryTraceShouldIncludeAnAttribute(attribute: String) {
+        throw PendingException("Observability infrastructure not yet implemented - checking for attribute: $attribute")
+    }
+
+    @Then("the response headers should include {string}")
+    fun theResponseHeadersShouldInclude(headerName: String) {
+        throw PendingException("Observability infrastructure not yet implemented - checking for header: $headerName")
+    }
 }
