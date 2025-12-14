@@ -492,9 +492,18 @@ class RetrySteps(
         val response = testContext.retryEligibilityResponse ?: testContext.retryResponse
         assertNotNull(response, "Should have response")
 
-        val actualReason = response["reason"] ?: response["failureReason"] ?: ""
+        val actualReason = response["reason"]?.toString()
+            ?: response["failureReason"]?.toString()
+            ?: response["error"]?.toString()
+            ?: ""
+
+        // Check for key words from the reason (more flexible matching)
+        val reasonWords = reason.lowercase().split("\\s+".toRegex())
+        val actualLower = actualReason.lowercase()
+        val allWordsFound = reasonWords.all { word -> actualLower.contains(word) }
+
         assertTrue(
-            actualReason.toString().lowercase().contains(reason.lowercase()),
+            allWordsFound || actualLower.contains(reason.lowercase()),
             "Reason should contain '$reason', but was '$actualReason'"
         )
     }

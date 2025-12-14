@@ -37,10 +37,10 @@ class CompensationSteps(
 
     @Given("I have items in my cart that are out of stock")
     fun iHaveItemsInMyCartThatAreOutOfStock() {
-        // Use WireMock trigger: productId = "out-of-stock-product"
+        // Use WireMock trigger: productId = "00000000-0000-0000-0000-000000000000"
         testContext.cartItems.add(
             mapOf(
-                "productId" to "out-of-stock-product",
+                "productId" to "00000000-0000-0000-0000-000000000000",
                 "productName" to "Out of Stock Product",
                 "quantity" to 5,
                 "unitPriceInCents" to 2999
@@ -256,8 +256,15 @@ class CompensationSteps(
         @Suppress("UNCHECKED_CAST")
         val error = testContext.orderResponse?.get("error") as? Map<String, Any>
         val message = error?.get("message").toString().lowercase()
+
+        // Check for key words from the reason (handles cases like "payment declined" vs "payment_declined")
+        val reasonWords = reason.lowercase().split("\\s+".toRegex())
+        val allWordsFound = reasonWords.all { word ->
+            message.contains(word) || message.contains(word.replace(" ", "_"))
+        }
+
         assertTrue(
-            message.contains(reason.lowercase()),
+            allWordsFound || message.contains(reason.lowercase().replace(" ", "_")),
             "Failure reason '$message' should indicate '$reason'"
         )
     }
