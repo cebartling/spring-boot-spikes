@@ -181,10 +181,12 @@ object InfrastructureTestSupport {
         val serviceDesc = service.description
         val serviceAddr = "${service.host}:${service.port}"
 
+        val title = "INTEGRATION TEST SKIPPED - Docker Infrastructure Not Available"
+
         return buildString {
             appendLine()
             appendLine("$YELLOW$BOLD╔$border╗$RESET")
-            appendLine("$YELLOW$BOLD║  INTEGRATION TEST SKIPPED - Docker Infrastructure Not Available            ║$RESET")
+            appendLine("$YELLOW$BOLD${padLine(title)}$RESET")
             appendLine("$YELLOW$BOLD╠$border╣$RESET")
             appendLine("$YELLOW$emptyLine$RESET")
             appendLine("$YELLOW${padLine("Required Service: $serviceName")}$RESET")
