@@ -15,7 +15,8 @@ import java.util.UUID
  */
 @Service
 class PaymentService(
-    @Qualifier("paymentWebClient") private val webClient: WebClient
+    @Qualifier("paymentWebClient") private val webClient: WebClient,
+    private val errorResponseParser: ErrorResponseParser
 ) {
     private val logger = LoggerFactory.getLogger(PaymentService::class.java)
 
@@ -59,8 +60,8 @@ class PaymentService(
             logger.error("Payment authorization failed: ${e.statusCode} - ${e.responseBodyAsString}")
             throw PaymentException(
                 message = "Failed to authorize payment: ${e.responseBodyAsString}",
-                errorCode = extractErrorCode(e.responseBodyAsString),
-                retryable = isRetryable(e.responseBodyAsString),
+                errorCode = errorResponseParser.extractErrorCode(e.responseBodyAsString),
+                retryable = errorResponseParser.isRetryable(e.responseBodyAsString),
                 cause = e
             )
         }
@@ -88,24 +89,6 @@ class PaymentService(
                 message = "Failed to void authorization: ${e.responseBodyAsString}",
                 cause = e
             )
-        }
-    }
-
-    private fun extractErrorCode(responseBody: String): String? {
-        return try {
-            val regex = """"error"\s*:\s*"([^"]+)"""".toRegex()
-            regex.find(responseBody)?.groupValues?.get(1)
-        } catch (e: Exception) {
-            null
-        }
-    }
-
-    private fun isRetryable(responseBody: String): Boolean {
-        return try {
-            val regex = """"retryable"\s*:\s*(true|false)""".toRegex()
-            regex.find(responseBody)?.groupValues?.get(1)?.toBoolean() ?: false
-        } catch (e: Exception) {
-            false
         }
     }
 }

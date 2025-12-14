@@ -16,7 +16,8 @@ import java.util.UUID
  */
 @Service
 class ShippingService(
-    @Qualifier("shippingWebClient") private val webClient: WebClient
+    @Qualifier("shippingWebClient") private val webClient: WebClient,
+    private val errorResponseParser: ErrorResponseParser
 ) {
     private val logger = LoggerFactory.getLogger(ShippingService::class.java)
 
@@ -59,8 +60,8 @@ class ShippingService(
             logger.error("Shipment creation failed: ${e.statusCode} - ${e.responseBodyAsString}")
             throw ShippingException(
                 message = "Failed to create shipment: ${e.responseBodyAsString}",
-                errorCode = extractErrorCode(e.responseBodyAsString),
-                retryable = isRetryable(e.responseBodyAsString),
+                errorCode = errorResponseParser.extractErrorCode(e.responseBodyAsString),
+                retryable = errorResponseParser.isRetryable(e.responseBodyAsString),
                 cause = e
             )
         }
@@ -88,24 +89,6 @@ class ShippingService(
                 message = "Failed to cancel shipment: ${e.responseBodyAsString}",
                 cause = e
             )
-        }
-    }
-
-    private fun extractErrorCode(responseBody: String): String? {
-        return try {
-            val regex = """"error"\s*:\s*"([^"]+)"""".toRegex()
-            regex.find(responseBody)?.groupValues?.get(1)
-        } catch (e: Exception) {
-            null
-        }
-    }
-
-    private fun isRetryable(responseBody: String): Boolean {
-        return try {
-            val regex = """"retryable"\s*:\s*(true|false)""".toRegex()
-            regex.find(responseBody)?.groupValues?.get(1)?.toBoolean() ?: false
-        } catch (e: Exception) {
-            false
         }
     }
 }
