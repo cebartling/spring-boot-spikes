@@ -8,6 +8,7 @@ import com.pintailconsultingllc.sagapattern.progress.OrderProgressService
 import com.pintailconsultingllc.sagapattern.progress.ProgressStatus
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
@@ -24,6 +25,7 @@ import java.util.UUID
  * Focus on verifying that the SSE heartbeat mechanism properly stops
  * when the status event stream completes.
  */
+@Tag("unit")
 class OrderStatusStreamControllerTest {
 
     private lateinit var orderProgressService: OrderProgressService

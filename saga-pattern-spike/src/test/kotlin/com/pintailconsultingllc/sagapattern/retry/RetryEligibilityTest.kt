@@ -1,5 +1,6 @@
 package com.pintailconsultingllc.sagapattern.retry
 
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import java.time.Instant
 import kotlin.test.assertEquals
@@ -10,6 +11,7 @@ import kotlin.test.assertTrue
 /**
  * Unit tests for RetryEligibility.
  */
+@Tag("unit")
 class RetryEligibilityTest {
 
     @Test
@@ -107,6 +109,7 @@ class RetryEligibilityTest {
 /**
  * Unit tests for RetryBlocker.
  */
+@Tag("unit")
 class RetryBlockerTest {
 
     @Test
@@ -138,6 +141,7 @@ class RetryBlockerTest {
 /**
  * Unit tests for RequiredAction.
  */
+@Tag("unit")
 class RequiredActionTest {
 
     @Test

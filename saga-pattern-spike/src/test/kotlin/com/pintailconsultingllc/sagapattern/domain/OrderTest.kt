@@ -1,5 +1,6 @@
 package com.pintailconsultingllc.sagapattern.domain
 
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import java.util.UUID
 import kotlin.test.assertEquals
@@ -9,6 +10,7 @@ import kotlin.test.assertTrue
 /**
  * Unit tests for Order entity.
  */
+@Tag("unit")
 class OrderTest {
 
     @Test
@@ -68,6 +70,7 @@ class OrderTest {
 /**
  * Unit tests for OrderItem entity.
  */
+@Tag("unit")
 class OrderItemTest {
 
     @Test
@@ -100,6 +103,7 @@ class OrderItemTest {
 /**
  * Unit tests for SagaExecution entity.
  */
+@Tag("unit")
 class SagaExecutionTest {
 
     @Test

@@ -4,6 +4,7 @@ import com.pintailconsultingllc.sagapattern.domain.SagaExecution
 import com.pintailconsultingllc.sagapattern.domain.SagaStatus
 import com.pintailconsultingllc.sagapattern.domain.SagaStepResult
 import com.pintailconsultingllc.sagapattern.domain.StepStatus
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import java.time.Instant
 import java.util.UUID
@@ -15,6 +16,7 @@ import kotlin.test.assertTrue
 /**
  * Unit tests for OrderProgress.
  */
+@Tag("unit")
 class OrderProgressTest {
 
     private val testOrderId = UUID.randomUUID()

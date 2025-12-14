@@ -1,5 +1,6 @@
 package com.pintailconsultingllc.sagapattern.saga
 
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -9,6 +10,7 @@ import kotlin.test.assertTrue
 /**
  * Unit tests for StepResult.
  */
+@Tag("unit")
 class StepResultTest {
 
     @Test

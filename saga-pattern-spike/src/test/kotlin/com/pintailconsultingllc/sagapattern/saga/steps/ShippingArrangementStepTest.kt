@@ -10,6 +10,7 @@ import com.pintailconsultingllc.sagapattern.service.ShippingException
 import com.pintailconsultingllc.sagapattern.service.ShippingService
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
@@ -23,6 +24,7 @@ import kotlin.test.assertTrue
 /**
  * Unit tests for ShippingArrangementStep.
  */
+@Tag("unit")
 class ShippingArrangementStepTest {
 
     private lateinit var shippingService: ShippingService

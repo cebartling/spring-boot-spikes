@@ -80,5 +80,36 @@ kotlin {
 }
 
 tasks.withType<Test> {
-	useJUnitPlatform()
+	useJUnitPlatform {
+		// Filter tests by tag using system property
+		// Usage: ./gradlew test -DincludeTags=unit
+		//        ./gradlew test -DincludeTags=integration
+		//        ./gradlew test -DexcludeTags=integration
+		System.getProperty("includeTags")?.let { includeTags(*it.split(",").toTypedArray()) }
+		System.getProperty("excludeTags")?.let { excludeTags(*it.split(",").toTypedArray()) }
+	}
+}
+
+// Task to run only unit tests (excludes integration and acceptance tests)
+tasks.register<Test>("unitTest") {
+	description = "Runs unit tests only"
+	group = "verification"
+	testClassesDirs = sourceSets["test"].output.classesDirs
+	classpath = sourceSets["test"].runtimeClasspath
+	useJUnitPlatform {
+		includeTags("unit")
+	}
+	// Exclude Cucumber test runner from unit tests
+	exclude("**/CucumberTestRunner*")
+}
+
+// Task to run only integration tests
+tasks.register<Test>("integrationTest") {
+	description = "Runs integration tests only"
+	group = "verification"
+	testClassesDirs = sourceSets["test"].output.classesDirs
+	classpath = sourceSets["test"].runtimeClasspath
+	useJUnitPlatform {
+		includeTags("integration")
+	}
 }

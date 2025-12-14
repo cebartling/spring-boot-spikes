@@ -26,7 +26,34 @@ This is a Spring Boot 4.0 spike project exploring the **saga pattern** for distr
 
 # Clean build
 ./gradlew clean build
+
+# Run only unit tests (excludes integration and acceptance tests)
+./gradlew unitTest
+
+# Run only integration tests (requires Docker)
+./gradlew integrationTest
+
+# Run tests by JUnit tag
+./gradlew test -DincludeTags=unit
+./gradlew test -DincludeTags=integration
+./gradlew test -DexcludeTags=integration
 ```
+
+## Test Tags
+
+Tests are organized using JUnit 5 `@Tag` annotations:
+
+| Tag | Description |
+|-----|-------------|
+| `unit` | Fast unit tests with mocked dependencies (no Docker required) |
+| `integration` | Infrastructure tests requiring Docker (PostgreSQL, WireMock) |
+
+### Dedicated Test Tasks
+
+| Task | Command | Description |
+|------|---------|-------------|
+| `unitTest` | `./gradlew unitTest` | Run unit tests only (fast, no Docker) |
+| `integrationTest` | `./gradlew integrationTest` | Run integration tests only (requires Docker) |
 
 ## Infrastructure Commands
 

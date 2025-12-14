@@ -1,5 +1,6 @@
 package com.pintailconsultingllc.sagapattern.retry
 
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
@@ -9,6 +10,7 @@ import kotlin.test.assertEquals
 /**
  * Unit tests for StepValidityResult.
  */
+@Tag("unit")
 class StepValidityResultTest {
 
     @Test

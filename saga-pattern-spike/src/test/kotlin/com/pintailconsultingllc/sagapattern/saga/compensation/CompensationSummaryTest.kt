@@ -1,6 +1,7 @@
 package com.pintailconsultingllc.sagapattern.saga.compensation
 
 import com.pintailconsultingllc.sagapattern.saga.CompensationResult
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -9,6 +10,7 @@ import kotlin.test.assertTrue
 /**
  * Unit tests for CompensationSummary.
  */
+@Tag("unit")
 class CompensationSummaryTest {
 
     @Test
