@@ -234,6 +234,59 @@ See `docs/implementation-plans/INFRA-004-observability-integration.md` for traci
 See `docs/implementation-plans/INFRA-006-prometheus-grafana.md` for metrics details.
 See `docs/implementation-plans/INFRA-007-loki-log-aggregation.md` for log aggregation details.
 
+## Load Testing (k6)
+
+The project includes k6 load testing scripts for performance validation.
+
+### Key Ports
+
+| Service | Port | Purpose |
+|---------|------|---------|
+| Pushgateway | 9091 | k6 metrics collection |
+
+### Load Testing Commands
+
+```bash
+# Run smoke test (1-2 VUs, 1 min)
+make load-test-smoke
+
+# Run load test (10-50 VUs, 5 min)
+make load-test-load
+
+# Run stress test (100-200 VUs, 10 min)
+make load-test-stress
+
+# Run soak test (30 VUs, 30 min)
+make load-test-soak
+
+# Run with Docker (no k6 install required)
+make load-test-docker
+
+# View all available make targets
+make help
+```
+
+### Test Scenarios
+
+| Scenario | VUs | Duration | Purpose |
+|----------|-----|----------|---------|
+| Smoke | 1-2 | 1 min | Quick validation |
+| Load | 10-50 | 5 min | Normal production load |
+| Stress | 100-200 | 10 min | Find breaking points |
+| Soak | 30 | 30 min | Detect memory leaks |
+
+### Grafana Dashboard
+
+The "k6 Load Testing" dashboard is auto-provisioned in Grafana showing:
+- Active VUs and request rate
+- Response time percentiles (p50, p90, p95, p99)
+- Error rate over time
+- Request rate by endpoint
+- Custom saga metrics
+
+See `docs/implementation-plans/LOAD-001-k6-load-testing.md` for full implementation details.
+See `load-tests/README.md` for detailed usage guide.
+
 ## SDK Management
 
 Uses SDKMAN for Java/Gradle version management. Run `sdk env` to activate configured versions (Java 24.0.2-amzn, Gradle 9.2.1).

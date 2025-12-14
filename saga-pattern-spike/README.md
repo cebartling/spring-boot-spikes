@@ -388,6 +388,7 @@ saga:
 | Jaeger | 16686 | Distributed tracing UI |
 | Jaeger OTLP | 4317/4318 | OTLP trace receiver |
 | Prometheus | 9090 | Metrics database and query UI |
+| Pushgateway | 9091 | k6 load test metrics |
 | Loki | 3100 | Log aggregation |
 | Grafana | 3000 | Unified visualization (admin/admin) |
 
@@ -594,6 +595,57 @@ This activates Java 24.0.2-amzn and Gradle 9.2.1.
 - [Observability Integration](docs/implementation-plans/INFRA-004-observability-integration.md) - OpenTelemetry + Jaeger
 - [Prometheus/Grafana](docs/implementation-plans/INFRA-006-prometheus-grafana.md) - Metrics collection and visualization
 - [Loki Log Aggregation](docs/implementation-plans/INFRA-007-loki-log-aggregation.md) - Centralized logging
+- [k6 Load Testing](docs/implementation-plans/LOAD-001-k6-load-testing.md) - Performance testing framework
+
+## Load Testing
+
+The project includes k6 load testing for performance validation.
+
+### Quick Start
+
+```bash
+# Install k6 (macOS)
+brew install k6
+
+# Or run with Docker (no installation required)
+make load-test-docker
+```
+
+### Running Tests
+
+```bash
+# Smoke test - quick validation (1-2 VUs, 1 min)
+make load-test-smoke
+
+# Load test - normal production load (10-50 VUs, 5 min)
+make load-test-load
+
+# Stress test - find breaking points (100-200 VUs, 10 min)
+make load-test-stress
+
+# Soak test - detect memory leaks (30 VUs, 30 min)
+make load-test-soak
+
+# View all available commands
+make help
+```
+
+### Viewing Results
+
+1. Start services: `docker compose up -d`
+2. Open Grafana: http://localhost:3000 (admin/admin)
+3. Navigate to the "k6 Load Testing" dashboard
+
+### Test Scenarios
+
+| Scenario | VUs | Duration | Purpose |
+|----------|-----|----------|---------|
+| Smoke | 1-2 | 1 min | Quick validation |
+| Load | 10-50 | 5 min | Normal production load |
+| Stress | 100-200 | 10 min | Find breaking points |
+| Soak | 30 | 30 min | Detect memory leaks |
+
+See [load-tests/README.md](load-tests/README.md) for detailed documentation.
 
 ## License
 
