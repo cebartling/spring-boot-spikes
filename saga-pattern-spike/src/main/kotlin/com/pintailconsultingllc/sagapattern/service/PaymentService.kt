@@ -37,7 +37,7 @@ class PaymentService(
         paymentMethodId: String,
         amountInCents: Long
     ): AuthorizationResponse {
-        logger.info("Authorizing payment for order $orderId, amount: $amountInCents cents")
+        logger.info("Authorizing payment for order {}, amount: {} cents", orderId, amountInCents)
 
         val request = AuthorizationRequest(
             orderId = orderId.toString(),
@@ -55,9 +55,9 @@ class PaymentService(
                 .retrieve()
                 .bodyToMono(AuthorizationResponse::class.java)
                 .awaitSingle()
-                .also { logger.info("Successfully authorized payment: ${it.authorizationId}") }
+                .also { logger.info("Successfully authorized payment: {}", it.authorizationId) }
         } catch (e: WebClientResponseException) {
-            logger.error("Payment authorization failed: ${e.statusCode} - ${e.responseBodyAsString}")
+            logger.error("Payment authorization failed: {} - {}", e.statusCode, e.responseBodyAsString)
             throw PaymentException(
                 message = "Failed to authorize payment: ${e.responseBodyAsString}",
                 errorCode = errorResponseParser.extractErrorCode(e.responseBodyAsString),
@@ -74,17 +74,17 @@ class PaymentService(
      */
     @Observed(name = "payment.void", contextualName = "void-payment")
     suspend fun voidAuthorization(authorizationId: String) {
-        logger.info("Voiding payment authorization: $authorizationId")
+        logger.info("Voiding payment authorization: {}", authorizationId)
 
         try {
             webClient.post()
-                .uri("/authorizations/$authorizationId/void")
+                .uri("/authorizations/{id}/void", authorizationId)
                 .retrieve()
                 .toBodilessEntity()
                 .awaitSingle()
-            logger.info("Successfully voided payment authorization: $authorizationId")
+            logger.info("Successfully voided payment authorization: {}", authorizationId)
         } catch (e: WebClientResponseException) {
-            logger.error("Failed to void payment authorization: ${e.statusCode}")
+            logger.error("Failed to void payment authorization: {}", e.statusCode)
             throw PaymentException(
                 message = "Failed to void authorization: ${e.responseBodyAsString}",
                 cause = e

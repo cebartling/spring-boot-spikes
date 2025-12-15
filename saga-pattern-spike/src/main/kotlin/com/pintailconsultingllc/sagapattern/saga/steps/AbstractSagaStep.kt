@@ -49,7 +49,7 @@ abstract class AbstractSagaStep(
      * the actual work to [doExecute].
      */
     override suspend fun execute(context: SagaContext): StepResult {
-        logger.info("Executing $stepName for order ${context.order.id}")
+        logger.info("Executing '{}' for order {}", stepName, context.order.id)
 
         // Optional pre-validation hook
         val validationResult = validatePreConditions(context)
@@ -59,16 +59,16 @@ abstract class AbstractSagaStep(
 
         return try {
             val result = doExecute(context)
-            logger.info("$stepName completed successfully")
+            logger.info("'{}' completed successfully", stepName)
             result
         } catch (e: SagaServiceException) {
-            logger.error("$stepName failed: ${e.message}")
+            logger.error("'{}' failed: {}", stepName, e.message)
             StepResult.failure(
                 errorMessage = e.message ?: SagaErrorMessages.stepExecutionFailed(stepName, null),
                 errorCode = e.errorCode
             )
         } catch (e: Exception) {
-            logger.error("Unexpected error during $stepName", e)
+            logger.error("Unexpected error during '{}'", stepName, e)
             StepResult.failure(
                 errorMessage = SagaErrorMessages.stepUnexpectedError(stepName, e.message),
                 errorCode = SagaErrorMessages.Codes.UNEXPECTED_ERROR
@@ -84,18 +84,18 @@ abstract class AbstractSagaStep(
      */
     override suspend fun compensate(context: SagaContext): CompensationResult {
         if (!hasDataToCompensate(context)) {
-            logger.warn("No data found for $stepName compensation")
+            logger.warn("No data found for '{}' compensation", stepName)
             return CompensationResult.success(getNoCompensationMessage())
         }
 
-        logger.info("Compensating $stepName")
+        logger.info("Compensating '{}'", stepName)
 
         return try {
             val result = doCompensate(context)
-            logger.info("Successfully compensated $stepName")
+            logger.info("Successfully compensated '{}'", stepName)
             result
         } catch (e: Exception) {
-            logger.error("Failed to compensate $stepName", e)
+            logger.error("Failed to compensate '{}'", stepName, e)
             CompensationResult.failure(SagaErrorMessages.compensationFailed(stepName, e.message))
         }
     }

@@ -42,18 +42,18 @@ class OrderController(
     @PostMapping
     @Observed(name = "http.order.create", contextualName = "post-orders")
     fun createOrder(@RequestBody request: CreateOrderRequest): Mono<ResponseEntity<Any>> {
-        logger.info("Received order creation request for customer ${request.customerId}")
+        logger.info("Received order creation request for customer {}", request.customerId)
 
         return mono {
             when (val result = orderService.createOrder(request)) {
                 is OrderCreationResult.Success -> {
-                    logger.info("Order created successfully: ${result.response.orderId}")
+                    logger.info("Order created successfully: {}", result.response.orderId)
                     ResponseEntity
                         .status(HttpStatus.CREATED)
                         .body(result.response as Any)
                 }
                 is OrderCreationResult.Failure -> {
-                    logger.warn("Order creation failed: ${result.response.error.message}")
+                    logger.warn("Order creation failed: {}", result.response.error.message)
                     ResponseEntity
                         .status(HttpStatus.UNPROCESSABLE_ENTITY)
                         .body(result.response as Any)
@@ -71,7 +71,7 @@ class OrderController(
     @GetMapping("/{orderId}")
     @Observed(name = "http.order.get", contextualName = "get-order")
     fun getOrder(@PathVariable orderId: UUID): Mono<ResponseEntity<OrderResponse>> {
-        logger.info("Retrieving order: $orderId")
+        logger.info("Retrieving order: {}", orderId)
 
         return mono {
             val order = orderService.getOrder(orderId)
@@ -92,7 +92,7 @@ class OrderController(
     @GetMapping("/customer/{customerId}")
     @Observed(name = "http.order.list", contextualName = "list-orders")
     fun getOrdersForCustomer(@PathVariable customerId: UUID): Mono<ResponseEntity<List<OrderResponse>>> {
-        logger.info("Retrieving orders for customer: $customerId")
+        logger.info("Retrieving orders for customer: {}", customerId)
 
         return mono {
             val orders = orderService.getOrdersForCustomer(customerId)
@@ -113,7 +113,7 @@ class OrderController(
     @GetMapping("/{orderId}/status")
     @Observed(name = "http.order.status", contextualName = "get-order-status")
     fun getOrderStatus(@PathVariable orderId: UUID): Mono<ResponseEntity<OrderStatusResponse>> {
-        logger.info("Retrieving status for order: $orderId")
+        logger.info("Retrieving status for order: {}", orderId)
 
         return mono {
             val progress = orderProgressService.getProgress(orderId)

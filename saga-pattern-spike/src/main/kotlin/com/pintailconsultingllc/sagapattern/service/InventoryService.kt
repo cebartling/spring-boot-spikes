@@ -32,7 +32,7 @@ class InventoryService(
      */
     @Observed(name = "inventory.reserve", contextualName = "reserve-inventory")
     suspend fun reserveInventory(orderId: UUID, items: List<OrderItem>): ReservationResponse {
-        logger.info("Reserving inventory for order $orderId with ${items.size} items")
+        logger.info("Reserving inventory for order {} with {} items", orderId, items.size)
 
         val request = ReservationRequest(
             orderId = orderId.toString(),
@@ -52,9 +52,9 @@ class InventoryService(
                 .retrieve()
                 .bodyToMono(ReservationResponse::class.java)
                 .awaitSingle()
-                .also { logger.info("Successfully reserved inventory: ${it.reservationId}") }
+                .also { logger.info("Successfully reserved inventory: {}", it.reservationId) }
         } catch (e: WebClientResponseException) {
-            logger.error("Inventory reservation failed: ${e.statusCode} - ${e.responseBodyAsString}")
+            logger.error("Inventory reservation failed: {} - {}", e.statusCode, e.responseBodyAsString)
             throw InventoryException(
                 message = "Failed to reserve inventory: ${e.responseBodyAsString}",
                 errorCode = errorResponseParser.extractErrorCode(e.responseBodyAsString),
@@ -70,17 +70,17 @@ class InventoryService(
      */
     @Observed(name = "inventory.release", contextualName = "release-inventory")
     suspend fun releaseReservation(reservationId: String) {
-        logger.info("Releasing inventory reservation: $reservationId")
+        logger.info("Releasing inventory reservation: {}", reservationId)
 
         try {
             webClient.delete()
-                .uri("/reservations/$reservationId")
+                .uri("/reservations/{id}", reservationId)
                 .retrieve()
                 .toBodilessEntity()
                 .awaitSingle()
-            logger.info("Successfully released inventory reservation: $reservationId")
+            logger.info("Successfully released inventory reservation: {}", reservationId)
         } catch (e: WebClientResponseException) {
-            logger.error("Failed to release inventory reservation: ${e.statusCode}")
+            logger.error("Failed to release inventory reservation: {}", e.statusCode)
             throw InventoryException(
                 message = "Failed to release reservation: ${e.responseBodyAsString}",
                 cause = e

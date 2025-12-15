@@ -63,7 +63,7 @@ class OrderSagaOrchestrator(
     @Observed(name = "saga.orchestrator", contextualName = "execute-saga")
     override suspend fun executeSaga(context: SagaContext): SagaResult {
         val startTime = Instant.now()
-        logger.info("Starting saga execution for order ${context.order.id}")
+        logger.info("Starting saga execution for order {}", context.order.id)
         sagaMetrics.sagaStarted()
 
         // Phase 1: Initialize saga (transactional)
@@ -131,7 +131,7 @@ class OrderSagaOrchestrator(
         sagaExecution: SagaExecution,
         duration: Duration
     ): SagaResult.Success {
-        logger.info("Saga completed successfully for order ${context.order.id}")
+        logger.info("Saga completed successfully for order {}", context.order.id)
 
         // Mark saga as completed
         sagaExecutionRepository.markCompleted(sagaExecution.id, Instant.now())
@@ -190,7 +190,7 @@ class OrderSagaOrchestrator(
         failureResult: StepResult,
         failedStepIndex: Int
     ): SagaResult {
-        logger.warn("Saga failed at step ${failedStep.getStepName()}")
+        logger.warn("Saga failed at step '{}'", failedStep.getStepName())
 
         // Record the initial failure (transactional)
         recordInitialFailure(sagaExecution.id, failedStepIndex, failureResult.errorMessage)
