@@ -2,6 +2,7 @@ package com.pintailconsultingllc.sagapattern.saga.steps
 
 import com.pintailconsultingllc.sagapattern.saga.CompensationResult
 import com.pintailconsultingllc.sagapattern.saga.SagaContext
+import com.pintailconsultingllc.sagapattern.saga.SagaErrorMessages
 import com.pintailconsultingllc.sagapattern.saga.SagaStep
 import com.pintailconsultingllc.sagapattern.saga.StepResult
 import com.pintailconsultingllc.sagapattern.service.SagaServiceException
@@ -63,14 +64,14 @@ abstract class AbstractSagaStep(
         } catch (e: SagaServiceException) {
             logger.error("$stepName failed: ${e.message}")
             StepResult.failure(
-                errorMessage = e.message ?: "$stepName failed",
+                errorMessage = e.message ?: SagaErrorMessages.stepExecutionFailed(stepName, null),
                 errorCode = e.errorCode
             )
         } catch (e: Exception) {
             logger.error("Unexpected error during $stepName", e)
             StepResult.failure(
-                errorMessage = "Unexpected error: ${e.message}",
-                errorCode = "UNEXPECTED_ERROR"
+                errorMessage = SagaErrorMessages.stepUnexpectedError(stepName, e.message),
+                errorCode = SagaErrorMessages.Codes.UNEXPECTED_ERROR
             )
         }
     }
@@ -95,7 +96,7 @@ abstract class AbstractSagaStep(
             result
         } catch (e: Exception) {
             logger.error("Failed to compensate $stepName", e)
-            CompensationResult.failure("Failed to compensate $stepName: ${e.message}")
+            CompensationResult.failure(SagaErrorMessages.compensationFailed(stepName, e.message))
         }
     }
 

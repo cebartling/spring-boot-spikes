@@ -2,6 +2,7 @@ package com.pintailconsultingllc.sagapattern.saga.steps
 
 import com.pintailconsultingllc.sagapattern.saga.CompensationResult
 import com.pintailconsultingllc.sagapattern.saga.SagaContext
+import com.pintailconsultingllc.sagapattern.saga.SagaErrorMessages
 import com.pintailconsultingllc.sagapattern.saga.StepResult
 import com.pintailconsultingllc.sagapattern.service.InventoryService
 import io.micrometer.observation.annotation.Observed
@@ -24,8 +25,8 @@ class InventoryReservationStep(
     override fun validatePreConditions(context: SagaContext): StepResult? {
         if (context.order.items.isEmpty()) {
             return StepResult.failure(
-                errorMessage = "No items in order to reserve",
-                errorCode = "NO_ITEMS"
+                errorMessage = SagaErrorMessages.noItemsToReserve(),
+                errorCode = SagaErrorMessages.Codes.NO_ITEMS
             )
         }
         return null
@@ -62,7 +63,7 @@ class InventoryReservationStep(
         inventoryService.releaseReservation(reservationId)
         logger.info("Successfully released inventory reservation: $reservationId")
 
-        return CompensationResult.success("Released reservation $reservationId")
+        return CompensationResult.success(SagaErrorMessages.inventoryReleased(reservationId))
     }
 
     companion object {

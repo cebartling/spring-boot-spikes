@@ -2,6 +2,7 @@ package com.pintailconsultingllc.sagapattern.saga.steps
 
 import com.pintailconsultingllc.sagapattern.saga.CompensationResult
 import com.pintailconsultingllc.sagapattern.saga.SagaContext
+import com.pintailconsultingllc.sagapattern.saga.SagaErrorMessages
 import com.pintailconsultingllc.sagapattern.saga.StepResult
 import com.pintailconsultingllc.sagapattern.service.PaymentService
 import io.micrometer.observation.annotation.Observed
@@ -53,7 +54,7 @@ class PaymentProcessingStep(
         paymentService.voidAuthorization(authorizationId)
         logger.info("Successfully voided payment authorization: $authorizationId")
 
-        return CompensationResult.success("Voided authorization $authorizationId")
+        return CompensationResult.success(SagaErrorMessages.paymentVoided(authorizationId))
     }
 
     companion object {

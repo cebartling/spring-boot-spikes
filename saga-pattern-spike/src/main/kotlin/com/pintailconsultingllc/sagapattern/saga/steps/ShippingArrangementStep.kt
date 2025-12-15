@@ -2,6 +2,7 @@ package com.pintailconsultingllc.sagapattern.saga.steps
 
 import com.pintailconsultingllc.sagapattern.saga.CompensationResult
 import com.pintailconsultingllc.sagapattern.saga.SagaContext
+import com.pintailconsultingllc.sagapattern.saga.SagaErrorMessages
 import com.pintailconsultingllc.sagapattern.saga.StepResult
 import com.pintailconsultingllc.sagapattern.service.ShippingService
 import io.micrometer.observation.annotation.Observed
@@ -55,7 +56,7 @@ class ShippingArrangementStep(
         shippingService.cancelShipment(shipmentId)
         logger.info("Successfully cancelled shipment: $shipmentId")
 
-        return CompensationResult.success("Cancelled shipment $shipmentId")
+        return CompensationResult.success(SagaErrorMessages.shipmentCancelled(shipmentId))
     }
 
     companion object {
