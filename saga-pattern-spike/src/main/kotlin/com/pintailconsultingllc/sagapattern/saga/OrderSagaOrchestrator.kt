@@ -173,12 +173,12 @@ class OrderSagaOrchestrator(
             .withStatus(OrderStatus.COMPLETED)
 
         // Extract delivery date from context
-        val estimatedDelivery = context.getData<String>(SagaContext.KEY_ESTIMATED_DELIVERY)
+        val estimatedDelivery = context.getData(SagaContext.ESTIMATED_DELIVERY)
             ?.let { LocalDate.parse(it) }
             ?: LocalDate.now().plusDays(5)
 
         val confirmationNumber = SagaResult.generateConfirmationNumber()
-        val trackingNumber = context.getData<String>(SagaContext.KEY_TRACKING_NUMBER)
+        val trackingNumber = context.getData(SagaContext.TRACKING_NUMBER)
 
         // Record saga completed and order completed events
         orderEventService.recordSagaCompleted(

@@ -43,8 +43,7 @@ class InventoryReservationStep(
             val response = inventoryService.reserveInventory(context.order.id, items)
 
             // Store reservation ID for potential compensation
-            context.putData(SagaContext.KEY_RESERVATION_ID, response.reservationId)
-            context.markStepCompleted(STEP_NAME)
+            context.putData(SagaContext.RESERVATION_ID, response.reservationId)
 
             logger.info("Inventory reserved successfully: ${response.reservationId}")
 
@@ -72,7 +71,7 @@ class InventoryReservationStep(
 
     @Observed(name = "saga.step.compensate", contextualName = "inventory-reservation-compensate")
     override suspend fun compensate(context: SagaContext): CompensationResult {
-        val reservationId = context.getData<String>(SagaContext.KEY_RESERVATION_ID)
+        val reservationId = context.getData(SagaContext.RESERVATION_ID)
 
         if (reservationId == null) {
             logger.warn("No reservation ID found for compensation")

@@ -38,10 +38,9 @@ class ShippingArrangementStep(
             )
 
             // Store shipment data for potential compensation and order completion
-            context.putData(SagaContext.KEY_SHIPMENT_ID, response.shipmentId)
-            response.trackingNumber?.let { context.putData(SagaContext.KEY_TRACKING_NUMBER, it) }
-            response.estimatedDelivery?.let { context.putData(SagaContext.KEY_ESTIMATED_DELIVERY, it) }
-            context.markStepCompleted(STEP_NAME)
+            context.putData(SagaContext.SHIPMENT_ID, response.shipmentId)
+            response.trackingNumber?.let { context.putData(SagaContext.TRACKING_NUMBER, it) }
+            response.estimatedDelivery?.let { context.putData(SagaContext.ESTIMATED_DELIVERY, it) }
 
             logger.info("Shipment created successfully: ${response.shipmentId}")
 
@@ -71,7 +70,7 @@ class ShippingArrangementStep(
 
     @Observed(name = "saga.step.compensate", contextualName = "shipping-arrangement-compensate")
     override suspend fun compensate(context: SagaContext): CompensationResult {
-        val shipmentId = context.getData<String>(SagaContext.KEY_SHIPMENT_ID)
+        val shipmentId = context.getData(SagaContext.SHIPMENT_ID)
 
         if (shipmentId == null) {
             logger.warn("No shipment ID found for compensation")

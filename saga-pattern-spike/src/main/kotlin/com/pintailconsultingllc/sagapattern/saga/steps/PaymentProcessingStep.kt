@@ -40,8 +40,7 @@ class PaymentProcessingStep(
             )
 
             // Store authorization ID for potential compensation
-            context.putData(SagaContext.KEY_AUTHORIZATION_ID, response.authorizationId)
-            context.markStepCompleted(STEP_NAME)
+            context.putData(SagaContext.AUTHORIZATION_ID, response.authorizationId)
 
             logger.info("Payment authorized successfully: ${response.authorizationId}")
 
@@ -69,7 +68,7 @@ class PaymentProcessingStep(
 
     @Observed(name = "saga.step.compensate", contextualName = "payment-processing-compensate")
     override suspend fun compensate(context: SagaContext): CompensationResult {
-        val authorizationId = context.getData<String>(SagaContext.KEY_AUTHORIZATION_ID)
+        val authorizationId = context.getData(SagaContext.AUTHORIZATION_ID)
 
         if (authorizationId == null) {
             logger.warn("No authorization ID found for compensation")
