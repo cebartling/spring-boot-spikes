@@ -125,7 +125,8 @@ data class OrderHistoryResponse(
     val retryCount: Int,
     val wasSuccessful: Boolean,
     val hadCompensations: Boolean,
-    val traceId: String?
+    val traceId: String?,
+    val executionCount: Int
 ) {
     companion object {
         fun from(history: OrderHistory): OrderHistoryResponse = OrderHistoryResponse(
@@ -141,7 +142,8 @@ data class OrderHistoryResponse(
             wasSuccessful = history.wasSuccessful,
             hadCompensations = history.hadCompensations,
             // Use the trace ID from the most recent execution
-            traceId = history.executions.lastOrNull()?.traceId
+            traceId = history.executions.lastOrNull()?.traceId,
+            executionCount = history.timeline.executionCount
         )
     }
 }
