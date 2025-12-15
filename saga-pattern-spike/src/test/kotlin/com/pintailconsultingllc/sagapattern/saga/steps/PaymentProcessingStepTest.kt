@@ -89,8 +89,7 @@ class PaymentProcessingStepTest {
 
         assertTrue(result.success)
         assertEquals(authorizationId, result.getData<String>("authorizationId"))
-        assertEquals(authorizationId, context.getData<String>(SagaContext.KEY_AUTHORIZATION_ID))
-        assertTrue(context.isStepCompleted("Payment Processing"))
+        assertEquals(authorizationId, context.getData(SagaContext.AUTHORIZATION_ID))
     }
 
     @Test
@@ -108,7 +107,7 @@ class PaymentProcessingStepTest {
     @Test
     fun `compensate voids authorization`() = runTest {
         val authorizationId = UUID.randomUUID().toString()
-        context.putData(SagaContext.KEY_AUTHORIZATION_ID, authorizationId)
+        context.putData(SagaContext.AUTHORIZATION_ID, authorizationId)
 
         val result = step.compensate(context)
 

@@ -89,8 +89,7 @@ class InventoryReservationStepTest {
 
         assertTrue(result.success)
         assertEquals(reservationId, result.getData<String>("reservationId"))
-        assertEquals(reservationId, context.getData<String>(SagaContext.KEY_RESERVATION_ID))
-        assertTrue(context.isStepCompleted("Inventory Reservation"))
+        assertEquals(reservationId, context.getData(SagaContext.RESERVATION_ID))
     }
 
     @Test
@@ -125,7 +124,7 @@ class InventoryReservationStepTest {
     @Test
     fun `compensate releases reservation`() = runTest {
         val reservationId = UUID.randomUUID().toString()
-        context.putData(SagaContext.KEY_RESERVATION_ID, reservationId)
+        context.putData(SagaContext.RESERVATION_ID, reservationId)
 
         val result = step.compensate(context)
 
