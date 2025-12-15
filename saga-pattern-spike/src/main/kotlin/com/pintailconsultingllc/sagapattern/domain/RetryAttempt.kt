@@ -62,18 +62,20 @@ data class RetryAttempt @PersistenceCreator constructor(
 
     /**
      * Create a copy with the retry execution ID set.
+     * Preserves the isNewEntity flag from the source object.
      */
     fun withRetryExecution(executionId: UUID): RetryAttempt = copy(
         retryExecutionId = executionId
-    )
+    ).also { it.isNewEntity = this.isNewEntity }
 
     /**
      * Create a copy with step information set.
+     * Preserves the isNewEntity flag from the source object.
      */
     fun withStepInfo(resumedFrom: String, skipped: List<String>): RetryAttempt = copy(
         resumedFromStep = resumedFrom,
         skippedSteps = skipped.toTypedArray()
-    )
+    ).also { it.isNewEntity = this.isNewEntity }
 
     /**
      * Mark the retry as successful.
