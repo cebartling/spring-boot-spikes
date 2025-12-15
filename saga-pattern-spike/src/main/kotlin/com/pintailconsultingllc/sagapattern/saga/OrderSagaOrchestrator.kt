@@ -3,22 +3,21 @@ package com.pintailconsultingllc.sagapattern.saga
 import com.pintailconsultingllc.sagapattern.domain.OrderStatus
 import com.pintailconsultingllc.sagapattern.domain.SagaExecution
 import com.pintailconsultingllc.sagapattern.domain.SagaStatus
-import com.pintailconsultingllc.sagapattern.domain.SagaStepResult
 import com.pintailconsultingllc.sagapattern.history.ErrorInfo
 import com.pintailconsultingllc.sagapattern.metrics.SagaMetrics
-import com.pintailconsultingllc.sagapattern.saga.event.SagaEventRecorder
 import com.pintailconsultingllc.sagapattern.observability.TraceContextService
 import com.pintailconsultingllc.sagapattern.repository.OrderRepository
 import com.pintailconsultingllc.sagapattern.repository.SagaExecutionRepository
-import com.pintailconsultingllc.sagapattern.repository.SagaStepResultRepository
 import com.pintailconsultingllc.sagapattern.saga.compensation.CompensationOrchestrator
 import com.pintailconsultingllc.sagapattern.saga.compensation.CompensationRequest
 import com.pintailconsultingllc.sagapattern.saga.compensation.CompensationSummary
+import com.pintailconsultingllc.sagapattern.saga.event.SagaEventRecorder
+import com.pintailconsultingllc.sagapattern.saga.execution.StepExecutionOutcome
+import com.pintailconsultingllc.sagapattern.saga.execution.StepExecutor
 import io.micrometer.observation.annotation.Observed
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import tools.jackson.module.kotlin.jacksonObjectMapper
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -39,14 +38,13 @@ class OrderSagaOrchestrator(
     private val sagaStepRegistry: SagaStepRegistry,
     private val orderRepository: OrderRepository,
     private val sagaExecutionRepository: SagaExecutionRepository,
-    private val sagaStepResultRepository: SagaStepResultRepository,
     private val sagaMetrics: SagaMetrics,
     private val sagaEventRecorder: SagaEventRecorder,
     private val traceContextService: TraceContextService,
-    private val compensationOrchestrator: CompensationOrchestrator
+    private val compensationOrchestrator: CompensationOrchestrator,
+    private val stepExecutor: StepExecutor
 ) {
     private val logger = LoggerFactory.getLogger(OrderSagaOrchestrator::class.java)
-    private val objectMapper = jacksonObjectMapper()
 
     // Cache ordered steps from the registry (steps are static at runtime)
     private val orderedSteps: List<SagaStep> = sagaStepRegistry.getOrderedSteps()
@@ -70,66 +68,25 @@ class OrderSagaOrchestrator(
         val sagaExecution = initializeSaga(context)
 
         // Phase 2: Execute steps (non-transactional - allows external HTTP calls)
-        var currentStepIndex = 0
-        var failedStep: SagaStep? = null
-        var failureResult: StepResult? = null
-
-        for ((index, step) in orderedSteps.withIndex()) {
-            currentStepIndex = index
-            logger.info("Executing step ${step.getStepName()} (${index + 1}/${orderedSteps.size})")
-
-            // Create step result record
-            val stepResult = createStepResultRecord(sagaExecution.id, step, index)
-
-            // Mark step as in progress and record event
-            sagaStepResultRepository.markInProgress(stepResult.id, Instant.now())
-            sagaExecutionRepository.updateCurrentStep(sagaExecution.id, index + 1)
-            sagaEventRecorder.recordStepStarted(context.order.id, sagaExecution.id, step.getStepName())
-
-            // Execute the step
-            val result = sagaMetrics.timeStepSuspend(step.getStepName()) {
-                step.execute(context)
-            }
-
-            if (result.success) {
-                // Record success
-                val dataJson = if (result.data.isNotEmpty()) objectMapper.writeValueAsString(result.data) else null
-                sagaStepResultRepository.markCompleted(stepResult.id, dataJson, Instant.now())
-                sagaMetrics.stepCompleted(step.getStepName())
-                sagaEventRecorder.recordStepCompleted(
-                    context.order.id,
-                    sagaExecution.id,
-                    step.getStepName(),
-                    result.data.ifEmpty { null }
-                )
-                logger.info("Step ${step.getStepName()} completed successfully")
-            } else {
-                // Record failure and break
-                sagaStepResultRepository.markFailed(stepResult.id, result.errorMessage ?: "Unknown error", Instant.now())
-                sagaEventRecorder.recordStepFailed(
-                    context.order.id,
-                    sagaExecution.id,
-                    step.getStepName(),
-                    ErrorInfo.fromStepFailure(result.errorCode, result.errorMessage)
-                )
-                failedStep = step
-                failureResult = result
-                logger.error("Step ${step.getStepName()} failed: ${result.errorMessage}")
-                break
-            }
-        }
+        val outcome = stepExecutor.executeSteps(
+            steps = orderedSteps,
+            context = context,
+            sagaExecutionId = sagaExecution.id,
+            recordEvents = true
+        )
 
         // Record saga duration
         val duration = Duration.between(startTime, Instant.now())
         sagaMetrics.recordSagaDuration(duration)
 
         // Phase 3: Finalize saga (transactional updates)
-        return if (failedStep == null) {
-            // All steps completed successfully
-            completeSuccessfulSaga(context, sagaExecution, duration)
-        } else {
-            // Handle failure - trigger compensation if needed
-            handleSagaFailure(context, sagaExecution, failedStep, failureResult!!, currentStepIndex)
+        return when (outcome) {
+            is StepExecutionOutcome.AllSucceeded -> {
+                completeSuccessfulSaga(context, sagaExecution, duration)
+            }
+            is StepExecutionOutcome.Failed -> {
+                handleSagaFailure(context, sagaExecution, outcome.step, outcome.result, outcome.stepIndex)
+            }
         }
     }
 
@@ -158,15 +115,6 @@ class OrderSagaOrchestrator(
         orderRepository.updateStatus(context.order.id, OrderStatus.PROCESSING)
 
         return savedExecution
-    }
-
-    private suspend fun createStepResultRecord(sagaExecutionId: java.util.UUID, step: SagaStep, index: Int): SagaStepResult {
-        val stepResult = SagaStepResult.pending(
-            sagaExecutionId = sagaExecutionId,
-            stepName = step.getStepName(),
-            stepOrder = index + 1
-        )
-        return sagaStepResultRepository.save(stepResult)
     }
 
     /**
