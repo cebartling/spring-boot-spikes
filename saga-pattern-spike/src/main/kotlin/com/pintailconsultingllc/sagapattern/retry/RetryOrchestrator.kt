@@ -343,7 +343,7 @@ class RetryOrchestrator(
             .withStatus(OrderStatus.COMPLETED)
 
         // Extract delivery date from context
-        val estimatedDelivery = context.getData<String>(SagaContext.KEY_ESTIMATED_DELIVERY)
+        val estimatedDelivery = context.getData(SagaContext.ESTIMATED_DELIVERY)
             ?.let { LocalDate.parse(it) }
             ?: LocalDate.now().plusDays(5)
 
@@ -353,7 +353,7 @@ class RetryOrchestrator(
                 confirmationNumber = SagaResult.generateConfirmationNumber(),
                 totalChargedInCents = context.order.totalAmountInCents,
                 estimatedDelivery = estimatedDelivery,
-                trackingNumber = context.getData(SagaContext.KEY_TRACKING_NUMBER)
+                trackingNumber = context.getData(SagaContext.TRACKING_NUMBER)
             )
         )
     }

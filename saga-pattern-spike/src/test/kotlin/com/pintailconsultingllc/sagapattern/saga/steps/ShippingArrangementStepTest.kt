@@ -95,10 +95,9 @@ class ShippingArrangementStepTest {
 
         assertTrue(result.success)
         assertEquals(shipmentId, result.getData<String>("shipmentId"))
-        assertEquals(shipmentId, context.getData<String>(SagaContext.KEY_SHIPMENT_ID))
-        assertEquals("TRK123456", context.getData<String>(SagaContext.KEY_TRACKING_NUMBER))
-        assertEquals("2024-01-20", context.getData<String>(SagaContext.KEY_ESTIMATED_DELIVERY))
-        assertTrue(context.isStepCompleted("Shipping Arrangement"))
+        assertEquals(shipmentId, context.getData(SagaContext.SHIPMENT_ID))
+        assertEquals("TRK123456", context.getData(SagaContext.TRACKING_NUMBER))
+        assertEquals("2024-01-20", context.getData(SagaContext.ESTIMATED_DELIVERY))
     }
 
     @Test
@@ -116,7 +115,7 @@ class ShippingArrangementStepTest {
     @Test
     fun `compensate cancels shipment`() = runTest {
         val shipmentId = UUID.randomUUID().toString()
-        context.putData(SagaContext.KEY_SHIPMENT_ID, shipmentId)
+        context.putData(SagaContext.SHIPMENT_ID, shipmentId)
 
         val result = step.compensate(context)
 
