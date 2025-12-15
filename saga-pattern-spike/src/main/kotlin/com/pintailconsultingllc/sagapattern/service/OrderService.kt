@@ -11,8 +11,8 @@ import com.pintailconsultingllc.sagapattern.history.OrderEventService
 import com.pintailconsultingllc.sagapattern.observability.TraceContextService
 import com.pintailconsultingllc.sagapattern.repository.OrderItemRepository
 import com.pintailconsultingllc.sagapattern.repository.OrderRepository
-import com.pintailconsultingllc.sagapattern.saga.OrderSagaOrchestrator
 import com.pintailconsultingllc.sagapattern.saga.SagaContext
+import com.pintailconsultingllc.sagapattern.saga.SagaOrchestrator
 import com.pintailconsultingllc.sagapattern.saga.SagaResult
 import io.micrometer.observation.annotation.Observed
 import org.slf4j.LoggerFactory
@@ -27,7 +27,7 @@ import java.util.UUID
 class OrderService(
     private val orderRepository: OrderRepository,
     private val orderItemRepository: OrderItemRepository,
-    private val sagaOrchestrator: OrderSagaOrchestrator,
+    private val sagaOrchestrator: SagaOrchestrator,
     private val orderEventService: OrderEventService,
     private val traceContextService: TraceContextService
 ) {

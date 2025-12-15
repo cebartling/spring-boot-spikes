@@ -6,8 +6,8 @@ import com.pintailconsultingllc.sagapattern.api.dto.RetryEligibilityResponse
 import com.pintailconsultingllc.sagapattern.api.dto.RetryHistoryResponse
 import com.pintailconsultingllc.sagapattern.api.dto.RetryResultResponse
 import com.pintailconsultingllc.sagapattern.retry.OrderRetryService
-import com.pintailconsultingllc.sagapattern.retry.RetryOrchestrator
 import com.pintailconsultingllc.sagapattern.retry.RetryRequest
+import com.pintailconsultingllc.sagapattern.retry.RetryableOrchestrator
 import com.pintailconsultingllc.sagapattern.retry.ShippingAddress
 import io.micrometer.observation.annotation.Observed
 import kotlinx.coroutines.reactor.mono
@@ -33,7 +33,7 @@ import java.util.UUID
 @RequestMapping("/api/orders")
 class RetryController(
     private val orderRetryService: OrderRetryService,
-    private val retryOrchestrator: RetryOrchestrator
+    private val retryOrchestrator: RetryableOrchestrator
 ) {
     private val logger = LoggerFactory.getLogger(RetryController::class.java)
 
