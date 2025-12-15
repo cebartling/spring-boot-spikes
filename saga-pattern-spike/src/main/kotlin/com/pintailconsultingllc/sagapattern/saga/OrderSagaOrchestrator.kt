@@ -43,7 +43,7 @@ class OrderSagaOrchestrator(
     private val traceContextService: TraceContextService,
     private val compensationOrchestrator: CompensationOrchestrator,
     private val stepExecutor: StepExecutor
-) {
+) : SagaOrchestrator {
     private val logger = LoggerFactory.getLogger(OrderSagaOrchestrator::class.java)
 
     // Cache ordered steps from the registry (steps are static at runtime)
@@ -59,7 +59,7 @@ class OrderSagaOrchestrator(
      * @return The result of the saga execution
      */
     @Observed(name = "saga.orchestrator", contextualName = "execute-saga")
-    suspend fun executeSaga(context: SagaContext): SagaResult {
+    override suspend fun executeSaga(context: SagaContext): SagaResult {
         val startTime = Instant.now()
         logger.info("Starting saga execution for order ${context.order.id}")
         sagaMetrics.sagaStarted()

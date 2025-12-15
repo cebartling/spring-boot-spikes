@@ -46,7 +46,7 @@ class RetryOrchestrator(
     private val sagaMetrics: SagaMetrics,
     private val compensationOrchestrator: CompensationOrchestrator,
     private val stepExecutor: StepExecutor
-) {
+) : RetryableOrchestrator {
     private val logger = LoggerFactory.getLogger(RetryOrchestrator::class.java)
 
     // Cache ordered steps from the registry (steps are static at runtime)
@@ -61,7 +61,7 @@ class RetryOrchestrator(
      */
     @Observed(name = "saga.retry.orchestrator", contextualName = "execute-retry")
     @Transactional
-    suspend fun executeRetry(orderId: UUID, request: RetryRequest): SagaRetryResult {
+    override suspend fun executeRetry(orderId: UUID, request: RetryRequest): SagaRetryResult {
         val startTime = Instant.now()
         logger.info("Starting saga retry for order {}", orderId)
 
