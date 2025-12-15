@@ -5,28 +5,25 @@ import com.pintailconsultingllc.sagapattern.domain.OrderStatus
 import com.pintailconsultingllc.sagapattern.domain.RetryOutcome
 import com.pintailconsultingllc.sagapattern.domain.SagaExecution
 import com.pintailconsultingllc.sagapattern.domain.SagaStatus
-import com.pintailconsultingllc.sagapattern.domain.SagaStepResult
-import com.pintailconsultingllc.sagapattern.domain.StepStatus
+import com.pintailconsultingllc.sagapattern.domain.ShippingAddress
 import com.pintailconsultingllc.sagapattern.metrics.SagaMetrics
 import com.pintailconsultingllc.sagapattern.repository.OrderItemRepository
 import com.pintailconsultingllc.sagapattern.repository.OrderRepository
 import com.pintailconsultingllc.sagapattern.repository.RetryAttemptRepository
 import com.pintailconsultingllc.sagapattern.repository.SagaExecutionRepository
-import com.pintailconsultingllc.sagapattern.repository.SagaStepResultRepository
 import com.pintailconsultingllc.sagapattern.saga.SagaContext
 import com.pintailconsultingllc.sagapattern.saga.SagaResult
 import com.pintailconsultingllc.sagapattern.saga.SagaStep
 import com.pintailconsultingllc.sagapattern.saga.SagaStepRegistry
-import com.pintailconsultingllc.sagapattern.domain.ShippingAddress
 import com.pintailconsultingllc.sagapattern.saga.StepResult
 import com.pintailconsultingllc.sagapattern.saga.compensation.CompensationOrchestrator
 import com.pintailconsultingllc.sagapattern.saga.compensation.CompensationRequest
-import com.pintailconsultingllc.sagapattern.saga.compensation.CompensationSummary
+import com.pintailconsultingllc.sagapattern.saga.execution.StepExecutionOutcome
+import com.pintailconsultingllc.sagapattern.saga.execution.StepExecutor
 import io.micrometer.observation.annotation.Observed
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import tools.jackson.module.kotlin.jacksonObjectMapper
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -44,14 +41,13 @@ class RetryOrchestrator(
     private val orderRepository: OrderRepository,
     private val orderItemRepository: OrderItemRepository,
     private val sagaExecutionRepository: SagaExecutionRepository,
-    private val sagaStepResultRepository: SagaStepResultRepository,
     private val retryAttemptRepository: RetryAttemptRepository,
     private val orderRetryService: OrderRetryService,
     private val sagaMetrics: SagaMetrics,
-    private val compensationOrchestrator: CompensationOrchestrator
+    private val compensationOrchestrator: CompensationOrchestrator,
+    private val stepExecutor: StepExecutor
 ) {
     private val logger = LoggerFactory.getLogger(RetryOrchestrator::class.java)
-    private val objectMapper = jacksonObjectMapper()
 
     // Cache ordered steps from the registry (steps are static at runtime)
     private val orderedSteps: List<SagaStep> = sagaStepRegistry.getOrderedSteps()
@@ -245,82 +241,29 @@ class RetryOrchestrator(
         sagaExecution: SagaExecution,
         resumePoint: ResumePoint
     ): StepExecutionResult {
-        var failedStep: SagaStep? = null
-        var failureResult: StepResult? = null
-        var currentStepIndex = 0
+        // Use StepExecutor with skip predicate for retry scenarios
+        val outcome = stepExecutor.executeSteps(
+            steps = orderedSteps,
+            context = context,
+            sagaExecutionId = sagaExecution.id,
+            skipPredicate = { step -> step.getStepName() in resumePoint.skippedSteps },
+            recordEvents = false  // Retry doesn't record events to avoid duplicate history
+        )
 
-        for ((index, step) in orderedSteps.withIndex()) {
-            currentStepIndex = index
-            val stepName = step.getStepName()
-
-            if (stepName in resumePoint.skippedSteps) {
-                // Create a skipped step record
-                logger.info("Skipping step '{}' - result still valid from previous execution", stepName)
-                val skippedStepResult = SagaStepResult.skipped(
-                    sagaExecutionId = sagaExecution.id,
-                    stepName = stepName,
-                    stepOrder = index + 1
+        return when (outcome) {
+            is StepExecutionOutcome.AllSucceeded -> {
+                completeSuccessfulSaga(context, sagaExecution)
+            }
+            is StepExecutionOutcome.Failed -> {
+                handleSagaFailure(
+                    context = context,
+                    sagaExecution = sagaExecution,
+                    failedStep = outcome.step,
+                    failureResult = outcome.result,
+                    failedStepIndex = outcome.stepIndex,
+                    skippedSteps = resumePoint.skippedSteps
                 )
-                sagaStepResultRepository.save(skippedStepResult)
-                sagaMetrics.stepCompleted(stepName)
-                continue
             }
-
-            // Execute this step
-            logger.info("Executing step '{}' ({}/{})", stepName, index + 1, orderedSteps.size)
-
-            // Create step result record
-            val stepResult = SagaStepResult.pending(
-                sagaExecutionId = sagaExecution.id,
-                stepName = stepName,
-                stepOrder = index + 1
-            )
-            val savedStepResult = sagaStepResultRepository.save(stepResult)
-
-            // Mark step as in progress
-            sagaStepResultRepository.markInProgress(savedStepResult.id, Instant.now())
-            sagaExecutionRepository.updateCurrentStep(sagaExecution.id, index + 1)
-
-            // Execute the step
-            val result = sagaMetrics.timeStepSuspend(stepName) {
-                step.execute(context)
-            }
-
-            if (result.success) {
-                // Record success
-                val dataJson = if (result.data.isNotEmpty()) {
-                    objectMapper.writeValueAsString(result.data)
-                } else null
-                sagaStepResultRepository.markCompleted(savedStepResult.id, dataJson, Instant.now())
-                sagaMetrics.stepCompleted(stepName)
-                logger.info("Step '{}' completed successfully", stepName)
-            } else {
-                // Record failure and break
-                sagaStepResultRepository.markFailed(
-                    savedStepResult.id,
-                    result.errorMessage ?: "Unknown error",
-                    Instant.now()
-                )
-                failedStep = step
-                failureResult = result
-                logger.error("Step '{}' failed: {}", stepName, result.errorMessage)
-                break
-            }
-        }
-
-        return if (failedStep == null) {
-            // All steps completed successfully
-            completeSuccessfulSaga(context, sagaExecution)
-        } else {
-            // Handle failure
-            handleSagaFailure(
-                context = context,
-                sagaExecution = sagaExecution,
-                failedStep = failedStep,
-                failureResult = failureResult!!,
-                failedStepIndex = currentStepIndex,
-                skippedSteps = resumePoint.skippedSteps
-            )
         }
     }
 
