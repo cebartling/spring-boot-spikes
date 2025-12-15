@@ -1,5 +1,6 @@
 package com.pintailconsultingllc.sagapattern.saga.execution
 
+import com.pintailconsultingllc.sagapattern.config.SagaDefaults
 import com.pintailconsultingllc.sagapattern.domain.Order
 import com.pintailconsultingllc.sagapattern.domain.OrderStatus
 import com.pintailconsultingllc.sagapattern.domain.SagaStepResult
@@ -55,11 +56,14 @@ class StepExecutorTest {
         sagaMetrics = mock()
         sagaEventRecorder = mock()
 
+        val sagaDefaults = SagaDefaults()
+
         stepExecutor = StepExecutor(
             sagaStepResultRepository = sagaStepResultRepository,
             sagaExecutionRepository = sagaExecutionRepository,
             sagaMetrics = sagaMetrics,
-            sagaEventRecorder = sagaEventRecorder
+            sagaEventRecorder = sagaEventRecorder,
+            sagaDefaults = sagaDefaults
         )
 
         val order = Order(
