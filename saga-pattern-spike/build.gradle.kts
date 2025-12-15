@@ -65,6 +65,12 @@ dependencies {
 	testImplementation("io.cucumber:cucumber-junit-platform-engine:$cucumberVersion")
 	testImplementation("io.cucumber:cucumber-spring:$cucumberVersion")
 	testImplementation("org.junit.platform:junit-platform-suite")
+
+	// TestContainers for integration testing
+	testImplementation("org.testcontainers:testcontainers:1.20.4")
+	testImplementation("org.testcontainers:junit-jupiter:1.20.4")
+	testImplementation("org.testcontainers:postgresql:1.20.4")
+	testImplementation("org.testcontainers:r2dbc:1.20.4")
 }
 
 dependencyManagement {
