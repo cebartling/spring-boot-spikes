@@ -21,6 +21,7 @@ repositories {
 
 extra["springCloudVersion"] = "2025.1.0"
 val cucumberVersion = "7.20.1"
+val testcontainersVersion = "1.21.3"
 
 dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-webclient")
@@ -67,10 +68,10 @@ dependencies {
 	testImplementation("org.junit.platform:junit-platform-suite")
 
 	// TestContainers for integration testing
-	testImplementation("org.testcontainers:testcontainers:1.20.4")
-	testImplementation("org.testcontainers:junit-jupiter:1.20.4")
-	testImplementation("org.testcontainers:postgresql:1.20.4")
-	testImplementation("org.testcontainers:r2dbc:1.20.4")
+	testImplementation("org.testcontainers:testcontainers:$testcontainersVersion")
+	testImplementation("org.testcontainers:junit-jupiter:$testcontainersVersion")
+	testImplementation("org.testcontainers:postgresql:$testcontainersVersion")
+	testImplementation("org.testcontainers:r2dbc:$testcontainersVersion")
 }
 
 dependencyManagement {
