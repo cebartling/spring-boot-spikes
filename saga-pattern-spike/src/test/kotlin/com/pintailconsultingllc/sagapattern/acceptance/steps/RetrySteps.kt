@@ -312,7 +312,22 @@ class RetrySteps(
             failedStep = 2,
             failedStepName = PaymentProcessingStep.STEP_NAME
         )
-        // Order failed recently, within cooldown period
+
+        // Create a recent failed retry attempt to trigger cooldown check
+        val orderId = testContext.orderId ?: return@runBlocking
+        val sagaExecution = sagaExecutionRepository.findByOrderId(orderId) ?: return@runBlocking
+
+        retryAttemptRepository.save(
+            RetryAttempt.createWithDetails(
+                orderId = orderId,
+                originalExecutionId = sagaExecution.id,
+                attemptNumber = 1,
+                initiatedAt = Instant.now().minusSeconds(30), // Just 30 seconds ago
+                completedAt = Instant.now().minusSeconds(25),
+                outcome = RetryOutcome.FAILED,
+                failureReason = "Retry attempt failed - payment declined"
+            )
+        )
     }
 
     @Given("I have an order with multiple retry attempts")

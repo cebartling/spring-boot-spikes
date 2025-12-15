@@ -220,7 +220,7 @@ class DefaultStepValidityChecker(
                 .retrieve()
                 .awaitBodyOrNull<Map<String, Any>>()
 
-            response?.get("status") == "ACTIVE"
+            response?.get("status") in listOf("ACTIVE", "RESERVED")
         } catch (e: Exception) {
             logger.warn("Error verifying inventory reservation: ${e.message}")
             true // Assume valid if we can't verify
