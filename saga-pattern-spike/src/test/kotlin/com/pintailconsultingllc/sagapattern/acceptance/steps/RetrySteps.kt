@@ -287,6 +287,17 @@ class RetrySteps(
             failedStep = 2,
             failedStepName = PaymentProcessingStep.STEP_NAME
         )
+
+        // Set default shipping address and payment method for retry scenarios
+        // These are required by RetryContextBuilder for validation
+        testContext.shippingAddress = mapOf(
+            "street" to "123 Test St",
+            "city" to "Testville",
+            "state" to "CA",
+            "postalCode" to "90210",
+            "country" to "US"
+        )
+        testContext.paymentMethodId = "valid-card"
     }
 
     @Given("the original inventory reservation has expired")

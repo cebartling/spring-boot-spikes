@@ -1,20 +1,15 @@
 package com.pintailconsultingllc.sagapattern.retry
 
-import com.pintailconsultingllc.sagapattern.config.SagaDefaults
-import com.pintailconsultingllc.sagapattern.domain.Order
 import com.pintailconsultingllc.sagapattern.domain.OrderStatus
 import com.pintailconsultingllc.sagapattern.domain.RetryAttempt
 import com.pintailconsultingllc.sagapattern.domain.RetryOutcome
 import com.pintailconsultingllc.sagapattern.domain.SagaExecution
-import com.pintailconsultingllc.sagapattern.domain.SagaStatus
-import com.pintailconsultingllc.sagapattern.domain.SagaStepResult
 import com.pintailconsultingllc.sagapattern.domain.StepStatus
 import com.pintailconsultingllc.sagapattern.repository.OrderRepository
 import com.pintailconsultingllc.sagapattern.repository.RetryAttemptRepository
 import com.pintailconsultingllc.sagapattern.repository.SagaExecutionRepository
 import com.pintailconsultingllc.sagapattern.repository.SagaStepResultRepository
 import com.pintailconsultingllc.sagapattern.saga.SagaContext
-import com.pintailconsultingllc.sagapattern.domain.ShippingAddress as SagaShippingAddress
 import com.pintailconsultingllc.sagapattern.saga.steps.InventoryReservationStep
 import io.micrometer.observation.annotation.Observed
 import org.slf4j.LoggerFactory
@@ -89,7 +84,7 @@ class DefaultOrderRetryService(
     private val retryAttemptRepository: RetryAttemptRepository,
     private val stepValidityChecker: StepValidityChecker,
     private val retryConfiguration: RetryConfiguration,
-    private val sagaDefaults: SagaDefaults
+    private val retryContextBuilder: RetryContextBuilder
 ) : OrderRetryService {
 
     private val logger = LoggerFactory.getLogger(DefaultOrderRetryService::class.java)
@@ -223,33 +218,18 @@ class DefaultOrderRetryService(
         )
         val savedRetryAttempt = retryAttemptRepository.save(retryAttempt)
 
-        // Create saga context for determining resume point
-        val defaultShippingAddress = SagaShippingAddress(
-            street = "",
-            city = "",
-            state = "",
-            postalCode = "",
-            country = ""
-        )
-        val paymentMethodId = request.updatedPaymentMethodId
-            ?: sagaDefaults.defaultPaymentMethodId
-            ?: throw IllegalStateException("No payment method specified and no default configured")
-
-        val context = SagaContext(
-            order = order,
-            sagaExecutionId = originalExecution.id,
-            customerId = order.customerId,
-            paymentMethodId = paymentMethodId,
-            shippingAddress = request.updatedShippingAddress?.let {
-                SagaShippingAddress(
-                    street = it.street,
-                    city = it.city,
-                    state = it.state,
-                    postalCode = it.postalCode,
-                    country = it.country
-                )
-            } ?: defaultShippingAddress
-        )
+        // Build saga context using the context builder with validation
+        val context = try {
+            retryContextBuilder.buildContext(
+                order = order,
+                sagaExecutionId = originalExecution.id,
+                originalExecutionId = originalExecution.id,
+                request = request
+            )
+        } catch (e: RetryContextValidationException) {
+            logger.warn("Retry context validation failed for order {}: {}", request.orderId, e.message)
+            return RetryResult.rejected(request.orderId, e.reason)
+        }
 
         // Determine resume point
         val resumePoint = determineResumePoint(originalExecution, context)

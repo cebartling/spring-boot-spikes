@@ -1,12 +1,10 @@
 package com.pintailconsultingllc.sagapattern.retry
 
 import com.pintailconsultingllc.sagapattern.config.SagaDefaults
-import com.pintailconsultingllc.sagapattern.domain.Order
 import com.pintailconsultingllc.sagapattern.domain.OrderStatus
 import com.pintailconsultingllc.sagapattern.domain.RetryOutcome
 import com.pintailconsultingllc.sagapattern.domain.SagaExecution
 import com.pintailconsultingllc.sagapattern.domain.SagaStatus
-import com.pintailconsultingllc.sagapattern.domain.ShippingAddress
 import com.pintailconsultingllc.sagapattern.metrics.SagaMetrics
 import com.pintailconsultingllc.sagapattern.repository.OrderItemRepository
 import com.pintailconsultingllc.sagapattern.repository.OrderRepository
@@ -47,7 +45,8 @@ class RetryOrchestrator(
     private val sagaMetrics: SagaMetrics,
     private val compensationOrchestrator: CompensationOrchestrator,
     private val stepExecutor: StepExecutor,
-    private val sagaDefaults: SagaDefaults
+    private val sagaDefaults: SagaDefaults,
+    private val retryContextBuilder: RetryContextBuilder
 ) : RetryableOrchestrator {
     private val logger = LoggerFactory.getLogger(RetryOrchestrator::class.java)
 
@@ -118,8 +117,28 @@ class RetryOrchestrator(
             ).withRetryExecution(retryExecutionId)
         )
 
-        // Build saga context
-        val context = buildSagaContext(order, retryExecutionId, request)
+        // Build saga context using the context builder with validation
+        val context = try {
+            retryContextBuilder.buildContext(
+                order = order,
+                sagaExecutionId = retryExecutionId,
+                originalExecutionId = originalExecution.id,
+                request = request
+            )
+        } catch (e: RetryContextValidationException) {
+            logger.warn("Retry context validation failed for order {}: {}", orderId, e.message)
+            return SagaRetryResult.NotEligible(
+                orderId = orderId,
+                reason = e.reason,
+                blockers = listOf(
+                    RetryBlocker(
+                        type = BlockerType.INVALID_ORDER_STATE,
+                        message = "Missing required data: ${e.field}",
+                        resolvable = true
+                    )
+                )
+            )
+        }
 
         // Determine resume point
         val resumePoint = orderRetryService.determineResumePoint(originalExecution, context)
@@ -204,42 +223,6 @@ class RetryOrchestrator(
                 )
             }
         }
-    }
-
-    private fun buildSagaContext(
-        order: Order,
-        sagaExecutionId: UUID,
-        request: RetryRequest
-    ): SagaContext {
-        val defaultShippingAddress = ShippingAddress(
-            street = "",
-            city = "",
-            state = "",
-            postalCode = "",
-            country = ""
-        )
-
-        val shippingAddress = request.updatedShippingAddress?.let {
-            ShippingAddress(
-                street = it.street,
-                city = it.city,
-                state = it.state,
-                postalCode = it.postalCode,
-                country = it.country
-            )
-        } ?: defaultShippingAddress
-
-        val paymentMethodId = request.updatedPaymentMethodId
-            ?: sagaDefaults.defaultPaymentMethodId
-            ?: throw IllegalStateException("No payment method specified and no default configured")
-
-        return SagaContext(
-            order = order,
-            sagaExecutionId = sagaExecutionId,
-            customerId = order.customerId,
-            paymentMethodId = paymentMethodId,
-            shippingAddress = shippingAddress
-        )
     }
 
     private suspend fun executeStepsWithSkip(
