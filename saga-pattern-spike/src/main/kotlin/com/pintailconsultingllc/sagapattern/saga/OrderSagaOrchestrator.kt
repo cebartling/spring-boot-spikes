@@ -1,5 +1,6 @@
 package com.pintailconsultingllc.sagapattern.saga
 
+import com.pintailconsultingllc.sagapattern.config.SagaDefaults
 import com.pintailconsultingllc.sagapattern.domain.OrderStatus
 import com.pintailconsultingllc.sagapattern.domain.SagaExecution
 import com.pintailconsultingllc.sagapattern.domain.SagaStatus
@@ -42,7 +43,8 @@ class OrderSagaOrchestrator(
     private val sagaEventRecorder: SagaEventRecorder,
     private val traceContextService: TraceContextService,
     private val compensationOrchestrator: CompensationOrchestrator,
-    private val stepExecutor: StepExecutor
+    private val stepExecutor: StepExecutor,
+    private val sagaDefaults: SagaDefaults
 ) : SagaOrchestrator {
     private val logger = LoggerFactory.getLogger(OrderSagaOrchestrator::class.java)
 
@@ -144,10 +146,10 @@ class OrderSagaOrchestrator(
         val completedOrder = orderRepository.findById(context.order.id)!!
             .withStatus(OrderStatus.COMPLETED)
 
-        // Extract delivery date from context
+        // Extract delivery date from context, using configured default if not available
         val estimatedDelivery = context.getData(SagaContext.ESTIMATED_DELIVERY)
             ?.let { LocalDate.parse(it) }
-            ?: LocalDate.now().plusDays(5)
+            ?: LocalDate.now().plusDays(sagaDefaults.estimatedDeliveryDays.toLong())
 
         val confirmationNumber = SagaResult.generateConfirmationNumber()
         val trackingNumber = context.getData(SagaContext.TRACKING_NUMBER)
@@ -208,7 +210,7 @@ class OrderSagaOrchestrator(
                 sagaExecution = sagaExecution,
                 completedSteps = completedSteps,
                 failedStep = failedStep,
-                failureReason = failureResult.errorMessage ?: "Unknown error",
+                failureReason = failureResult.errorMessage ?: sagaDefaults.unknownErrorMessage,
                 recordSagaFailedEvent = true
             )
         )
@@ -232,7 +234,7 @@ class OrderSagaOrchestrator(
         sagaExecutionRepository.markFailed(
             sagaExecutionId,
             failedStepIndex + 1,
-            errorMessage ?: "Unknown error",
+            errorMessage ?: sagaDefaults.unknownErrorMessage,
             Instant.now()
         )
     }
@@ -263,7 +265,7 @@ class OrderSagaOrchestrator(
         return SagaResult.Failed(
             order = context.order.withStatus(OrderStatus.FAILED),
             failedStep = failedStep.getStepName(),
-            failureReason = failureResult.errorMessage ?: "Unknown error",
+            failureReason = failureResult.errorMessage ?: sagaDefaults.unknownErrorMessage,
             errorCode = failureResult.errorCode
         )
     }
@@ -288,7 +290,7 @@ class OrderSagaOrchestrator(
             SagaResult.Compensated(
                 order = context.order.withStatus(OrderStatus.COMPENSATED),
                 failedStep = failedStep.getStepName(),
-                failureReason = failureResult.errorMessage ?: "Unknown error",
+                failureReason = failureResult.errorMessage ?: sagaDefaults.unknownErrorMessage,
                 compensatedSteps = compensationSummary.compensatedSteps
             )
         } else {
@@ -304,7 +306,7 @@ class OrderSagaOrchestrator(
             SagaResult.forPartialCompensation(
                 order = context.order.withStatus(OrderStatus.FAILED),
                 failedStep = failedStep.getStepName(),
-                failureReason = failureResult.errorMessage ?: "Unknown error",
+                failureReason = failureResult.errorMessage ?: sagaDefaults.unknownErrorMessage,
                 compensatedSteps = compensationSummary.compensatedSteps,
                 failedCompensations = compensationSummary.failedCompensations
             )

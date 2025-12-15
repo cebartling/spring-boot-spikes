@@ -1,5 +1,6 @@
 package com.pintailconsultingllc.sagapattern.saga.execution
 
+import com.pintailconsultingllc.sagapattern.config.SagaDefaults
 import com.pintailconsultingllc.sagapattern.domain.SagaStepResult
 import com.pintailconsultingllc.sagapattern.history.ErrorInfo
 import com.pintailconsultingllc.sagapattern.metrics.SagaMetrics
@@ -35,7 +36,8 @@ class StepExecutor(
     private val sagaStepResultRepository: SagaStepResultRepository,
     private val sagaExecutionRepository: SagaExecutionRepository,
     private val sagaMetrics: SagaMetrics,
-    private val sagaEventRecorder: SagaEventRecorder
+    private val sagaEventRecorder: SagaEventRecorder,
+    private val sagaDefaults: SagaDefaults
 ) {
     private val logger = LoggerFactory.getLogger(StepExecutor::class.java)
     private val objectMapper = jacksonObjectMapper()
@@ -182,7 +184,7 @@ class StepExecutor(
     ) {
         sagaStepResultRepository.markFailed(
             stepResultId,
-            result.errorMessage ?: "Unknown error",
+            result.errorMessage ?: sagaDefaults.unknownErrorMessage,
             Instant.now()
         )
 

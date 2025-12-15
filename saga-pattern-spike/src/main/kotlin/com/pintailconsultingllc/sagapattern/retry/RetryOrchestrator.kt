@@ -1,5 +1,6 @@
 package com.pintailconsultingllc.sagapattern.retry
 
+import com.pintailconsultingllc.sagapattern.config.SagaDefaults
 import com.pintailconsultingllc.sagapattern.domain.Order
 import com.pintailconsultingllc.sagapattern.domain.OrderStatus
 import com.pintailconsultingllc.sagapattern.domain.RetryOutcome
@@ -45,7 +46,8 @@ class RetryOrchestrator(
     private val orderRetryService: OrderRetryService,
     private val sagaMetrics: SagaMetrics,
     private val compensationOrchestrator: CompensationOrchestrator,
-    private val stepExecutor: StepExecutor
+    private val stepExecutor: StepExecutor,
+    private val sagaDefaults: SagaDefaults
 ) : RetryableOrchestrator {
     private val logger = LoggerFactory.getLogger(RetryOrchestrator::class.java)
 
@@ -227,11 +229,15 @@ class RetryOrchestrator(
             )
         } ?: defaultShippingAddress
 
+        val paymentMethodId = request.updatedPaymentMethodId
+            ?: sagaDefaults.defaultPaymentMethodId
+            ?: throw IllegalStateException("No payment method specified and no default configured")
+
         return SagaContext(
             order = order,
             sagaExecutionId = sagaExecutionId,
             customerId = order.customerId,
-            paymentMethodId = request.updatedPaymentMethodId ?: "default-payment",
+            paymentMethodId = paymentMethodId,
             shippingAddress = shippingAddress
         )
     }
@@ -283,10 +289,10 @@ class RetryOrchestrator(
         val completedOrder = orderRepository.findById(context.order.id)!!
             .withStatus(OrderStatus.COMPLETED)
 
-        // Extract delivery date from context
+        // Extract delivery date from context, using configured default if not available
         val estimatedDelivery = context.getData(SagaContext.ESTIMATED_DELIVERY)
             ?.let { LocalDate.parse(it) }
-            ?: LocalDate.now().plusDays(5)
+            ?: LocalDate.now().plusDays(sagaDefaults.estimatedDeliveryDays.toLong())
 
         return StepExecutionResult.Success(
             sagaResult = SagaResult.Success(
@@ -313,7 +319,7 @@ class RetryOrchestrator(
         sagaExecutionRepository.markFailed(
             sagaExecution.id,
             failedStepIndex + 1,
-            failureResult.errorMessage ?: "Unknown error",
+            failureResult.errorMessage ?: sagaDefaults.unknownErrorMessage,
             Instant.now()
         )
 
@@ -328,7 +334,7 @@ class RetryOrchestrator(
 
             return StepExecutionResult.Failed(
                 failedStep = failedStep.getStepName(),
-                failureReason = failureResult.errorMessage ?: "Unknown error"
+                failureReason = failureResult.errorMessage ?: sagaDefaults.unknownErrorMessage
             )
         }
 
@@ -339,7 +345,7 @@ class RetryOrchestrator(
                 sagaExecution = sagaExecution,
                 completedSteps = executedSteps,
                 failedStep = failedStep,
-                failureReason = failureResult.errorMessage ?: "Unknown error",
+                failureReason = failureResult.errorMessage ?: sagaDefaults.unknownErrorMessage,
                 recordSagaFailedEvent = false  // Retry handles failure recording differently
             )
         )
@@ -350,7 +356,7 @@ class RetryOrchestrator(
 
             StepExecutionResult.Compensated(
                 failedStep = failedStep.getStepName(),
-                failureReason = failureResult.errorMessage ?: "Unknown error",
+                failureReason = failureResult.errorMessage ?: sagaDefaults.unknownErrorMessage,
                 compensatedSteps = compensationSummary.compensatedSteps
             )
         } else {
@@ -363,7 +369,7 @@ class RetryOrchestrator(
 
             StepExecutionResult.Failed(
                 failedStep = failedStep.getStepName(),
-                failureReason = failureResult.errorMessage ?: "Unknown error"
+                failureReason = failureResult.errorMessage ?: sagaDefaults.unknownErrorMessage
             )
         }
     }
