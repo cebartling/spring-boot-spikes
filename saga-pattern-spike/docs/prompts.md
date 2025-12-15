@@ -193,6 +193,17 @@ Do not make any code changes in this feature branch.
 The pull request should include a description of the changes made and reference the refactoring implementation plan.
 ```
 
+
+```
+Review the Kotlin/Spring Boot implementation of the saga pattern in the spike solution project.
+Think hard about the code structure, readability, and adherence to best practices.
+Provide constructive feedback and suggestions for improvement.
+Save the improvement feedback and suggestions to @docs/implementation-plans/REFACTORING-002.md.
+Create a feature branch and commit the documentation to this feature branch.
+Do not make any code changes in this feature branch.
+The pull request should include a description of the changes made and reference the refactoring implementation plan.
+```
+
 #### Implementation of refactoring plan
 
 ```
