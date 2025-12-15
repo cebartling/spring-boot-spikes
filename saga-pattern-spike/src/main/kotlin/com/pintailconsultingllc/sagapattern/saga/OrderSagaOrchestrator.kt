@@ -5,8 +5,8 @@ import com.pintailconsultingllc.sagapattern.domain.SagaExecution
 import com.pintailconsultingllc.sagapattern.domain.SagaStatus
 import com.pintailconsultingllc.sagapattern.domain.SagaStepResult
 import com.pintailconsultingllc.sagapattern.history.ErrorInfo
-import com.pintailconsultingllc.sagapattern.history.OrderEventService
 import com.pintailconsultingllc.sagapattern.metrics.SagaMetrics
+import com.pintailconsultingllc.sagapattern.saga.event.SagaEventRecorder
 import com.pintailconsultingllc.sagapattern.observability.TraceContextService
 import com.pintailconsultingllc.sagapattern.repository.OrderRepository
 import com.pintailconsultingllc.sagapattern.repository.SagaExecutionRepository
@@ -35,7 +35,7 @@ class OrderSagaOrchestrator(
     private val sagaExecutionRepository: SagaExecutionRepository,
     private val sagaStepResultRepository: SagaStepResultRepository,
     private val sagaMetrics: SagaMetrics,
-    private val orderEventService: OrderEventService,
+    private val sagaEventRecorder: SagaEventRecorder,
     private val traceContextService: TraceContextService,
     private val compensationOrchestrator: CompensationOrchestrator
 ) {
@@ -62,7 +62,7 @@ class OrderSagaOrchestrator(
         val sagaExecution = createSagaExecution(context)
 
         // Record saga started event
-        orderEventService.recordSagaStarted(context.order.id, sagaExecution.id)
+        sagaEventRecorder.recordSagaStarted(context.order.id, sagaExecution.id)
 
         // Update order status to PROCESSING
         orderRepository.updateStatus(context.order.id, OrderStatus.PROCESSING)
@@ -82,7 +82,7 @@ class OrderSagaOrchestrator(
             // Mark step as in progress and record event
             sagaStepResultRepository.markInProgress(stepResult.id, Instant.now())
             sagaExecutionRepository.updateCurrentStep(sagaExecution.id, index + 1)
-            orderEventService.recordStepStarted(context.order.id, sagaExecution.id, step.getStepName())
+            sagaEventRecorder.recordStepStarted(context.order.id, sagaExecution.id, step.getStepName())
 
             // Execute the step
             val result = sagaMetrics.timeStepSuspend(step.getStepName()) {
@@ -94,7 +94,7 @@ class OrderSagaOrchestrator(
                 val dataJson = if (result.data.isNotEmpty()) objectMapper.writeValueAsString(result.data) else null
                 sagaStepResultRepository.markCompleted(stepResult.id, dataJson, Instant.now())
                 sagaMetrics.stepCompleted(step.getStepName())
-                orderEventService.recordStepCompleted(
+                sagaEventRecorder.recordStepCompleted(
                     context.order.id,
                     sagaExecution.id,
                     step.getStepName(),
@@ -104,7 +104,7 @@ class OrderSagaOrchestrator(
             } else {
                 // Record failure and break
                 sagaStepResultRepository.markFailed(stepResult.id, result.errorMessage ?: "Unknown error", Instant.now())
-                orderEventService.recordStepFailed(
+                sagaEventRecorder.recordStepFailed(
                     context.order.id,
                     sagaExecution.id,
                     step.getStepName(),
@@ -179,7 +179,7 @@ class OrderSagaOrchestrator(
         val trackingNumber = context.getData(SagaContext.TRACKING_NUMBER)
 
         // Record saga completed and order completed events
-        orderEventService.recordSagaCompleted(
+        sagaEventRecorder.recordSagaCompleted(
             context.order.id,
             sagaExecution.id,
             mapOf(
@@ -188,7 +188,7 @@ class OrderSagaOrchestrator(
                 "estimatedDelivery" to estimatedDelivery.toString()
             ).let { if (trackingNumber != null) it + ("trackingNumber" to trackingNumber) else it }
         )
-        orderEventService.recordOrderCompleted(context.order.id, sagaExecution.id)
+        sagaEventRecorder.recordOrderCompleted(context.order.id, sagaExecution.id)
 
         return SagaResult.Success(
             order = completedOrder,
@@ -226,7 +226,7 @@ class OrderSagaOrchestrator(
             sagaMetrics.sagaCompensated(failedStep.getStepName())
 
             // Record saga failed event
-            orderEventService.recordSagaFailed(
+            sagaEventRecorder.recordSagaFailed(
                 context.order.id,
                 sagaExecution.id,
                 failedStep.getStepName(),

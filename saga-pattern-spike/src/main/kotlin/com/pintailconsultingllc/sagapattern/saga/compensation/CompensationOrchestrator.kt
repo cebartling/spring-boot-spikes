@@ -6,8 +6,8 @@ import com.pintailconsultingllc.sagapattern.event.DomainEventPublisher
 import com.pintailconsultingllc.sagapattern.event.SagaCompensationCompleted
 import com.pintailconsultingllc.sagapattern.event.SagaCompensationStarted
 import com.pintailconsultingllc.sagapattern.history.ErrorInfo
-import com.pintailconsultingllc.sagapattern.history.OrderEventService
 import com.pintailconsultingllc.sagapattern.metrics.SagaMetrics
+import com.pintailconsultingllc.sagapattern.saga.event.SagaEventRecorder
 import com.pintailconsultingllc.sagapattern.repository.OrderRepository
 import com.pintailconsultingllc.sagapattern.repository.SagaExecutionRepository
 import com.pintailconsultingllc.sagapattern.repository.SagaStepResultRepository
@@ -56,7 +56,7 @@ class CompensationOrchestrator(
     private val sagaStepResultRepository: SagaStepResultRepository,
     private val sagaMetrics: SagaMetrics,
     private val domainEventPublisher: DomainEventPublisher,
-    private val orderEventService: OrderEventService
+    private val sagaEventRecorder: SagaEventRecorder
 ) {
     private val logger = LoggerFactory.getLogger(CompensationOrchestrator::class.java)
 
@@ -79,7 +79,7 @@ class CompensationOrchestrator(
         publishCompensationStartedEvent(context.order.id, failedStep, completedSteps)
 
         // Record compensation started in history
-        orderEventService.recordCompensationStarted(context.order.id, sagaExecution.id, failedStep.getStepName())
+        sagaEventRecorder.recordCompensationStarted(context.order.id, sagaExecution.id, failedStep.getStepName())
 
         // Execute compensations in reverse order
         val stepResults = executeStepCompensations(context, sagaExecution.id, completedSteps)
@@ -92,7 +92,7 @@ class CompensationOrchestrator(
 
         // Record saga failed event if requested
         if (recordSagaFailedEvent) {
-            orderEventService.recordSagaFailed(
+            sagaEventRecorder.recordSagaFailed(
                 context.order.id,
                 sagaExecution.id,
                 failedStep.getStepName(),
@@ -178,10 +178,10 @@ class CompensationOrchestrator(
     ) {
         if (result.success) {
             logger.info("Successfully compensated step: {}", step.getStepName())
-            orderEventService.recordStepCompensated(orderId, sagaExecutionId, step.getStepName())
+            sagaEventRecorder.recordStepCompensated(orderId, sagaExecutionId, step.getStepName())
         } else {
             logger.error("Failed to compensate step {}: {}", step.getStepName(), result.message)
-            orderEventService.recordCompensationFailed(
+            sagaEventRecorder.recordCompensationFailed(
                 orderId,
                 sagaExecutionId,
                 step.getStepName(),
