@@ -1,5 +1,6 @@
 package com.pintailconsultingllc.sagapattern.retry
 
+import com.pintailconsultingllc.sagapattern.config.SagaDefaults
 import com.pintailconsultingllc.sagapattern.domain.Order
 import com.pintailconsultingllc.sagapattern.domain.OrderStatus
 import com.pintailconsultingllc.sagapattern.domain.RetryAttempt
@@ -87,7 +88,8 @@ class DefaultOrderRetryService(
     private val sagaStepResultRepository: SagaStepResultRepository,
     private val retryAttemptRepository: RetryAttemptRepository,
     private val stepValidityChecker: StepValidityChecker,
-    private val retryConfiguration: RetryConfiguration
+    private val retryConfiguration: RetryConfiguration,
+    private val sagaDefaults: SagaDefaults
 ) : OrderRetryService {
 
     private val logger = LoggerFactory.getLogger(DefaultOrderRetryService::class.java)
@@ -229,11 +231,15 @@ class DefaultOrderRetryService(
             postalCode = "",
             country = ""
         )
+        val paymentMethodId = request.updatedPaymentMethodId
+            ?: sagaDefaults.defaultPaymentMethodId
+            ?: throw IllegalStateException("No payment method specified and no default configured")
+
         val context = SagaContext(
             order = order,
             sagaExecutionId = originalExecution.id,
             customerId = order.customerId,
-            paymentMethodId = request.updatedPaymentMethodId ?: "default-payment",
+            paymentMethodId = paymentMethodId,
             shippingAddress = request.updatedShippingAddress?.let {
                 SagaShippingAddress(
                     street = it.street,

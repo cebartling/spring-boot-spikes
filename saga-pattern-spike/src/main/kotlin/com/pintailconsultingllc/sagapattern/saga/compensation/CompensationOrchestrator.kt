@@ -13,6 +13,7 @@ import com.pintailconsultingllc.sagapattern.repository.SagaExecutionRepository
 import com.pintailconsultingllc.sagapattern.repository.SagaStepResultRepository
 import com.pintailconsultingllc.sagapattern.saga.CompensationResult
 import com.pintailconsultingllc.sagapattern.saga.SagaContext
+import com.pintailconsultingllc.sagapattern.saga.SagaErrorMessages
 import com.pintailconsultingllc.sagapattern.saga.SagaStep
 import io.micrometer.observation.annotation.Observed
 import org.slf4j.LoggerFactory
@@ -166,7 +167,7 @@ class CompensationOrchestrator(
             result
         } catch (e: Exception) {
             logger.error("Compensation failed for step {}: {}", step.getStepName(), e.message, e)
-            CompensationResult.failure("Unexpected error: ${e.message}")
+            CompensationResult.failure(SagaErrorMessages.compensationUnexpectedError(step.getStepName(), e.message))
         }
     }
 
