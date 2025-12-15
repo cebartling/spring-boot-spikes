@@ -10,7 +10,45 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Repository for RetryAttempt entities using R2DBC.
+ * Repository for retry attempt persistence.
+ *
+ * Manages retry attempt records for failed saga executions. Tracks retry history,
+ * execution details, and outcomes for each retry operation.
+ *
+ * ## Naming Conventions
+ *
+ * This repository follows consistent naming patterns for method types:
+ *
+ * - **`markXxx` methods**: Update status transitions for retry lifecycle events.
+ *   Records completion status and outcomes (e.g., [markCompleted]).
+ *
+ * - **`updateXxx` methods**: Update specific fields without changing overall status.
+ *   Used for recording execution details (e.g., [updateExecutionDetails]).
+ *
+ * - **`findXxx` methods**: Query for existing records by various criteria.
+ *   Returns nullable results for single-record queries or lists for multi-record queries.
+ *
+ * - **`existsXxx` methods**: Check for record existence without loading full entity.
+ *   Returns boolean for efficient existence checks.
+ *
+ * - **`countXxx` methods**: Count records matching specific criteria.
+ *   Used for retry limit checking.
+ *
+ * - **`save`** (inherited): Handles insert/update based on entity state.
+ *   New entities (null ID) are inserted; existing entities are updated.
+ *
+ * ## Retry Outcome Lifecycle
+ *
+ * Retry attempts follow this outcome progression:
+ * ```
+ * (created) → [in-progress] → SUCCESS
+ *                           → FAILED
+ *                           → PARTIAL_SUCCESS
+ * ```
+ *
+ * @see RetryAttempt
+ * @see RetryOutcome
+ * @see SagaExecutionRepository
  */
 @Repository
 interface RetryAttemptRepository : CoroutineCrudRepository<RetryAttempt, UUID> {

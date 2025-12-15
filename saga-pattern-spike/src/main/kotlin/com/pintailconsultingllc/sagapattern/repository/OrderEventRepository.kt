@@ -9,7 +9,40 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Repository for OrderEvent entities using R2DBC.
+ * Repository for order event persistence.
+ *
+ * Manages the event history for orders and saga executions. Provides an
+ * audit trail of all significant events during order processing, including
+ * step executions, failures, and compensation activities.
+ *
+ * ## Naming Conventions
+ *
+ * This repository follows consistent naming patterns for method types:
+ *
+ * - **`findXxx` methods**: Query for existing records by various criteria.
+ *   Returns nullable results for single-record queries or lists for multi-record queries.
+ *   Events are typically ordered by timestamp for chronological history.
+ *
+ * - **`countXxx` methods**: Count records matching specific criteria.
+ *   Used for event statistics and monitoring.
+ *
+ * - **`deleteXxx` methods**: Remove records matching specific criteria.
+ *   Returns the count of deleted records.
+ *
+ * - **`save`** (inherited): Handles insert/update based on entity state.
+ *   New entities (null ID) are inserted; existing entities are updated.
+ *
+ * ## Event Types
+ *
+ * Events capture the full lifecycle of order processing:
+ * - Order creation and status changes
+ * - Step execution start, success, and failure
+ * - Compensation initiation and completion
+ * - Retry attempts and outcomes
+ *
+ * @see OrderEvent
+ * @see OrderEventType
+ * @see OrderRepository
  */
 @Repository
 interface OrderEventRepository : CoroutineCrudRepository<OrderEvent, UUID> {

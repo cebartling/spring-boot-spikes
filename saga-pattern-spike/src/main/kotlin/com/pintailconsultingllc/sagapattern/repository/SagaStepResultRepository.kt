@@ -10,7 +10,39 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Repository for SagaStepResult entities using R2DBC.
+ * Repository for saga step result persistence.
+ *
+ * Manages the lifecycle of individual step results within a saga execution,
+ * including status transitions, timing information, and result data.
+ *
+ * ## Naming Conventions
+ *
+ * This repository follows consistent naming patterns for method types:
+ *
+ * - **`markXxx` methods**: Update status transitions for step lifecycle events.
+ *   These methods record state changes (e.g., [markInProgress], [markCompleted],
+ *   [markFailed], [markCompensated]) and capture timing information.
+ *
+ * - **`findXxx` methods**: Query for existing records by various criteria.
+ *   Returns nullable results for single-record queries or lists for multi-record queries.
+ *
+ * - **`deleteXxx` methods**: Remove records matching specific criteria.
+ *   Returns the count of deleted records.
+ *
+ * - **`save`** (inherited): Handles insert/update based on entity state.
+ *   New entities (null ID) are inserted; existing entities are updated.
+ *
+ * ## Step Status Lifecycle
+ *
+ * Steps follow this status progression:
+ * ```
+ * PENDING → IN_PROGRESS → COMPLETED
+ *                       ↘ FAILED → COMPENSATED
+ * ```
+ *
+ * @see SagaStepResult
+ * @see StepStatus
+ * @see SagaExecutionRepository
  */
 @Repository
 interface SagaStepResultRepository : CoroutineCrudRepository<SagaStepResult, UUID> {
