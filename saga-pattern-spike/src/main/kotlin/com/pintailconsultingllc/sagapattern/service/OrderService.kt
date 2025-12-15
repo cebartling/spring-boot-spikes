@@ -42,7 +42,7 @@ class OrderService(
     @Observed(name = "order.create", contextualName = "create-order")
     @Transactional
     suspend fun createOrder(request: CreateOrderRequest): OrderCreationResult {
-        logger.info("Creating order for customer ${request.customerId}")
+        logger.info("Creating order for customer {}", request.customerId)
 
         // Create the order entity
         val order = Order.create(
@@ -53,7 +53,7 @@ class OrderService(
 
         // Save the order
         val savedOrder = orderRepository.save(order)
-        logger.info("Order created with ID: ${savedOrder.id}")
+        logger.info("Order created with ID: {}", savedOrder.id)
 
         // Record order created event
         orderEventService.recordOrderCreated(savedOrder.id)
@@ -89,19 +89,19 @@ class OrderService(
         val traceId = traceContextService.getCurrentTraceId()
         return when (val result = sagaOrchestrator.executeSaga(context)) {
             is SagaResult.Success -> {
-                logger.info("Order ${savedOrder.id} completed successfully")
+                logger.info("Order {} completed successfully", savedOrder.id)
                 OrderCreationResult.Success(OrderResponse.fromSuccess(result, traceId))
             }
             is SagaResult.Failed -> {
-                logger.warn("Order ${savedOrder.id} failed: ${result.failureReason}")
+                logger.warn("Order {} failed: {}", savedOrder.id, result.failureReason)
                 OrderCreationResult.Failure(OrderFailureResponse.fromFailed(result, traceId))
             }
             is SagaResult.Compensated -> {
-                logger.warn("Order ${savedOrder.id} compensated: ${result.failureReason}")
+                logger.warn("Order {} compensated: {}", savedOrder.id, result.failureReason)
                 OrderCreationResult.Failure(OrderFailureResponse.fromCompensated(result, traceId))
             }
             is SagaResult.PartiallyCompensated -> {
-                logger.error("Order ${savedOrder.id} partially compensated: ${result.failureReason}")
+                logger.error("Order {} partially compensated: {}", savedOrder.id, result.failureReason)
                 OrderCreationResult.Failure(OrderFailureResponse.fromPartiallyCompensated(result, traceId))
             }
         }

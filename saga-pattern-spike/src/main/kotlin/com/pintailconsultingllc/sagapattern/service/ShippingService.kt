@@ -34,7 +34,7 @@ class ShippingService(
         orderId: UUID,
         shippingAddress: ShippingAddress
     ): ShipmentResponse {
-        logger.info("Creating shipment for order $orderId")
+        logger.info("Creating shipment for order {}", orderId)
 
         val request = ShipmentRequest(
             orderId = orderId.toString(),
@@ -55,9 +55,9 @@ class ShippingService(
                 .retrieve()
                 .bodyToMono(ShipmentResponse::class.java)
                 .awaitSingle()
-                .also { logger.info("Successfully created shipment: ${it.shipmentId}") }
+                .also { logger.info("Successfully created shipment: {}", it.shipmentId) }
         } catch (e: WebClientResponseException) {
-            logger.error("Shipment creation failed: ${e.statusCode} - ${e.responseBodyAsString}")
+            logger.error("Shipment creation failed: {} - {}", e.statusCode, e.responseBodyAsString)
             throw ShippingException(
                 message = "Failed to create shipment: ${e.responseBodyAsString}",
                 errorCode = errorResponseParser.extractErrorCode(e.responseBodyAsString),
@@ -74,17 +74,17 @@ class ShippingService(
      */
     @Observed(name = "shipping.cancel", contextualName = "cancel-shipment")
     suspend fun cancelShipment(shipmentId: String) {
-        logger.info("Cancelling shipment: $shipmentId")
+        logger.info("Cancelling shipment: {}", shipmentId)
 
         try {
             webClient.post()
-                .uri("/$shipmentId/cancel")
+                .uri("/{id}/cancel", shipmentId)
                 .retrieve()
                 .toBodilessEntity()
                 .awaitSingle()
-            logger.info("Successfully cancelled shipment: $shipmentId")
+            logger.info("Successfully cancelled shipment: {}", shipmentId)
         } catch (e: WebClientResponseException) {
-            logger.error("Failed to cancel shipment: ${e.statusCode}")
+            logger.error("Failed to cancel shipment: {}", e.statusCode)
             throw ShippingException(
                 message = "Failed to cancel shipment: ${e.responseBodyAsString}",
                 cause = e

@@ -10,7 +10,40 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Repository for SagaExecution entities using R2DBC.
+ * Repository for saga execution persistence.
+ *
+ * Manages the lifecycle of saga execution records, including status transitions,
+ * compensation tracking, and execution metadata.
+ *
+ * ## Naming Conventions
+ *
+ * This repository follows consistent naming patterns for method types:
+ *
+ * - **`markXxx` methods**: Update status transitions for saga lifecycle events.
+ *   These methods record state changes (e.g., [markCompleted], [markFailed],
+ *   [markCompensationStarted], [markCompensationCompleted]) and capture timing.
+ *
+ * - **`updateXxx` methods**: Update specific fields without changing overall status.
+ *   Used for progress tracking (e.g., [updateCurrentStep], [updateStatus]).
+ *
+ * - **`findXxx` methods**: Query for existing records by various criteria.
+ *   Returns nullable results for single-record queries or lists for multi-record queries.
+ *
+ * - **`save`** (inherited): Handles insert/update based on entity state.
+ *   New entities (null ID) are inserted; existing entities are updated.
+ *
+ * ## Saga Status Lifecycle
+ *
+ * Sagas follow this status progression:
+ * ```
+ * PENDING → IN_PROGRESS → COMPLETED
+ *                       ↘ FAILED → COMPENSATING → COMPENSATED
+ *                                              ↘ PARTIALLY_COMPENSATED
+ * ```
+ *
+ * @see SagaExecution
+ * @see SagaStatus
+ * @see SagaStepResultRepository
  */
 @Repository
 interface SagaExecutionRepository : CoroutineCrudRepository<SagaExecution, UUID> {

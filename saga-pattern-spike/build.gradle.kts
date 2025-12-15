@@ -72,6 +72,10 @@ dependencies {
 	testImplementation("org.testcontainers:junit-jupiter:$testcontainersVersion")
 	testImplementation("org.testcontainers:postgresql:$testcontainersVersion")
 	testImplementation("org.testcontainers:r2dbc:$testcontainersVersion")
+
+	// Kotest for property-based testing
+	testImplementation("io.kotest:kotest-property:6.0.0")
+	testImplementation("io.kotest:kotest-assertions-core:6.0.0")
 }
 
 dependencyManagement {
