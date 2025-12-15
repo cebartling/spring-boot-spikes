@@ -1,6 +1,5 @@
 package com.pintailconsultingllc.sagapattern.retry
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.pintailconsultingllc.sagapattern.config.SagaDefaults
 import com.pintailconsultingllc.sagapattern.domain.Order
 import com.pintailconsultingllc.sagapattern.domain.OrderStatus
@@ -32,7 +31,6 @@ class RetryContextBuilderTest {
 
     private lateinit var sagaStepResultRepository: SagaStepResultRepository
     private lateinit var sagaDefaults: SagaDefaults
-    private lateinit var objectMapper: ObjectMapper
     private lateinit var retryContextBuilder: RetryContextBuilder
 
     private val orderId = UUID.randomUUID()
@@ -46,12 +44,10 @@ class RetryContextBuilderTest {
     fun setUp() {
         sagaStepResultRepository = mock()
         sagaDefaults = SagaDefaults()
-        objectMapper = ObjectMapper()
 
         retryContextBuilder = RetryContextBuilder(
             sagaStepResultRepository = sagaStepResultRepository,
-            sagaDefaults = sagaDefaults,
-            objectMapper = objectMapper
+            sagaDefaults = sagaDefaults
         )
 
         order = Order(

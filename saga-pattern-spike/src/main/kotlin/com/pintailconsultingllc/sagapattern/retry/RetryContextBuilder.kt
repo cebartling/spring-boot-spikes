@@ -1,6 +1,5 @@
 package com.pintailconsultingllc.sagapattern.retry
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.pintailconsultingllc.sagapattern.config.SagaDefaults
 import com.pintailconsultingllc.sagapattern.domain.Order
 import com.pintailconsultingllc.sagapattern.domain.SagaStepResult
@@ -10,6 +9,8 @@ import com.pintailconsultingllc.sagapattern.repository.SagaStepResultRepository
 import com.pintailconsultingllc.sagapattern.saga.SagaContext
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import tools.jackson.module.kotlin.jacksonObjectMapper
+import tools.jackson.module.kotlin.readValue
 import java.util.UUID
 
 /**
@@ -24,10 +25,10 @@ import java.util.UUID
 @Service
 class RetryContextBuilder(
     private val sagaStepResultRepository: SagaStepResultRepository,
-    private val sagaDefaults: SagaDefaults,
-    private val objectMapper: ObjectMapper
+    private val sagaDefaults: SagaDefaults
 ) {
     private val logger = LoggerFactory.getLogger(RetryContextBuilder::class.java)
+    private val objectMapper = jacksonObjectMapper()
 
     /**
      * Build a SagaContext for a retry operation.
@@ -163,14 +164,7 @@ class RetryContextBuilder(
         val stepData = stepResult.stepData ?: return
 
         try {
-            val dataMap: Map<String, Any> = objectMapper.readValue(
-                stepData,
-                objectMapper.typeFactory.constructMapType(
-                    Map::class.java,
-                    String::class.java,
-                    Any::class.java
-                )
-            )
+            val dataMap: Map<String, Any> = objectMapper.readValue<Map<String, Any>>(stepData)
 
             // Map known keys from step data to type-safe context keys
             dataMap["reservationId"]?.toString()?.let {

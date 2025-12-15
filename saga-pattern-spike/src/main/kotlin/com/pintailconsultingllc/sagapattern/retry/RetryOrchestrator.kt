@@ -133,7 +133,7 @@ class RetryOrchestrator(
                 blockers = listOf(
                     RetryBlocker(
                         type = BlockerType.INVALID_ORDER_STATE,
-                        description = "Missing required data: ${e.field}",
+                        message = "Missing required data: ${e.field}",
                         resolvable = true
                     )
                 )
