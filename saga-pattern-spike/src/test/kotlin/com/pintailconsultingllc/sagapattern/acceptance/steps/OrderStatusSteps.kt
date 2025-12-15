@@ -178,15 +178,27 @@ class OrderStatusSteps(
     fun iRequestTheOrderStatusViaApi() {
         assertNotNull(testContext.orderId, "Order ID should be set")
 
-        @Suppress("UNCHECKED_CAST")
-        val response = webClient.get()
+        val responseEntity = webClient.get()
             .uri("/api/orders/${testContext.orderId}/status")
             .accept(MediaType.APPLICATION_JSON)
-            .retrieve()
-            .bodyToMono(Map::class.java)
-            .block() as? Map<String, Any>
+            .exchangeToMono { response ->
+                response.bodyToMono(String::class.java)
+                    .defaultIfEmpty("{}")
+                    .map { bodyString ->
+                        val mapper = tools.jackson.module.kotlin.jacksonObjectMapper()
+                        @Suppress("UNCHECKED_CAST")
+                        val body = try {
+                            mapper.readValue(bodyString, Map::class.java) as Map<String, Any>
+                        } catch (_: Exception) {
+                            emptyMap<String, Any>()
+                        }
+                        Pair(response.headers().asHttpHeaders(), body)
+                    }
+            }
+            .block()
 
-        testContext.statusResponse = response
+        testContext.responseHeaders = responseEntity?.first
+        testContext.statusResponse = responseEntity?.second
     }
 
     // ==================== Then Steps ====================
