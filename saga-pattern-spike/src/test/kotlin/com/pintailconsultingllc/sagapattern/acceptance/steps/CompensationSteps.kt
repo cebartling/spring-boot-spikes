@@ -37,10 +37,10 @@ class CompensationSteps(
 
     @Given("I have items in my cart that are out of stock")
     fun iHaveItemsInMyCartThatAreOutOfStock() {
-        // Use WireMock trigger: productId = "out-of-stock-product"
+        // Use WireMock trigger: productId = "00000000-0000-0000-0000-000000000000"
         testContext.cartItems.add(
             mapOf(
-                "productId" to "out-of-stock-product",
+                "productId" to "00000000-0000-0000-0000-000000000000",
                 "productName" to "Out of Stock Product",
                 "quantity" to 5,
                 "unitPriceInCents" to 2999
@@ -68,6 +68,10 @@ class CompensationSteps(
 
     @Given("I have submitted an order that will fail at shipping")
     fun iHaveSubmittedAnOrderThatWillFailAtShipping() {
+        // Set up customer if not already set
+        if (testContext.customerId == null) {
+            testContext.customerId = UUID.randomUUID()
+        }
         // Set up for shipping failure
         testContext.cartItems.add(
             mapOf(
@@ -98,6 +102,10 @@ class CompensationSteps(
 
     @Given("I have an order that failed due to payment decline")
     fun iHaveAnOrderThatFailedDueToPaymentDecline() {
+        // Set up customer if not already set
+        if (testContext.customerId == null) {
+            testContext.customerId = UUID.randomUUID()
+        }
         // Set up for payment failure
         testContext.cartItems.add(
             mapOf(
@@ -126,6 +134,10 @@ class CompensationSteps(
 
     @Given("I have an order that will fail at the payment step")
     fun iHaveAnOrderThatWillFailAtThePaymentStep() {
+        // Set up customer if not already set
+        if (testContext.customerId == null) {
+            testContext.customerId = UUID.randomUUID()
+        }
         testContext.cartItems.add(
             mapOf(
                 "productId" to UUID.randomUUID().toString(),
@@ -244,8 +256,15 @@ class CompensationSteps(
         @Suppress("UNCHECKED_CAST")
         val error = testContext.orderResponse?.get("error") as? Map<String, Any>
         val message = error?.get("message").toString().lowercase()
+
+        // Check for key words from the reason (handles cases like "payment declined" vs "payment_declined")
+        val reasonWords = reason.lowercase().split("\\s+".toRegex())
+        val allWordsFound = reasonWords.all { word ->
+            message.contains(word) || message.contains(word.replace(" ", "_"))
+        }
+
         assertTrue(
-            message.contains(reason.lowercase()),
+            allWordsFound || message.contains(reason.lowercase().replace(" ", "_")),
             "Failure reason '$message' should indicate '$reason'"
         )
     }

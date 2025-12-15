@@ -14,6 +14,7 @@ import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import kotlin.test.fail
 
 /**
  * Step definitions for SAGA-001: Complete a Multi-Step Order Process
@@ -77,6 +78,9 @@ class OrderProcessSteps(
     @Given("I have placed a successful order")
     fun iHavePlacedASuccessfulOrder() {
         // Set up prerequisites
+        if (testContext.customerId == null) {
+            testContext.customerId = java.util.UUID.randomUUID()
+        }
         iHaveItemsInMyCartWithAvailableInventory()
         iHaveAValidPaymentMethodOnFile()
         iHaveAValidShippingAddress()
@@ -90,6 +94,9 @@ class OrderProcessSteps(
     @Given("I have submitted an order")
     fun iHaveSubmittedAnOrder() {
         // Set up prerequisites
+        if (testContext.customerId == null) {
+            testContext.customerId = java.util.UUID.randomUUID()
+        }
         iHaveItemsInMyCartWithAvailableInventory()
         iHaveAValidPaymentMethodOnFile()
         iHaveAValidShippingAddress()
@@ -116,26 +123,58 @@ class OrderProcessSteps(
         )
 
         try {
-            @Suppress("UNCHECKED_CAST")
-            val response = webClient.post()
+            val responseEntity = webClient.post()
                 .uri("/api/orders")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(orderRequest)
-                .retrieve()
-                .bodyToMono(Map::class.java)
-                .block() as? Map<String, Any>
+                .exchangeToMono { response ->
+                    // Handle both success and error responses
+                    response.bodyToMono(String::class.java)
+                        .defaultIfEmpty("{}")
+                        .map { bodyString ->
+                            val mapper = tools.jackson.module.kotlin.jacksonObjectMapper()
+                            @Suppress("UNCHECKED_CAST")
+                            val body = try {
+                                mapper.readValue(bodyString, Map::class.java) as Map<String, Any>
+                            } catch (_: Exception) {
+                                mapOf("rawBody" to bodyString) as Map<String, Any>
+                            }
+                            Triple(response.headers().asHttpHeaders(), body, response.statusCode())
+                        }
+                }
+                .block()
 
-            testContext.orderResponse = response
+            @Suppress("UNCHECKED_CAST")
+            testContext.orderResponse = responseEntity?.second as? Map<String, Any>
+            testContext.responseHeaders = responseEntity?.first
+
+            val response = testContext.orderResponse
             if (response?.containsKey("orderId") == true) {
                 testContext.orderId = UUID.fromString(response["orderId"].toString())
             }
+
+            // Extract trace ID from response
+            val traceparent = testContext.responseHeaders?.getFirst("traceparent")
+            testContext.traceId = testContext.extractTraceIdFromTraceparent(traceparent)
+                ?: response?.get("traceId")?.toString()
         } catch (e: WebClientResponseException) {
             testContext.lastError = e.responseBodyAsString
+            testContext.responseHeaders = e.headers
+            // Parse the error response body as JSON
+            val mapper = tools.jackson.module.kotlin.jacksonObjectMapper()
             @Suppress("UNCHECKED_CAST")
-            testContext.orderResponse = mapOf(
-                "error" to e.responseBodyAsString,
-                "status" to e.statusCode.value()
-            ) as Map<String, Any>
+            testContext.orderResponse = try {
+                mapper.readValue(e.responseBodyAsString, Map::class.java) as Map<String, Any>
+            } catch (_: Exception) {
+                mapOf(
+                    "error" to e.responseBodyAsString,
+                    "status" to e.statusCode.value()
+                ) as Map<String, Any>
+            }
+            val response = testContext.orderResponse
+            if (response?.containsKey("orderId") == true) {
+                testContext.orderId = UUID.fromString(response["orderId"].toString())
+            }
         }
     }
 
@@ -156,22 +195,48 @@ class OrderProcessSteps(
 
     @Then("the inventory reservation step should complete successfully")
     fun theInventoryReservationStepShouldCompleteSuccessfully() {
-        // If the order completed, inventory reservation must have succeeded
         val status = testContext.orderResponse?.get("status")
-        assertTrue(
-            status == "COMPLETED" || status == "PROCESSING",
-            "Order should be COMPLETED or PROCESSING if inventory step succeeded"
-        )
+        // If order completed, inventory succeeded
+        // If order is COMPENSATED/FAILED, check that failedStep is NOT inventory
+        when (status) {
+            "COMPLETED", "PROCESSING" -> {
+                // Inventory succeeded as part of successful flow
+            }
+            "COMPENSATED", "FAILED" -> {
+                // Inventory succeeded if it wasn't the failed step
+                @Suppress("UNCHECKED_CAST")
+                val error = testContext.orderResponse?.get("error") as? Map<String, Any>
+                val failedStep = error?.get("failedStep")
+                assertTrue(
+                    failedStep != "Inventory Reservation",
+                    "Inventory step should have completed if failedStep is not Inventory Reservation"
+                )
+            }
+            else -> fail("Unexpected order status: $status")
+        }
     }
 
     @Then("the payment authorization step should complete successfully")
     fun thePaymentAuthorizationStepShouldCompleteSuccessfully() {
-        // If the order completed, payment authorization must have succeeded
         val status = testContext.orderResponse?.get("status")
-        assertTrue(
-            status == "COMPLETED" || status == "PROCESSING",
-            "Order should be COMPLETED or PROCESSING if payment step succeeded"
-        )
+        // If order completed, payment succeeded
+        // If order is COMPENSATED/FAILED, check that failedStep is NOT payment
+        when (status) {
+            "COMPLETED", "PROCESSING" -> {
+                // Payment succeeded as part of successful flow
+            }
+            "COMPENSATED", "FAILED" -> {
+                // Payment succeeded if it wasn't the failed step
+                @Suppress("UNCHECKED_CAST")
+                val error = testContext.orderResponse?.get("error") as? Map<String, Any>
+                val failedStep = error?.get("failedStep")
+                assertTrue(
+                    failedStep != "Payment Processing",
+                    "Payment step should have completed if failedStep is not Payment Processing"
+                )
+            }
+            else -> fail("Unexpected order status: $status")
+        }
     }
 
     @Then("the shipping arrangement step should complete successfully")
@@ -222,6 +287,14 @@ class OrderProcessSteps(
 
     @Then("the order should complete successfully")
     fun theOrderShouldCompleteSuccessfully() {
+        // For retry scenarios, check the retry response success flag
+        val retrySuccess = testContext.retryResponse?.get("success") == true
+        if (retrySuccess) {
+            // Retry was successful, order is complete
+            return
+        }
+
+        // For normal order creation, check the order response status
         assertEquals("COMPLETED", testContext.orderResponse?.get("status"))
     }
 

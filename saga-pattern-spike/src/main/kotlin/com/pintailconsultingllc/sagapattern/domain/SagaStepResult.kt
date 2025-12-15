@@ -84,6 +84,31 @@ data class SagaStepResult @PersistenceCreator constructor(
             status = StepStatus.SKIPPED,
             completedAt = Instant.now()
         ).apply { isNewEntity = true }
+
+        /**
+         * Create a step result with all fields specified.
+         * Used primarily for testing and data migration.
+         */
+        fun createWithDetails(
+            sagaExecutionId: UUID,
+            stepName: String,
+            stepOrder: Int,
+            status: StepStatus,
+            startedAt: Instant? = null,
+            completedAt: Instant? = null,
+            stepData: String? = null,
+            errorMessage: String? = null
+        ): SagaStepResult = SagaStepResult(
+            id = UUID.randomUUID(),
+            sagaExecutionId = sagaExecutionId,
+            stepName = stepName,
+            stepOrder = stepOrder,
+            status = status,
+            startedAt = startedAt,
+            completedAt = completedAt,
+            stepData = stepData,
+            errorMessage = errorMessage
+        ).apply { isNewEntity = true }
     }
 
     /**

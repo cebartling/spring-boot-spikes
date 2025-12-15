@@ -90,7 +90,8 @@ data class SagaExecutionSummaryResponse(
     val failedStep: String?,
     val stepsCompleted: Int,
     val isRetry: Boolean,
-    val durationMillis: Long?
+    val durationMillis: Long?,
+    val traceId: String?
 ) {
     companion object {
         fun from(summary: SagaExecutionSummary): SagaExecutionSummaryResponse =
@@ -103,7 +104,8 @@ data class SagaExecutionSummaryResponse(
                 failedStep = summary.failedStep,
                 stepsCompleted = summary.stepsCompleted,
                 isRetry = summary.isRetry,
-                durationMillis = summary.durationMillis
+                durationMillis = summary.durationMillis,
+                traceId = summary.traceId
             )
     }
 }
@@ -122,7 +124,9 @@ data class OrderHistoryResponse(
     val totalAttempts: Int,
     val retryCount: Int,
     val wasSuccessful: Boolean,
-    val hadCompensations: Boolean
+    val hadCompensations: Boolean,
+    val traceId: String?,
+    val executionCount: Int
 ) {
     companion object {
         fun from(history: OrderHistory): OrderHistoryResponse = OrderHistoryResponse(
@@ -136,7 +140,10 @@ data class OrderHistoryResponse(
             totalAttempts = history.totalAttempts,
             retryCount = history.retryCount,
             wasSuccessful = history.wasSuccessful,
-            hadCompensations = history.hadCompensations
+            hadCompensations = history.hadCompensations,
+            // Use the trace ID from the most recent execution
+            traceId = history.executions.lastOrNull()?.traceId,
+            executionCount = history.timeline.executionCount
         )
     }
 }

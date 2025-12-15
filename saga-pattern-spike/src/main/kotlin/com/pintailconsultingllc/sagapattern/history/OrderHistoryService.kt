@@ -92,6 +92,25 @@ class OrderHistoryServiceImpl(
         val events = orderEventRepository.findByOrderIdOrderByTimestampAsc(orderId)
         val timelineEntries = events.map { descriptionGenerator.toTimelineEntry(it) }
 
+        // Post-process to update status of completed steps that were later compensated
+        val compensatedSteps = events
+            .filter { it.eventType == OrderEventType.STEP_COMPENSATED }
+            .mapNotNull { it.stepName }
+            .toSet()
+
+        val processedEntries = timelineEntries.map { entry ->
+            // If this is a completed step entry and the step was later compensated,
+            // update the status to COMPENSATED
+            if (entry.status == TimelineStatus.SUCCESS &&
+                entry.stepName != null &&
+                compensatedSteps.contains(entry.stepName)
+            ) {
+                entry.copy(status = TimelineStatus.COMPENSATED)
+            } else {
+                entry
+            }
+        }
+
         val executions = sagaExecutionRepository.findAllByOrderId(orderId)
         val executionCount = executions.size.coerceAtLeast(1)
 
@@ -100,7 +119,7 @@ class OrderHistoryServiceImpl(
             orderNumber = OrderHistory.generateOrderNumber(orderId, order.createdAt),
             createdAt = order.createdAt,
             currentStatus = order.status,
-            entries = timelineEntries,
+            entries = processedEntries,
             executionCount = executionCount
         )
     }
@@ -172,7 +191,8 @@ class OrderHistoryServiceImpl(
             outcome = outcome,
             failedStep = failedStepName,
             stepsCompleted = stepsCompleted,
-            isRetry = isRetry
+            isRetry = isRetry,
+            traceId = execution.traceId
         )
     }
 }

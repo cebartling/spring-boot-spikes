@@ -75,30 +75,35 @@ class RetryController(
         logger.info("Initiating retry for order: {}", orderId)
 
         return mono {
-            val retryRequest = RetryRequest(
-                orderId = orderId,
-                updatedPaymentMethodId = request?.updatedPaymentMethodId,
-                updatedShippingAddress = request?.updatedShippingAddress?.let {
-                    ShippingAddress(
-                        street = it.street,
-                        city = it.city,
-                        state = it.state,
-                        postalCode = it.postalCode,
-                        country = it.country
-                    )
-                },
-                acknowledgedChanges = request?.acknowledgedPriceChanges ?: emptyList()
-            )
+            try {
+                val retryRequest = RetryRequest(
+                    orderId = orderId,
+                    updatedPaymentMethodId = request?.updatedPaymentMethodId,
+                    updatedShippingAddress = request?.updatedShippingAddress?.let {
+                        ShippingAddress(
+                            street = it.street,
+                            city = it.city,
+                            state = it.state,
+                            postalCode = it.postalCode,
+                            country = it.country
+                        )
+                    },
+                    acknowledgedChanges = request?.acknowledgedPriceChanges ?: emptyList()
+                )
 
-            val result = retryOrchestrator.executeRetry(orderId, retryRequest)
-            val response = RetryResultResponse.fromSagaRetryResult(result)
+                val result = retryOrchestrator.executeRetry(orderId, retryRequest)
+                val response = RetryResultResponse.fromSagaRetryResult(result)
 
-            if (response.success) {
-                logger.info("Retry successful for order: {}", orderId)
-                ResponseEntity.ok(response)
-            } else {
-                logger.warn("Retry failed for order {}: {}", orderId, response.failureReason)
-                ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(response)
+                if (response.success) {
+                    logger.info("Retry successful for order: {}", orderId)
+                    ResponseEntity.ok(response)
+                } else {
+                    logger.warn("Retry failed for order {}: {}", orderId, response.failureReason)
+                    ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(response)
+                }
+            } catch (e: Exception) {
+                logger.error("Error during retry for order {}: {} - {}", orderId, e.javaClass.simpleName, e.message, e)
+                throw e
             }
         }
     }

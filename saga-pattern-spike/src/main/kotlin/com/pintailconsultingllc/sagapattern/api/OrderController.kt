@@ -3,6 +3,7 @@ package com.pintailconsultingllc.sagapattern.api
 import com.pintailconsultingllc.sagapattern.api.dto.CreateOrderRequest
 import com.pintailconsultingllc.sagapattern.api.dto.OrderResponse
 import com.pintailconsultingllc.sagapattern.api.dto.OrderStatusResponse
+import com.pintailconsultingllc.sagapattern.observability.TraceContextService
 import com.pintailconsultingllc.sagapattern.progress.OrderProgressService
 import com.pintailconsultingllc.sagapattern.service.OrderCreationResult
 import com.pintailconsultingllc.sagapattern.service.OrderService
@@ -27,7 +28,8 @@ import java.util.UUID
 @RequestMapping("/api/orders")
 class OrderController(
     private val orderService: OrderService,
-    private val orderProgressService: OrderProgressService
+    private val orderProgressService: OrderProgressService,
+    private val traceContextService: TraceContextService
 ) {
     private val logger = LoggerFactory.getLogger(OrderController::class.java)
 
@@ -74,7 +76,7 @@ class OrderController(
         return mono {
             val order = orderService.getOrder(orderId)
             if (order != null) {
-                ResponseEntity.ok(OrderResponse.fromOrder(order))
+                ResponseEntity.ok(OrderResponse.fromOrder(order, traceContextService.getCurrentTraceId()))
             } else {
                 ResponseEntity.notFound().build()
             }
@@ -94,7 +96,8 @@ class OrderController(
 
         return mono {
             val orders = orderService.getOrdersForCustomer(customerId)
-            ResponseEntity.ok(orders.map { OrderResponse.fromOrder(it) })
+            val traceId = traceContextService.getCurrentTraceId()
+            ResponseEntity.ok(orders.map { OrderResponse.fromOrder(it, traceId) })
         }
     }
 

@@ -15,6 +15,7 @@ Feature: SAGA-002 - Automatic Rollback on Failure
     Given I have a valid customer account
     And I have items in my cart that are out of stock
     And I have a valid payment method on file
+    And I have a valid shipping address
     When I submit my order
     Then the inventory reservation step should fail
     And no compensation should be triggered

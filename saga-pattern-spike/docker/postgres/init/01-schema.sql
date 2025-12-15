@@ -33,6 +33,7 @@ CREATE TABLE saga_executions (
     status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
     failed_step INT,
     failure_reason TEXT,
+    trace_id VARCHAR(32),
     started_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     completed_at TIMESTAMP WITH TIME ZONE,
     compensation_started_at TIMESTAMP WITH TIME ZONE,

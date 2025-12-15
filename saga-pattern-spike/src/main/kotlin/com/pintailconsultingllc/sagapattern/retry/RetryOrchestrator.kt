@@ -11,6 +11,7 @@ import com.pintailconsultingllc.sagapattern.event.DomainEventPublisher
 import com.pintailconsultingllc.sagapattern.event.SagaCompensationCompleted
 import com.pintailconsultingllc.sagapattern.event.SagaCompensationStarted
 import com.pintailconsultingllc.sagapattern.metrics.SagaMetrics
+import com.pintailconsultingllc.sagapattern.repository.OrderItemRepository
 import com.pintailconsultingllc.sagapattern.repository.OrderRepository
 import com.pintailconsultingllc.sagapattern.repository.RetryAttemptRepository
 import com.pintailconsultingllc.sagapattern.repository.SagaExecutionRepository
@@ -43,6 +44,7 @@ import java.util.UUID
 class RetryOrchestrator(
     private val sagaStepRegistry: SagaStepRegistry,
     private val orderRepository: OrderRepository,
+    private val orderItemRepository: OrderItemRepository,
     private val sagaExecutionRepository: SagaExecutionRepository,
     private val sagaStepResultRepository: SagaStepResultRepository,
     private val retryAttemptRepository: RetryAttemptRepository,
@@ -81,12 +83,16 @@ class RetryOrchestrator(
         }
 
         // Get the order and original execution
-        val order = orderRepository.findById(orderId)
+        val orderEntity = orderRepository.findById(orderId)
             ?: return SagaRetryResult.NotEligible(
                 orderId = orderId,
                 reason = "Order not found",
                 blockers = emptyList()
             )
+
+        // Load order items (R2DBC doesn't support embedded collections)
+        val orderItems = orderItemRepository.findByOrderId(orderId)
+        val order = orderEntity.withItems(orderItems)
 
         val originalExecution = sagaExecutionRepository.findByOrderId(orderId)
             ?: return SagaRetryResult.NotEligible(

@@ -46,7 +46,7 @@ class DefaultTimelineDescriptionGenerator : TimelineDescriptionGenerator {
         OrderEventType.STEP_COMPENSATED -> getStepCompensatedTitle(event.stepName)
         OrderEventType.COMPENSATION_FAILED -> "Rollback Failed"
         OrderEventType.SAGA_COMPLETED -> "Processing Complete"
-        OrderEventType.SAGA_FAILED -> "Processing Failed"
+        OrderEventType.SAGA_FAILED -> "Order Could Not Be Completed"
         OrderEventType.RETRY_INITIATED -> "Retry Started"
         OrderEventType.ORDER_COMPLETED -> "Order Complete"
         OrderEventType.ORDER_CANCELLED -> "Order Cancelled"

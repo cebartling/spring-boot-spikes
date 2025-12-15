@@ -10,6 +10,7 @@ import com.pintailconsultingllc.sagapattern.event.SagaCompensationStarted
 import com.pintailconsultingllc.sagapattern.history.ErrorInfo
 import com.pintailconsultingllc.sagapattern.history.OrderEventService
 import com.pintailconsultingllc.sagapattern.metrics.SagaMetrics
+import com.pintailconsultingllc.sagapattern.observability.TraceContextService
 import com.pintailconsultingllc.sagapattern.repository.OrderRepository
 import com.pintailconsultingllc.sagapattern.repository.SagaExecutionRepository
 import com.pintailconsultingllc.sagapattern.repository.SagaStepResultRepository
@@ -37,7 +38,8 @@ class OrderSagaOrchestrator(
     private val sagaStepResultRepository: SagaStepResultRepository,
     private val sagaMetrics: SagaMetrics,
     private val domainEventPublisher: DomainEventPublisher,
-    private val orderEventService: OrderEventService
+    private val orderEventService: OrderEventService,
+    private val traceContextService: TraceContextService
 ) {
     private val logger = LoggerFactory.getLogger(OrderSagaOrchestrator::class.java)
     private val objectMapper = jacksonObjectMapper()
@@ -135,7 +137,8 @@ class OrderSagaOrchestrator(
             id = context.sagaExecutionId,
             orderId = context.order.id,
             status = SagaStatus.IN_PROGRESS,
-            startedAt = Instant.now()
+            startedAt = Instant.now(),
+            traceId = traceContextService.getCurrentTraceId()
         )
         return sagaExecutionRepository.save(execution)
     }

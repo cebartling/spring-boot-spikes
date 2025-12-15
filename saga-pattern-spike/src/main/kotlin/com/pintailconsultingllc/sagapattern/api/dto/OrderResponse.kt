@@ -45,30 +45,37 @@ data class OrderResponse(
     /**
      * When the order was created.
      */
-    val createdAt: Instant
+    val createdAt: Instant,
+
+    /**
+     * Trace ID for distributed tracing correlation (W3C format, 32 hex chars).
+     */
+    val traceId: String? = null
 ) {
     companion object {
         /**
          * Create response from a successful saga result.
          */
-        fun fromSuccess(result: SagaResult.Success): OrderResponse = OrderResponse(
+        fun fromSuccess(result: SagaResult.Success, traceId: String? = null): OrderResponse = OrderResponse(
             orderId = result.order.id,
             status = result.status,
             confirmationNumber = result.confirmationNumber,
             totalChargedInCents = result.totalChargedInCents,
             estimatedDelivery = result.estimatedDelivery,
             trackingNumber = result.trackingNumber,
-            createdAt = result.order.createdAt
+            createdAt = result.order.createdAt,
+            traceId = traceId
         )
 
         /**
          * Create response from an order entity.
          */
-        fun fromOrder(order: Order): OrderResponse = OrderResponse(
+        fun fromOrder(order: Order, traceId: String? = null): OrderResponse = OrderResponse(
             orderId = order.id,
             status = order.status,
             totalChargedInCents = order.totalAmountInCents,
-            createdAt = order.createdAt
+            createdAt = order.createdAt,
+            traceId = traceId
         )
     }
 }
@@ -100,7 +107,12 @@ data class OrderFailureResponse(
     /**
      * Suggested actions for the customer.
      */
-    val suggestions: List<String>
+    val suggestions: List<String>,
+
+    /**
+     * Trace ID for distributed tracing correlation (W3C format, 32 hex chars).
+     */
+    val traceId: String? = null
 ) {
     /**
      * Error details structure.
@@ -133,7 +145,7 @@ data class OrderFailureResponse(
         /**
          * Create response from a failed saga result (first step failed, no compensation).
          */
-        fun fromFailed(result: SagaResult.Failed): OrderFailureResponse = OrderFailureResponse(
+        fun fromFailed(result: SagaResult.Failed, traceId: String? = null): OrderFailureResponse = OrderFailureResponse(
             orderId = result.order.id,
             status = result.status,
             error = ErrorDetails(
@@ -146,13 +158,14 @@ data class OrderFailureResponse(
                 status = CompensationStatus.NOT_NEEDED,
                 reversedSteps = emptyList()
             ),
-            suggestions = ErrorSuggestions.suggestionsForError(result.errorCode)
+            suggestions = ErrorSuggestions.suggestionsForError(result.errorCode),
+            traceId = traceId
         )
 
         /**
          * Create response from a compensated saga result.
          */
-        fun fromCompensated(result: SagaResult.Compensated): OrderFailureResponse = OrderFailureResponse(
+        fun fromCompensated(result: SagaResult.Compensated, traceId: String? = null): OrderFailureResponse = OrderFailureResponse(
             orderId = result.order.id,
             status = result.status,
             error = ErrorDetails(
@@ -168,13 +181,14 @@ data class OrderFailureResponse(
             suggestions = listOf(
                 "Please try again",
                 "Contact customer support if the issue persists"
-            )
+            ),
+            traceId = traceId
         )
 
         /**
          * Create response from a partially compensated saga result.
          */
-        fun fromPartiallyCompensated(result: SagaResult.PartiallyCompensated): OrderFailureResponse = OrderFailureResponse(
+        fun fromPartiallyCompensated(result: SagaResult.PartiallyCompensated, traceId: String? = null): OrderFailureResponse = OrderFailureResponse(
             orderId = result.order.id,
             status = result.status,
             error = ErrorDetails(
@@ -190,7 +204,8 @@ data class OrderFailureResponse(
             suggestions = listOf(
                 "Contact customer support immediately",
                 "Reference order ID: ${result.order.id}"
-            )
+            ),
+            traceId = traceId
         )
 
         private fun isRetryable(errorCode: String?): Boolean = when (errorCode) {

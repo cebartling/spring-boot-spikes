@@ -71,4 +71,15 @@ class AcceptanceTestConfig {
             .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .build()
     }
+
+    /**
+     * WebClient configured to call the application actuator endpoints.
+     */
+    @Bean
+    fun actuatorWebClient(): WebClient {
+        return WebClient.builder()
+            .baseUrl("$APP_BASE_URL:$serverPort/actuator")
+            .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+            .build()
+    }
 }

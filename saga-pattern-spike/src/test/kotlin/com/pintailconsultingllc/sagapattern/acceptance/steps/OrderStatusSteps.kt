@@ -7,6 +7,8 @@ import com.pintailconsultingllc.sagapattern.domain.SagaExecution
 import com.pintailconsultingllc.sagapattern.domain.SagaStatus
 import com.pintailconsultingllc.sagapattern.domain.SagaStepResult
 import com.pintailconsultingllc.sagapattern.domain.StepStatus
+import com.pintailconsultingllc.sagapattern.history.OrderEvent
+import com.pintailconsultingllc.sagapattern.repository.OrderEventRepository
 import com.pintailconsultingllc.sagapattern.repository.OrderRepository
 import com.pintailconsultingllc.sagapattern.repository.SagaExecutionRepository
 import com.pintailconsultingllc.sagapattern.repository.SagaStepResultRepository
@@ -33,7 +35,8 @@ class OrderStatusSteps(
     @Autowired private val testContext: TestContext,
     @Autowired private val orderRepository: OrderRepository,
     @Autowired private val sagaExecutionRepository: SagaExecutionRepository,
-    @Autowired private val sagaStepResultRepository: SagaStepResultRepository
+    @Autowired private val sagaStepResultRepository: SagaStepResultRepository,
+    @Autowired private val orderEventRepository: OrderEventRepository
 ) {
     @Value("\${local.server.port:8080}")
     private var serverPort: Int = 8080
@@ -145,6 +148,15 @@ class OrderStatusSteps(
         createStepResult(sagaExecution.id, "Inventory Reservation", 1, StepStatus.COMPLETED)
         createStepResult(sagaExecution.id, "Payment Processing", 2, StepStatus.COMPLETED)
         createStepResult(sagaExecution.id, "Shipping Arrangement", 3, StepStatus.COMPLETED)
+
+        // Create order events for timeline
+        orderEventRepository.save(OrderEvent.orderCreated(order.id))
+        orderEventRepository.save(OrderEvent.sagaStarted(order.id, sagaExecution.id))
+        orderEventRepository.save(OrderEvent.stepCompleted(order.id, sagaExecution.id, "Inventory Reservation"))
+        orderEventRepository.save(OrderEvent.stepCompleted(order.id, sagaExecution.id, "Payment Processing"))
+        orderEventRepository.save(OrderEvent.stepCompleted(order.id, sagaExecution.id, "Shipping Arrangement"))
+        orderEventRepository.save(OrderEvent.sagaCompleted(order.id, sagaExecution.id))
+        orderEventRepository.save(OrderEvent.orderCompleted(order.id, sagaExecution.id))
     }
 
     @Given("I have placed an order")
@@ -178,15 +190,27 @@ class OrderStatusSteps(
     fun iRequestTheOrderStatusViaApi() {
         assertNotNull(testContext.orderId, "Order ID should be set")
 
-        @Suppress("UNCHECKED_CAST")
-        val response = webClient.get()
+        val responseEntity = webClient.get()
             .uri("/api/orders/${testContext.orderId}/status")
             .accept(MediaType.APPLICATION_JSON)
-            .retrieve()
-            .bodyToMono(Map::class.java)
-            .block() as? Map<String, Any>
+            .exchangeToMono { response ->
+                response.bodyToMono(String::class.java)
+                    .defaultIfEmpty("{}")
+                    .map { bodyString ->
+                        val mapper = tools.jackson.module.kotlin.jacksonObjectMapper()
+                        @Suppress("UNCHECKED_CAST")
+                        val body = try {
+                            mapper.readValue(bodyString, Map::class.java) as Map<String, Any>
+                        } catch (_: Exception) {
+                            emptyMap<String, Any>()
+                        }
+                        Pair(response.headers().asHttpHeaders(), body)
+                    }
+            }
+            .block()
 
-        testContext.statusResponse = response
+        testContext.responseHeaders = responseEntity?.first
+        testContext.statusResponse = responseEntity?.second
     }
 
     // ==================== Then Steps ====================
@@ -420,7 +444,7 @@ class OrderStatusSteps(
     // ==================== Helper Methods ====================
 
     private suspend fun createTestOrder(status: OrderStatus): Order {
-        val order = Order(
+        val order = Order.forTest(
             id = UUID.randomUUID(),
             customerId = UUID.randomUUID(),
             totalAmountInCents = 9999L,
@@ -437,7 +461,7 @@ class OrderStatusSteps(
         completedAt: Instant? = null,
         compensationStartedAt: Instant? = null
     ): SagaExecution {
-        val execution = SagaExecution(
+        val execution = SagaExecution.createWithDetails(
             id = UUID.randomUUID(),
             orderId = orderId,
             status = status,
@@ -462,8 +486,7 @@ class OrderStatusSteps(
             Instant.now()
         } else null
 
-        val result = SagaStepResult(
-            id = UUID.randomUUID(),
+        val result = SagaStepResult.createWithDetails(
             sagaExecutionId = sagaExecutionId,
             stepName = stepName,
             stepOrder = stepOrder,

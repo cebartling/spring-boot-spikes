@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Assumptions
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.ApplicationContext
+import org.springframework.context.annotation.Import
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.web.reactive.function.client.WebClient
 import java.net.Socket
@@ -19,6 +20,7 @@ import java.util.UUID
  */
 @CucumberContextConfiguration
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@Import(AcceptanceTestConfig::class)
 @ActiveProfiles("test")
 class CommonSteps(
     @Autowired private val applicationContext: ApplicationContext,

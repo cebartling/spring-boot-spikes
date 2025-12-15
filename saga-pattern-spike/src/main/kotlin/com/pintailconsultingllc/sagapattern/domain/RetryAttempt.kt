@@ -62,18 +62,20 @@ data class RetryAttempt @PersistenceCreator constructor(
 
     /**
      * Create a copy with the retry execution ID set.
+     * Preserves the isNewEntity flag from the source object.
      */
     fun withRetryExecution(executionId: UUID): RetryAttempt = copy(
         retryExecutionId = executionId
-    )
+    ).also { it.isNewEntity = this.isNewEntity }
 
     /**
      * Create a copy with step information set.
+     * Preserves the isNewEntity flag from the source object.
      */
     fun withStepInfo(resumedFrom: String, skipped: List<String>): RetryAttempt = copy(
         resumedFromStep = resumedFrom,
         skippedSteps = skipped.toTypedArray()
-    )
+    ).also { it.isNewEntity = this.isNewEntity }
 
     /**
      * Mark the retry as successful.
@@ -158,6 +160,35 @@ data class RetryAttempt @PersistenceCreator constructor(
             orderId = orderId,
             originalExecutionId = originalExecutionId,
             attemptNumber = attemptNumber
+        ).apply { isNewEntity = true }
+
+        /**
+         * Create a new RetryAttempt instance with all fields.
+         * Used primarily for testing historical retry records.
+         */
+        fun createWithDetails(
+            orderId: UUID,
+            originalExecutionId: UUID,
+            attemptNumber: Int,
+            initiatedAt: Instant = Instant.now(),
+            completedAt: Instant? = null,
+            outcome: RetryOutcome? = null,
+            failureReason: String? = null,
+            resumedFromStep: String? = null,
+            skippedSteps: Array<String>? = null,
+            retryExecutionId: UUID? = null
+        ): RetryAttempt = RetryAttempt(
+            id = UUID.randomUUID(),
+            orderId = orderId,
+            originalExecutionId = originalExecutionId,
+            attemptNumber = attemptNumber,
+            initiatedAt = initiatedAt,
+            completedAt = completedAt,
+            outcome = outcome,
+            failureReason = failureReason,
+            resumedFromStep = resumedFromStep,
+            skippedSteps = skippedSteps,
+            retryExecutionId = retryExecutionId
         ).apply { isNewEntity = true }
     }
 }
