@@ -11,6 +11,11 @@ api:
   encryption-key: test-encryption-key-32-bytes-long
 
 saga:
+  defaults:
+    estimated-delivery-days: 5
+    max-retry-attempts: 3
+    default-payment-method-id: null
+    unknown-error-message: "An unexpected error occurred"
   services:
     inventory:
       base-url: http://localhost:8081/api/inventory

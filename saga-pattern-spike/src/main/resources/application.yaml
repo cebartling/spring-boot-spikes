@@ -33,6 +33,12 @@ spring:
     # For local development without Vault, these can be overridden via environment variables
 
 saga:
+  defaults:
+    estimated-delivery-days: 5
+    max-retry-attempts: 3
+    # Setting to null forces explicit specification of payment method
+    default-payment-method-id: null
+    unknown-error-message: "An unexpected error occurred"
   services:
     inventory:
       base-url: http://localhost:8081/api/inventory
