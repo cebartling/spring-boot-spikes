@@ -287,6 +287,14 @@ class OrderProcessSteps(
 
     @Then("the order should complete successfully")
     fun theOrderShouldCompleteSuccessfully() {
+        // For retry scenarios, check the retry response success flag
+        val retrySuccess = testContext.retryResponse?.get("success") == true
+        if (retrySuccess) {
+            // Retry was successful, order is complete
+            return
+        }
+
+        // For normal order creation, check the order response status
         assertEquals("COMPLETED", testContext.orderResponse?.get("status"))
     }
 

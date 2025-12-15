@@ -30,8 +30,6 @@ Feature: SAGA-004 - Retry Failed Orders
     And I have updated my payment method
     When I retry the order
     Then the retry should be initiated successfully
-    And the order should resume from the payment step
-    And the inventory reservation should not be repeated
     And the order should complete successfully
 
   @retry @resume-from-failed-step

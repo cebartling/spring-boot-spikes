@@ -553,14 +553,14 @@ class ObservabilitySteps(
 
     @Then("the saga.retry.success counter should be incremented on success")
     fun theSagaRetrySuccessCounterShouldBeIncrementedOnSuccess() {
-        val outcome = testContext.retryResponse?.get("outcome")
-        assertEquals("COMPLETED", outcome, "Retry should have completed outcome")
+        val success = testContext.retryResponse?.get("success")
+        assertEquals(true, success, "Retry should have succeeded")
     }
 
     @Then("the saga.retry.failed counter should be incremented")
     fun theSagaRetryFailedCounterShouldBeIncremented() {
-        val outcome = testContext.retryResponse?.get("outcome")
-        assertEquals("FAILED", outcome, "Retry should have failed outcome")
+        val success = testContext.retryResponse?.get("success")
+        assertEquals(false, success, "Retry should have failed")
     }
 
     @Then("the retry trace should include error attributes")
