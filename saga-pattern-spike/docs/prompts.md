@@ -201,3 +201,35 @@ Create a feature branch and commit changes often to this feature branch.
 Once all the changes for phase 1 are complete, create a pull request to merge the feature branch into the main branch.
 The pull request should include a description of the changes made and reference the refactoring implementation plan.
 ```
+
+```
+Implement phase 2 of refactoring opportunities found in @docs/implementation-plans/REFACTORING-001.md.
+Create a feature branch and commit changes often to this feature branch.
+Make sure to include unit, integration and acceptance tests as needed to verify the implementation.
+Once all the changes for phase 2 are complete, create a pull request to merge the feature branch into the main branch.
+The pull request should include a description of the changes made and reference the refactoring implementation plan.
+```
+
+```
+Implement phase 3 of refactoring opportunities found in @docs/implementation-plans/REFACTORING-001.md.
+Create a feature branch and commit changes often to this feature branch.
+Make sure to include unit, integration and acceptance tests as needed to verify the implementation.
+Once all the changes for phase 3 are complete, create a pull request to merge the feature branch into the main branch.
+The pull request should include a description of the changes made and reference the refactoring implementation plan.
+```
+
+```
+Implement phase 4 of refactoring opportunities found in @docs/implementation-plans/REFACTORING-001.md.
+Create a feature branch and commit changes often to this feature branch.
+Make sure to include unit, integration and acceptance tests as needed to verify the implementation.
+Once all the changes for phase 4 are complete, create a pull request to merge the feature branch into the main branch.
+The pull request should include a description of the changes made and reference the refactoring implementation plan.
+```
+
+```
+Implement phase 5 of refactoring opportunities found in @docs/implementation-plans/REFACTORING-001.md.
+Create a feature branch and commit changes often to this feature branch.
+Make sure to include unit, integration and acceptance tests as needed to verify the implementation.
+Once all the changes for phase 5 are complete, create a pull request to merge the feature branch into the main branch.
+The pull request should include a description of the changes made and reference the refactoring implementation plan.
+```
