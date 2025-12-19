@@ -109,6 +109,7 @@ open http://localhost:8080
 6. [ ] Kafka UI is accessible at http://localhost:8080
 7. [ ] Kafka UI shows the Kafka cluster and topics
 8. [ ] Services restart cleanly after `docker compose down && docker compose up -d`
+9. [ ] Ensure services have health checks configured (if applicable)
 
 ## Estimated Complexity
 
