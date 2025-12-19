@@ -1,6 +1,13 @@
+server:
+  port: 8082
+
 spring:
   application:
     name: cdc-debezium
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/postgres
+    username: postgres
+    password: postgres
   kafka:
     bootstrap-servers: localhost:29092
     consumer:
