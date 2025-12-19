@@ -6,7 +6,6 @@ import com.pintailconsultingllc.cdcdebezium.repository.CustomerRepository
 import com.pintailconsultingllc.cdcdebezium.service.CustomerService
 import io.cucumber.datatable.DataTable
 import io.cucumber.java.Before
-import io.cucumber.java.en.And
 import io.cucumber.java.en.Given
 import io.cucumber.java.en.Then
 import io.cucumber.java.en.When
@@ -14,7 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import java.time.Instant
 import java.util.UUID
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -51,12 +49,13 @@ class IdempotentProcessingSteps {
     fun aCustomerExistsInTheMaterializedTable(dataTable: DataTable) {
         val row = dataTable.asMaps()[0]
         val id = UUID.fromString(row["id"])
-        val entity = CustomerEntity(
+        val entity = CustomerEntity.create(
             id = id,
             email = row["email"] ?: "",
             status = row["status"] ?: "",
             updatedAt = Instant.now(),
-            sourceTimestamp = row["sourceTimestamp"]?.toLongOrNull()
+            sourceTimestamp = row["sourceTimestamp"]?.toLongOrNull(),
+            isNewEntity = true
         )
         customerRepository.save(entity).block()
         currentCustomerId = id
@@ -117,7 +116,6 @@ class IdempotentProcessingSteps {
     }
 
     @Then("no error should occur")
-    @And("no error should occur")
     fun noErrorShouldOccur() {
         assertNull(lastError, "Expected no error but got: ${lastError?.message}")
     }

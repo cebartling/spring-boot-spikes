@@ -33,12 +33,13 @@ class CustomerCdcConsumerTest {
     }
 
     private fun stubUpsert(event: CustomerCdcEvent) {
-        val entity = CustomerEntity(
+        val entity = CustomerEntity.create(
             id = event.id,
             email = event.email ?: "",
             status = event.status ?: "",
             updatedAt = event.updatedAt ?: Instant.now(),
-            sourceTimestamp = event.sourceTimestamp
+            sourceTimestamp = event.sourceTimestamp,
+            isNewEntity = true
         )
         every { customerService.upsert(event) } returns Mono.just(entity)
     }

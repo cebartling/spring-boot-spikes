@@ -30,13 +30,15 @@ class CustomerServiceTest {
         email: String = "test@example.com",
         status: String = "active",
         updatedAt: Instant = Instant.now(),
-        sourceTimestamp: Long? = null
-    ) = CustomerEntity(
+        sourceTimestamp: Long? = null,
+        isNewEntity: Boolean = false
+    ) = CustomerEntity.create(
         id = id,
         email = email,
         status = status,
         updatedAt = updatedAt,
-        sourceTimestamp = sourceTimestamp
+        sourceTimestamp = sourceTimestamp,
+        isNewEntity = isNewEntity
     )
 
     @Nested

@@ -21,16 +21,9 @@ class CustomerService(
      * updates if the incoming event is newer than existing data.
      */
     fun upsert(event: CustomerCdcEvent): Mono<CustomerEntity> {
-        val entity = CustomerEntity(
-            id = event.id,
-            email = event.email ?: "",
-            status = event.status ?: "",
-            updatedAt = event.updatedAt ?: Instant.now(),
-            sourceTimestamp = event.sourceTimestamp
-        )
-
         return customerRepository.findById(event.id)
             .flatMap { existing ->
+                val entity = createEntity(event, isNew = false)
                 if (shouldUpdate(existing, entity)) {
                     logger.debug("Updating customer: id={}", event.id)
                     customerRepository.save(entity)
@@ -41,11 +34,21 @@ class CustomerService(
             }
             .switchIfEmpty(
                 Mono.defer {
+                    val entity = createEntity(event, isNew = true)
                     logger.debug("Inserting new customer: id={}", event.id)
                     customerRepository.save(entity)
                 }
             )
     }
+
+    private fun createEntity(event: CustomerCdcEvent, isNew: Boolean) = CustomerEntity.create(
+        id = event.id,
+        email = event.email ?: "",
+        status = event.status ?: "",
+        updatedAt = event.updatedAt ?: Instant.now(),
+        sourceTimestamp = event.sourceTimestamp,
+        isNewEntity = isNew
+    )
 
     /**
      * Idempotent delete: succeeds even if record doesn't exist.
