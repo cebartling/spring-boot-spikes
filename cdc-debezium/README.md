@@ -11,6 +11,8 @@ This project implements a CDC pipeline that:
 3. Consumes CDC events in a Spring Boot application with idempotent processing
 4. Provides observability through OpenTelemetry (traces, metrics, logs)
 
+**Acceptance tests are the primary means for verifying the entire CDC pipeline.** The Cucumber-based acceptance tests exercise the complete end-to-end flow, ensuring all components work together correctly.
+
 ```mermaid
 flowchart LR
     subgraph Source["Source Database"]
@@ -190,9 +192,28 @@ cdc-debezium/
 
 ## Testing
 
+### Acceptance Tests (Primary Verification)
+
+**Acceptance tests are the authoritative way to verify the CDC pipeline works correctly.** They validate the complete end-to-end flow from database changes through Kafka to the Spring Boot consumer.
+
+The tests use Cucumber JVM with Gherkin feature files located in `src/acceptanceTest/resources/features/`. This approach ensures:
+
+- All infrastructure components integrate correctly
+- CDC events flow through the entire pipeline
+- The consumer processes events with correct semantics (upsert/delete)
+- Error handling and edge cases are validated
+
+```bash
+# Run acceptance tests (requires Docker infrastructure running)
+./gradlew acceptanceTest
+
+# View Cucumber HTML report
+open build/reports/cucumber/cucumber.html
+```
+
 ### Unit Tests
 
-Unit tests use JUnit 5 with MockK for mocking:
+Unit tests validate individual components in isolation using JUnit 5 with MockK:
 
 ```bash
 # Run all unit tests
@@ -200,21 +221,6 @@ Unit tests use JUnit 5 with MockK for mocking:
 
 # Run a specific test class
 ./gradlew test --tests "com.pintailconsultingllc.cdcdebezium.dto.CustomerCdcEventTest"
-
-# Run a specific test method
-./gradlew test --tests "*CustomerCdcEventTest.isDelete*"
-```
-
-### Acceptance Tests
-
-Acceptance tests use Cucumber JVM with Gherkin feature files:
-
-```bash
-# Run acceptance tests
-./gradlew acceptanceTest
-
-# View Cucumber report
-open build/reports/cucumber/cucumber.html
 ```
 
 ## Infrastructure Services
