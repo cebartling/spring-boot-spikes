@@ -60,15 +60,33 @@ flowchart LR
 
 ## Prerequisites
 
-- Java 24 (recommend using [SDKMAN](https://sdkman.io/))
+- [SDKMAN](https://sdkman.io/) for managing Java and Gradle versions
 - Docker and Docker Compose
-- Gradle 9.2+ (or use the included wrapper)
+
+This project includes a `.sdkmanrc` file that specifies the required SDK versions:
+
+```properties
+java=24.0.2-amzn
+gradle=9.2.1
+```
+
+To set up your environment:
 
 ```bash
-# Install Java 24 via SDKMAN
-sdk install java 24-open
-sdk use java 24-open
+# Navigate to the project directory and activate the SDKs
+cd cdc-debezium
+sdk env install  # Install required versions (first time only)
+sdk env          # Activate the correct Java and Gradle versions
+
+# Verify versions
+java -version    # Should show Java 24
+gradle -version  # Should show Gradle 9.2.1
 ```
+
+> **Tip**: Enable SDKMAN auto-env to automatically switch versions when entering the directory:
+> ```bash
+> sdk config set sdkman_auto_env true
+> ```
 
 ## Quick Start
 
