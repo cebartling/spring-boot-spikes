@@ -12,4 +12,5 @@ import io.cucumber.junit.platform.engine.Constants
 @ConfigurationParameter(key = Constants.GLUE_PROPERTY_NAME, value = "com.pintailconsultingllc.cdcdebezium")
 @ConfigurationParameter(key = Constants.PLUGIN_PROPERTY_NAME, value = "pretty, html:build/reports/cucumber/cucumber.html, json:build/reports/cucumber/cucumber.json")
 @ConfigurationParameter(key = Constants.JUNIT_PLATFORM_NAMING_STRATEGY_PROPERTY_NAME, value = "long")
+@ConfigurationParameter(key = Constants.FILTER_TAGS_PROPERTY_NAME, value = "not @requires-connector")
 class RunCucumberTest

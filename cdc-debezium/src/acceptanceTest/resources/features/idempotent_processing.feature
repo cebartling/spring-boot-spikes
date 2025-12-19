@@ -4,7 +4,8 @@ Feature: Idempotent Upsert/Delete Processing
   So that duplicate or out-of-order events do not corrupt the materialized data
 
   Background:
-    Given the customer materialized table is empty
+    Given PostgreSQL is running and accessible
+    And the customer materialized table is empty
 
   # Acceptance Criteria 3: INSERT events create new rows in materialized table
   Scenario: INSERT event creates new customer in materialized table

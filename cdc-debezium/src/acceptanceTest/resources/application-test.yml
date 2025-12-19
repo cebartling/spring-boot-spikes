@@ -21,6 +21,10 @@ spring:
       initial-size: 2
       max-size: 5
 
+kafka:
+  connect:
+    url: http://localhost:8083
+
 management:
   tracing:
     enabled: false
