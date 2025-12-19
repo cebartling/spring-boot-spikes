@@ -119,11 +119,7 @@ curl -s http://localhost:8083/connectors/postgres-cdc-connector/status | jq
 ### 3. Build and Run Application
 
 ```bash
-# Build the project
-./gradlew build
-
-# Run the application
-./gradlew bootRun
+./gradlew clean build bootRun
 ```
 
 ### 4. Test CDC Pipeline
