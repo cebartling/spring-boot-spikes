@@ -15,8 +15,6 @@ Set up the foundational Docker Compose infrastructure with Kafka (KRaft mode) an
 | File | Purpose |
 |------|---------|
 | `docker-compose.yml` | Main orchestration file |
-| `docker/postgres/postgresql.conf` | PostgreSQL configuration with logical replication |
-| `docker/postgres/pg_hba.conf` | PostgreSQL authentication configuration |
 
 ### docker-compose.yml
 
@@ -25,10 +23,14 @@ Create with the following services:
 ```yaml
 services:
   postgres:
-    image: postgres:16
-    # Configure for logical replication
-    # Mount custom postgresql.conf
+    image: quay.io/debezium/postgres:latest
+    # Pre-configured for logical replication (wal_level=logical)
+    # Includes pgoutput plugin for Debezium
     # Expose port 5432
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
 
   kafka:
     image: apache/kafka:3.7.0
@@ -39,12 +41,12 @@ services:
 
 ### PostgreSQL Configuration
 
-**docker/postgres/postgresql.conf** must include:
-```
-wal_level = logical
-max_replication_slots = 4
-max_wal_senders = 4
-```
+The `quay.io/debezium/postgres:latest` image comes pre-configured with:
+- `wal_level = logical`
+- `max_replication_slots = 10`
+- `max_wal_senders = 10`
+
+No custom configuration files are required.
 
 ## Commands to Run
 
@@ -89,5 +91,5 @@ Low - Standard Docker Compose setup with well-documented configurations.
 ## Notes
 
 - Use official Apache Kafka image with built-in KRaft support
-- PostgreSQL 16 includes all necessary logical replication features
+- Use Debezium PostgreSQL image (`quay.io/debezium/postgres:latest`) which comes pre-configured for CDC with logical replication enabled and pgoutput plugin installed
 - Keep volumes for data persistence during development
