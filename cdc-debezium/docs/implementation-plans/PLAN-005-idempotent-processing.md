@@ -12,14 +12,14 @@ Implement the data persistence layer with idempotent upsert and delete operation
 
 ### Files to Create/Modify
 
-| File | Purpose |
-|------|---------|
-| `build.gradle.kts` | Add R2DBC dependencies |
-| `src/main/resources/application.yml` | R2DBC connection configuration |
-| `src/.../entity/CustomerEntity.kt` | R2DBC entity |
-| `src/.../repository/CustomerRepository.kt` | Reactive repository |
-| `src/.../service/CustomerService.kt` | Business logic with idempotency |
-| `src/.../consumer/CustomerCdcConsumer.kt` | Wire service into consumer |
+| File                                       | Purpose                         |
+|--------------------------------------------|---------------------------------|
+| `build.gradle.kts`                         | Add R2DBC dependencies          |
+| `src/main/resources/application.yml`       | R2DBC connection configuration  |
+| `src/.../entity/CustomerEntity.kt`         | R2DBC entity                    |
+| `src/.../repository/CustomerRepository.kt` | Reactive repository             |
+| `src/.../service/CustomerService.kt`       | Business logic with idempotency |
+| `src/.../consumer/CustomerCdcConsumer.kt`  | Wire service into consumer      |
 
 ### build.gradle.kts Additions
 
@@ -71,11 +71,12 @@ Add to `docker/postgres/init/01-schema.sql`:
 
 ```sql
 -- Materialized view of customer data (populated by CDC consumer)
-CREATE TABLE public.customer_materialized (
-    id UUID PRIMARY KEY,
-    email TEXT NOT NULL,
-    status TEXT NOT NULL,
-    updated_at TIMESTAMPTZ NOT NULL,
+CREATE TABLE public.customer_materialized
+(
+    id               UUID PRIMARY KEY,
+    email            TEXT        NOT NULL,
+    status           TEXT        NOT NULL,
+    updated_at       TIMESTAMPTZ NOT NULL,
     source_timestamp BIGINT
 );
 ```
@@ -239,8 +240,7 @@ curl -X POST http://localhost:8083/connectors \
   -d @docker/debezium/connector-config.json
 
 # Build and run
-./gradlew build
-./gradlew bootRun
+./gradlew clean build bootRun
 
 # Verify materialized table is populated
 docker compose exec postgres psql -U postgres -c \
@@ -278,6 +278,8 @@ docker compose exec postgres psql -U postgres -c \
 
 ## Acceptance Criteria
 
+- The following acceptance criteria should be implemented as Cucumber acceptance tests for automated verification (where appropriate).
+
 1. [ ] R2DBC connects to PostgreSQL successfully
 2. [ ] Snapshot data materializes into `customer_materialized` table
 3. [ ] INSERT events create new rows in materialized table
@@ -291,19 +293,19 @@ docker compose exec postgres psql -U postgres -c \
 
 ## Idempotency Guarantees
 
-| Scenario | Behavior |
-|----------|----------|
-| First INSERT | Creates row |
-| Duplicate INSERT (same ID) | Updates row (no error) |
-| UPDATE after INSERT | Updates row |
-| Duplicate UPDATE | No-op if timestamps match |
-| DELETE after INSERT | Removes row |
-| DELETE on missing row | No-op (success) |
+| Scenario                           | Behavior                    |
+|------------------------------------|-----------------------------|
+| First INSERT                       | Creates row                 |
+| Duplicate INSERT (same ID)         | Updates row (no error)      |
+| UPDATE after INSERT                | Updates row                 |
+| Duplicate UPDATE                   | No-op if timestamps match   |
+| DELETE after INSERT                | Removes row                 |
+| DELETE on missing row              | No-op (success)             |
 | Out-of-order (old event after new) | Skipped via timestamp check |
 
 ## Estimated Complexity
 
-Medium - R2DBC reactive patterns require familiarity; timestamp-based idempotency needs careful implementation.
+Medium - R2DBC reactive patterns require familiarity; timestamp-based idempotency needs careful implementation. Think hard about concurrency and ordering.
 
 ## Notes
 
