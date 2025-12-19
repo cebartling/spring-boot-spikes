@@ -19,6 +19,25 @@ repositories {
     mavenCentral()
 }
 
+val cucumberVersion = "7.20.1"
+
+sourceSets {
+    create("acceptanceTest") {
+        kotlin.srcDir("src/acceptanceTest/kotlin")
+        resources.srcDir("src/acceptanceTest/resources")
+        compileClasspath += sourceSets.main.get().output + sourceSets.test.get().output
+        runtimeClasspath += sourceSets.main.get().output + sourceSets.test.get().output
+    }
+}
+
+val acceptanceTestImplementation: Configuration by configurations.getting {
+    extendsFrom(configurations.testImplementation.get())
+}
+
+val acceptanceTestRuntimeOnly: Configuration by configurations.getting {
+    extendsFrom(configurations.testRuntimeOnly.get())
+}
+
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-kafka")
     implementation("org.springframework.boot:spring-boot-starter-opentelemetry")
@@ -30,13 +49,21 @@ dependencies {
     implementation("tools.jackson.module:jackson-module-kotlin")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     runtimeOnly("org.postgresql:postgresql")
+    runtimeOnly("org.postgresql:r2dbc-postgresql")
     testImplementation("org.springframework.boot:spring-boot-starter-kafka-test")
     testImplementation("org.springframework.boot:spring-boot-starter-opentelemetry-test")
     testImplementation("org.springframework.boot:spring-boot-starter-r2dbc-test")
     testImplementation("org.springframework.boot:spring-boot-starter-webflux-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
+    testImplementation("io.mockk:mockk:1.13.13")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+    // Cucumber dependencies for acceptance testing
+    acceptanceTestImplementation("io.cucumber:cucumber-java:$cucumberVersion")
+    acceptanceTestImplementation("io.cucumber:cucumber-junit-platform-engine:$cucumberVersion")
+    acceptanceTestImplementation("io.cucumber:cucumber-spring:$cucumberVersion")
+    acceptanceTestImplementation("org.junit.platform:junit-platform-suite")
 }
 
 kotlin {
@@ -47,4 +74,22 @@ kotlin {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+}
+
+tasks.register<Test>("acceptanceTest") {
+    description = "Runs acceptance tests with Cucumber."
+    group = "verification"
+    testClassesDirs = sourceSets["acceptanceTest"].output.classesDirs
+    classpath = sourceSets["acceptanceTest"].runtimeClasspath
+    useJUnitPlatform()
+
+    systemProperty("cucumber.junit-platform.naming-strategy", "long")
+}
+
+tasks.named("check") {
+    dependsOn("acceptanceTest")
+}
+
+tasks.named<Copy>("processAcceptanceTestResources") {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }

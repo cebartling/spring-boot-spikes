@@ -56,6 +56,12 @@ The application implements a CDC pipeline:
 - Consumer uses manual acknowledgements with single-threaded consumption
 - Deletes are handled via Debezium's rewrite mode plus Kafka tombstones
 - All database operations must be idempotent
+- Any Kotlin code must follow idiomatic Kotlin practices
+- Any Kotlin code must pass static analysis with Detekt and Ktlint
+- Unit tests must use JUnit 5 and MockK for mocking
+- Integration tests will use Testcontainers for PostgreSQL and Kafka
+- Acceptance tests will validate end-to-end CDC flow
+- Acceptance tests will be implemented using Cucumber JVM
 
 ## Feature Specifications
 
