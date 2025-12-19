@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: cdc-debezium
+  kafka:
+    bootstrap-servers: localhost:29092
+    consumer:
+      group-id: cdc-consumer-group
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        max.poll.records: 1
+    listener:
+      ack-mode: manual
+      concurrency: 1
