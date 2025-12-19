@@ -33,10 +33,22 @@ services:
       POSTGRES_DB: postgres
 
   kafka:
-    image: apache/kafka:3.7.0
+    image: confluentinc/cp-kafka:latest
     # KRaft mode configuration (no ZooKeeper)
     # Single-node cluster
     # Expose ports 9092 (internal), 29092 (external)
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,PLAINTEXT_HOST://0.0.0.0:29092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
 ```
 
 ### PostgreSQL Configuration
@@ -58,20 +70,18 @@ docker compose up -d postgres kafka
 docker compose exec postgres pg_isready
 
 # Verify Kafka is ready (KRaft mode)
-docker compose exec kafka /opt/kafka/bin/kafka-metadata.sh \
-  --snapshot /tmp/kraft-combined-logs/__cluster_metadata-0/00000000000000000000.log \
-  --command "print"
+docker compose exec kafka kafka-broker-api-versions --bootstrap-server localhost:9092
 
 # Check PostgreSQL logical replication is enabled
 docker compose exec postgres psql -U postgres -c "SHOW wal_level;"
 # Expected: logical
 
 # Test Kafka by creating and listing a topic
-docker compose exec kafka /opt/kafka/bin/kafka-topics.sh \
+docker compose exec kafka kafka-topics \
   --bootstrap-server localhost:9092 \
   --create --topic test-topic --partitions 1 --replication-factor 1
 
-docker compose exec kafka /opt/kafka/bin/kafka-topics.sh \
+docker compose exec kafka kafka-topics \
   --bootstrap-server localhost:9092 --list
 ```
 
@@ -90,6 +100,6 @@ Low - Standard Docker Compose setup with well-documented configurations.
 
 ## Notes
 
-- Use official Apache Kafka image with built-in KRaft support
+- Use Confluent Platform Kafka image (`confluentinc/cp-kafka:latest`) with KRaft mode (no ZooKeeper required)
 - Use Debezium PostgreSQL image (`quay.io/debezium/postgres:latest`) which comes pre-configured for CDC with logical replication enabled and pgoutput plugin installed
 - Keep volumes for data persistence during development
