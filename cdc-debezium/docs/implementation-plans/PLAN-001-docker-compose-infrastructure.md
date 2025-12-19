@@ -23,7 +23,7 @@ Create with the following services:
 ```yaml
 services:
   postgres:
-    image: quay.io/debezium/postgres:latest
+    image: quay.io/debezium/postgres:16
     # Pre-configured for logical replication (wal_level=logical)
     # Includes pgoutput plugin for Debezium
     # Expose port 5432
@@ -55,7 +55,7 @@ services:
     depends_on:
       - kafka
     ports:
-      - "8080:8080"
+      - "8081:8080"
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
@@ -64,7 +64,7 @@ services:
 
 ### PostgreSQL Configuration
 
-The `quay.io/debezium/postgres:latest` image comes pre-configured with:
+The `quay.io/debezium/postgres:16` image comes pre-configured with:
 - `wal_level = logical`
 - `max_replication_slots = 10`
 - `max_wal_senders = 10`
@@ -96,20 +96,20 @@ docker compose exec kafka kafka-topics \
   --bootstrap-server localhost:9092 --list
 
 # Open Kafka UI in browser
-open http://localhost:8080
+open http://localhost:8081
 ```
 
 ## Acceptance Criteria
 
-1. [ ] `docker compose up -d postgres kafka kafka-ui` starts all services without errors
-2. [ ] PostgreSQL accepts connections on port 5432
-3. [ ] `SHOW wal_level;` returns `logical`
-4. [ ] Kafka broker is reachable on port 9092 (internal) and 29092 (external)
-5. [ ] Can create and list Kafka topics
-6. [ ] Kafka UI is accessible at http://localhost:8080
-7. [ ] Kafka UI shows the Kafka cluster and topics
-8. [ ] Services restart cleanly after `docker compose down && docker compose up -d`
-9. [ ] Ensure services have health checks configured (if applicable)
+1. [x] `docker compose up -d postgres kafka kafka-ui` starts all services without errors
+2. [x] PostgreSQL accepts connections on port 5432
+3. [x] `SHOW wal_level;` returns `logical`
+4. [x] Kafka broker is reachable on port 9092 (internal) and 29092 (external)
+5. [x] Can create and list Kafka topics
+6. [x] Kafka UI is accessible at http://localhost:8081
+7. [x] Kafka UI shows the Kafka cluster and topics
+8. [x] Services restart cleanly after `docker compose down && docker compose up -d`
+9. [x] Ensure services have health checks configured (if applicable)
 
 ## Estimated Complexity
 
@@ -118,6 +118,6 @@ Low - Standard Docker Compose setup with well-documented configurations.
 ## Notes
 
 - Use Confluent Platform Kafka image (`confluentinc/cp-kafka:latest`) with KRaft mode (no ZooKeeper required)
-- Use Debezium PostgreSQL image (`quay.io/debezium/postgres:latest`) which comes pre-configured for CDC with logical replication enabled and pgoutput plugin installed
+- Use Debezium PostgreSQL image (`quay.io/debezium/postgres:16`) which comes pre-configured for CDC with logical replication enabled and pgoutput plugin installed
 - Use Kafka UI (`provectuslabs/kafka-ui:latest`) for visual topic/message inspection and consumer group monitoring
 - Keep volumes for data persistence during development
