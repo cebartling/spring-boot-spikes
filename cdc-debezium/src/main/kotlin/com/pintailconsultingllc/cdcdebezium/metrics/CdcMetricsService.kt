@@ -6,7 +6,6 @@ import io.opentelemetry.api.common.Attributes
 import io.opentelemetry.api.metrics.LongCounter
 import io.opentelemetry.api.metrics.LongHistogram
 import io.opentelemetry.api.metrics.Meter
-import jakarta.annotation.PostConstruct
 import org.springframework.stereotype.Component
 import java.time.Duration
 import java.time.Instant
@@ -18,36 +17,37 @@ class CdcMetricsService {
         GlobalOpenTelemetry.getMeter("cdc-consumer")
     }
 
-    private lateinit var messagesProcessed: LongCounter
-    private lateinit var messagesErrored: LongCounter
-    private lateinit var processingLatency: LongHistogram
-    private lateinit var dbUpserts: LongCounter
-    private lateinit var dbDeletes: LongCounter
-
-    @PostConstruct
-    fun init() {
-        messagesProcessed = meter.counterBuilder("cdc.messages.processed")
+    private val messagesProcessed: LongCounter by lazy {
+        meter.counterBuilder("cdc.messages.processed")
             .setDescription("Total number of CDC messages processed")
             .setUnit("{messages}")
             .build()
+    }
 
-        messagesErrored = meter.counterBuilder("cdc.messages.errors")
+    private val messagesErrored: LongCounter by lazy {
+        meter.counterBuilder("cdc.messages.errors")
             .setDescription("Total number of CDC message processing errors")
             .setUnit("{messages}")
             .build()
+    }
 
-        processingLatency = meter.histogramBuilder("cdc.processing.latency")
+    private val processingLatency: LongHistogram by lazy {
+        meter.histogramBuilder("cdc.processing.latency")
             .setDescription("CDC message processing latency")
             .setUnit("ms")
             .ofLongs()
             .build()
+    }
 
-        dbUpserts = meter.counterBuilder("cdc.db.upserts")
+    private val dbUpserts: LongCounter by lazy {
+        meter.counterBuilder("cdc.db.upserts")
             .setDescription("Total number of database upsert operations")
             .setUnit("{operations}")
             .build()
+    }
 
-        dbDeletes = meter.counterBuilder("cdc.db.deletes")
+    private val dbDeletes: LongCounter by lazy {
+        meter.counterBuilder("cdc.db.deletes")
             .setDescription("Total number of database delete operations")
             .setUnit("{operations}")
             .build()

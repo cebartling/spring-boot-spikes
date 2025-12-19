@@ -5,6 +5,7 @@ import io.cucumber.java.en.And
 import io.cucumber.java.en.Given
 import io.cucumber.java.en.Then
 import io.cucumber.java.en.When
+import io.opentelemetry.sdk.metrics.data.LongPointData
 import io.opentelemetry.sdk.metrics.data.MetricData
 import io.opentelemetry.sdk.testing.exporter.InMemoryMetricReader
 import org.springframework.beans.factory.annotation.Autowired
@@ -22,8 +23,12 @@ class OpenTelemetryMetricsSteps {
     private lateinit var metricsService: CdcMetricsService
 
     private var lastMetricName: String? = null
-    private var lastCounterValue: Long = 0
     private var lastAttributes: Map<String, String> = emptyMap()
+
+    // Baseline values per metric and attribute combination
+    // Key: "metricName|attr1=val1,attr2=val2", Value: counter value
+    private var baselinePointValues: Map<String, Long> = emptyMap()
+    private var baselineHistogramCounts: Map<String, Long> = emptyMap()
 
     @Given("the metrics infrastructure is initialized")
     fun theMetricsInfrastructureIsInitialized() {
@@ -33,10 +38,39 @@ class OpenTelemetryMetricsSteps {
 
     @And("the metric reader is cleared")
     fun theMetricReaderIsCleared() {
-        metricReader.collectAllMetrics()
+        // Capture baseline values for all metric points (per attribute combination)
+        val metrics = metricReader.collectAllMetrics()
+
+        baselinePointValues = mutableMapOf<String, Long>().apply {
+            metrics.filter { it.longSumData.points.isNotEmpty() }.forEach { metric ->
+                metric.longSumData.points.forEach { point ->
+                    val key = buildPointKey(metric.name, point)
+                    this[key] = point.value
+                }
+            }
+        }
+
+        baselineHistogramCounts = mutableMapOf<String, Long>().apply {
+            metrics.filter { it.histogramData.points.isNotEmpty() }.forEach { metric ->
+                metric.histogramData.points.forEach { point ->
+                    val attrs = point.attributes.asMap().entries
+                        .sortedBy { it.key.key }
+                        .joinToString(",") { "${it.key.key}=${it.value}" }
+                    val key = "${metric.name}|$attrs"
+                    this[key] = point.count
+                }
+            }
+        }
+
         lastMetricName = null
-        lastCounterValue = 0
         lastAttributes = emptyMap()
+    }
+
+    private fun buildPointKey(metricName: String, point: LongPointData): String {
+        val attrs = point.attributes.asMap().entries
+            .sortedBy { it.key.key }
+            .joinToString(",") { "${it.key.key}=${it.value}" }
+        return "$metricName|$attrs"
     }
 
     @When("a CDC insert event is processed for metrics")
@@ -99,11 +133,28 @@ class OpenTelemetryMetricsSteps {
         val metric = findMetric(metrics, metricName)
         assertNotNull(metric, "Metric '$metricName' should exist")
 
-        val sum = metric.longSumData.points.sumOf { it.value }
-        lastCounterValue = sum
-        assertEquals(expectedValue, sum, "Counter '$metricName' should have value $expectedValue")
+        // Find the point that was incremented in this scenario
+        var foundPoint: LongPointData? = null
+        var totalDelta = 0L
 
-        metric.longSumData.points.firstOrNull()?.let { point ->
+        metric.longSumData.points.forEach { point ->
+            val key = buildPointKey(metricName, point)
+            val baseline = baselinePointValues[key] ?: 0L
+            val delta = point.value - baseline
+            if (delta > 0) {
+                totalDelta += delta
+                foundPoint = point
+            }
+        }
+
+        assertEquals(
+            expectedValue,
+            totalDelta,
+            "Counter '$metricName' should have incremented by $expectedValue"
+        )
+
+        // Store the found point's attributes for subsequent attribute checks
+        foundPoint?.let { point ->
             lastAttributes = point.attributes.asMap().entries.associate {
                 it.key.key to it.value.toString()
             }
@@ -117,8 +168,18 @@ class OpenTelemetryMetricsSteps {
         val metric = findMetric(metrics, metricName)
         assertNotNull(metric, "Metric '$metricName' should exist")
 
-        val sum = metric.longSumData.points.sumOf { it.value }
-        assertEquals(expectedValue, sum, "Counter '$metricName' should have total value $expectedValue")
+        var totalDelta = 0L
+        metric.longSumData.points.forEach { point ->
+            val key = buildPointKey(metricName, point)
+            val baseline = baselinePointValues[key] ?: 0L
+            totalDelta += point.value - baseline
+        }
+
+        assertEquals(
+            expectedValue,
+            totalDelta,
+            "Counter '$metricName' should have incremented by $expectedValue total"
+        )
     }
 
     @And("the counter should have attribute {string} with value {string}")
@@ -138,14 +199,23 @@ class OpenTelemetryMetricsSteps {
         val metric = findMetric(metrics, metricName)
         assertNotNull(metric, "Histogram '$metricName' should exist")
 
-        val totalCount = metric.histogramData.points.sumOf { it.count }
-        assertTrue(totalCount > 0, "Histogram '$metricName' should have recorded at least one value")
-
-        metric.histogramData.points.firstOrNull()?.let { point ->
-            lastAttributes = point.attributes.asMap().entries.associate {
-                it.key.key to it.value.toString()
+        var foundDelta = false
+        metric.histogramData.points.forEach { point ->
+            val attrs = point.attributes.asMap().entries
+                .sortedBy { it.key.key }
+                .joinToString(",") { "${it.key.key}=${it.value}" }
+            val key = "$metricName|$attrs"
+            val baseline = baselineHistogramCounts[key] ?: 0L
+            val delta = point.count - baseline
+            if (delta > 0) {
+                foundDelta = true
+                lastAttributes = point.attributes.asMap().entries.associate {
+                    it.key.key to it.value.toString()
+                }
             }
         }
+
+        assertTrue(foundDelta, "Histogram '$metricName' should have recorded at least one new value")
     }
 
     @And("the histogram should have attribute {string} with value {string}")
@@ -168,17 +238,21 @@ class OpenTelemetryMetricsSteps {
         val metric = findMetric(metrics, metricName)
         assertNotNull(metric, "Metric '$metricName' should exist")
 
-        val point = metric.longSumData.points.firstOrNull()
-        assertNotNull(point, "Metric '$metricName' should have at least one data point")
+        // Find the point with matching attribute value that was incremented
+        val matchingPoint = metric.longSumData.points.find { point ->
+            val key = buildPointKey(metricName, point)
+            val baseline = baselinePointValues[key] ?: 0L
+            val wasIncremented = point.value > baseline
 
-        val attributes = point.attributes.asMap().entries.associate {
-            it.key.key to it.value.toString()
+            val attrs = point.attributes.asMap().entries.associate {
+                it.key.key to it.value.toString()
+            }
+            wasIncremented && attrs[attributeName] == expectedValue
         }
-        val actualValue = attributes[attributeName]
-        assertEquals(
-            expectedValue,
-            actualValue,
-            "Counter '$metricName' attribute '$attributeName' should be '$expectedValue' but was '$actualValue'"
+
+        assertNotNull(
+            matchingPoint,
+            "Counter '$metricName' should have a point with attribute '$attributeName' = '$expectedValue' that was incremented"
         )
     }
 
