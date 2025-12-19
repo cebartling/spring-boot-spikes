@@ -11,18 +11,37 @@ This project implements a CDC pipeline that:
 3. Consumes CDC events in a Spring Boot application with idempotent processing
 4. Provides observability through OpenTelemetry (traces, metrics, logs)
 
-```
-┌─────────────┐     ┌───────────────┐     ┌─────────────┐     ┌──────────────┐
-│  PostgreSQL │────▶│ Kafka Connect │────▶│    Kafka    │────▶│ Spring Boot  │
-│   (source)  │     │  (Debezium)   │     │   (KRaft)   │     │  (consumer)  │
-└─────────────┘     └───────────────┘     └─────────────┘     └──────────────┘
-                                                                      │
-                                                                      ▼
-                                                              ┌──────────────┐
-                                                              │ OpenTelemetry│
-                                                              │  (Jaeger,    │
-                                                              │  Prometheus) │
-                                                              └──────────────┘
+```mermaid
+flowchart LR
+    subgraph Source["Source Database"]
+        PG[(PostgreSQL)]
+    end
+
+    subgraph CDC["Change Data Capture"]
+        KC[Kafka Connect<br/>Debezium]
+    end
+
+    subgraph Messaging["Event Backbone"]
+        K[Kafka<br/>KRaft Mode]
+    end
+
+    subgraph App["Application"]
+        SB[Spring Boot<br/>Consumer]
+    end
+
+    subgraph Observability["Observability"]
+        OT[OpenTelemetry<br/>Collector]
+        J[Jaeger]
+        P[Prometheus]
+    end
+
+    PG -->|WAL Changes| KC
+    KC -->|CDC Events| K
+    K -->|Consume| SB
+    SB -.->|Traces| OT
+    SB -.->|Metrics| OT
+    OT --> J
+    OT --> P
 ```
 
 ## Technology Stack
