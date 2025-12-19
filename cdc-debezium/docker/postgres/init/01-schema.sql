@@ -12,3 +12,13 @@ CREATE INDEX idx_customer_status ON public.customer(status);
 
 -- Create publication for Debezium (filtered to customer table only)
 CREATE PUBLICATION cdc_publication FOR TABLE public.customer;
+
+-- Materialized view of customer data (populated by CDC consumer)
+CREATE TABLE public.customer_materialized
+(
+    id               UUID PRIMARY KEY,
+    email            TEXT        NOT NULL,
+    status           TEXT        NOT NULL,
+    updated_at       TIMESTAMPTZ NOT NULL,
+    source_timestamp BIGINT
+);
