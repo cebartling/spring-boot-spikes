@@ -4,9 +4,12 @@ import com.pintailconsultingllc.cdcdebezium.TestFixtures.createEvent
 import com.pintailconsultingllc.cdcdebezium.dto.CustomerCdcEvent
 import com.pintailconsultingllc.cdcdebezium.entity.CustomerEntity
 import com.pintailconsultingllc.cdcdebezium.service.CustomerService
+import com.pintailconsultingllc.cdcdebezium.tracing.CdcTracingService
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import io.opentelemetry.api.trace.Span
+import io.opentelemetry.context.Scope
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
@@ -21,15 +24,25 @@ class CustomerCdcConsumerTest {
 
     private lateinit var objectMapper: ObjectMapper
     private lateinit var customerService: CustomerService
+    private lateinit var tracingService: CdcTracingService
     private lateinit var acknowledgment: Acknowledgment
     private lateinit var consumer: CustomerCdcConsumer
+    private lateinit var mockSpan: Span
+    private lateinit var mockScope: Scope
 
     @BeforeEach
     fun setUp() {
         objectMapper = mockk()
         customerService = mockk()
+        tracingService = mockk(relaxed = true)
         acknowledgment = mockk(relaxed = true)
-        consumer = CustomerCdcConsumer(objectMapper, customerService)
+        mockSpan = mockk(relaxed = true)
+        mockScope = mockk(relaxed = true)
+
+        every { tracingService.startSpan(any(), any()) } returns mockSpan
+        every { mockSpan.makeCurrent() } returns mockScope
+
+        consumer = CustomerCdcConsumer(objectMapper, customerService, tracingService)
     }
 
     private fun stubUpsert(event: CustomerCdcEvent) {
