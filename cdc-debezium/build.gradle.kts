@@ -41,7 +41,7 @@ val acceptanceTestRuntimeOnly: Configuration by configurations.getting {
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-kafka")
     implementation("org.springframework.boot:spring-boot-starter-opentelemetry")
-    implementation("org.springframework.boot:spring-boot-starter-r2dbc")
+    implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
@@ -52,7 +52,7 @@ dependencies {
     runtimeOnly("org.postgresql:r2dbc-postgresql")
     testImplementation("org.springframework.boot:spring-boot-starter-kafka-test")
     testImplementation("org.springframework.boot:spring-boot-starter-opentelemetry-test")
-    testImplementation("org.springframework.boot:spring-boot-starter-r2dbc-test")
+    testImplementation("org.springframework.boot:spring-boot-starter-data-r2dbc-test")
     testImplementation("org.springframework.boot:spring-boot-starter-webflux-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
