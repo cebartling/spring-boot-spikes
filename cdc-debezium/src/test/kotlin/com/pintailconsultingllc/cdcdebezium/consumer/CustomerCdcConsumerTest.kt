@@ -3,6 +3,7 @@ package com.pintailconsultingllc.cdcdebezium.consumer
 import com.pintailconsultingllc.cdcdebezium.TestFixtures.createEvent
 import com.pintailconsultingllc.cdcdebezium.dto.CustomerCdcEvent
 import com.pintailconsultingllc.cdcdebezium.entity.CustomerEntity
+import com.pintailconsultingllc.cdcdebezium.metrics.CdcMetricsService
 import com.pintailconsultingllc.cdcdebezium.service.CustomerService
 import com.pintailconsultingllc.cdcdebezium.tracing.CdcTracingService
 import io.mockk.every
@@ -25,6 +26,7 @@ class CustomerCdcConsumerTest {
     private lateinit var objectMapper: ObjectMapper
     private lateinit var customerService: CustomerService
     private lateinit var tracingService: CdcTracingService
+    private lateinit var metricsService: CdcMetricsService
     private lateinit var acknowledgment: Acknowledgment
     private lateinit var consumer: CustomerCdcConsumer
     private lateinit var mockSpan: Span
@@ -35,6 +37,7 @@ class CustomerCdcConsumerTest {
         objectMapper = mockk()
         customerService = mockk()
         tracingService = mockk(relaxed = true)
+        metricsService = mockk(relaxed = true)
         acknowledgment = mockk(relaxed = true)
         mockSpan = mockk(relaxed = true)
         mockScope = mockk(relaxed = true)
@@ -42,7 +45,7 @@ class CustomerCdcConsumerTest {
         every { tracingService.startSpan(any(), any()) } returns mockSpan
         every { mockSpan.makeCurrent() } returns mockScope
 
-        consumer = CustomerCdcConsumer(objectMapper, customerService, tracingService)
+        consumer = CustomerCdcConsumer(objectMapper, customerService, tracingService, metricsService)
     }
 
     private fun stubUpsert(event: CustomerCdcEvent) {
