@@ -1,6 +1,6 @@
 package com.pintailconsultingllc.cdcdebezium.dto
 
-import tools.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.annotation.JsonProperty
 import java.time.Instant
 import java.util.UUID
 
