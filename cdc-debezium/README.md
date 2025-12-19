@@ -1,6 +1,7 @@
 # CDC Debezium Spike
 
-A Spring Boot 4.x spike project demonstrating Change Data Capture (CDC) using Debezium with PostgreSQL and Kafka (KRaft mode).
+A Spring Boot 4.x spike project demonstrating Change Data Capture (CDC) using Debezium with PostgreSQL and Kafka (KRaft
+mode).
 
 ## Overview
 
@@ -11,7 +12,8 @@ This project implements a CDC pipeline that:
 3. Consumes CDC events in a Spring Boot application with idempotent processing
 4. Provides observability through OpenTelemetry (traces, metrics, logs)
 
-**Acceptance tests are the primary means for verifying the entire CDC pipeline.** The Cucumber-based acceptance tests exercise the complete end-to-end flow, ensuring all components work together correctly.
+**Acceptance tests are the primary means for verifying the entire CDC pipeline.** The Cucumber-based acceptance tests
+exercise the complete end-to-end flow, ensuring all components work together correctly.
 
 ```mermaid
 flowchart LR
@@ -48,20 +50,24 @@ flowchart LR
 
 ## What is Change Data Capture (CDC)?
 
-**Change Data Capture (CDC)** is a pattern for tracking row-level changes in a database and propagating those changes to downstream systems in real-time. Instead of polling for changes or relying on application-level events, CDC captures changes directly from the database's transaction log.
+**Change Data Capture (CDC)** is a pattern for tracking row-level changes in a database and propagating those changes to
+downstream systems in real-time. Instead of polling for changes or relying on application-level events, CDC captures
+changes directly from the database's transaction log.
 
 ### Why CDC?
 
-| Approach | Drawbacks |
-|----------|-----------|
-| Polling | Inefficient, delayed, misses intermediate states |
-| Application events | Requires code changes, can miss direct DB updates |
-| Triggers | Performance impact, tight coupling |
-| **CDC** | Non-invasive, captures all changes, preserves order |
+| Approach           | Drawbacks                                           |
+|--------------------|-----------------------------------------------------|
+| Polling            | Inefficient, delayed, misses intermediate states    |
+| Application events | Requires code changes, can miss direct DB updates   |
+| Triggers           | Performance impact, tight coupling                  |
+| **CDC**            | Non-invasive, captures all changes, preserves order |
 
 ### How Debezium Works
 
-[Debezium](https://debezium.io/) is an open-source CDC platform that captures changes from various databases and streams them to Kafka. For PostgreSQL, Debezium leverages **logical decoding**—a mechanism that extracts committed changes from the Write-Ahead Log (WAL) in a consumable format.
+[Debezium](https://debezium.io/) is an open-source CDC platform that captures changes from various databases and streams
+them to Kafka. For PostgreSQL, Debezium leverages **logical decoding**—a mechanism that extracts committed changes from
+the Write-Ahead Log (WAL) in a consumable format.
 
 ```mermaid
 flowchart LR
@@ -96,21 +102,22 @@ The connector operates in two phases:
 
 This ensures consumers receive a complete picture of the data, followed by real-time updates.
 
-For more details, see the [Debezium PostgreSQL Connector documentation](https://debezium.io/documentation/reference/stable/connectors/postgresql.html).
+For more details, see
+the [Debezium PostgreSQL Connector documentation](https://debezium.io/documentation/reference/stable/connectors/postgresql.html).
 
 ## Technology Stack
 
-| Component | Technology |
-|-----------|------------|
-| Language | Kotlin 2.2 |
-| Framework | Spring Boot 4.0, Spring WebFlux |
-| Database | PostgreSQL 16 (R2DBC) |
-| Messaging | Apache Kafka (KRaft mode) |
-| CDC | Debezium PostgreSQL Connector |
+| Component     | Technology                        |
+|---------------|-----------------------------------|
+| Language      | Kotlin 2.2                        |
+| Framework     | Spring Boot 4.0, Spring WebFlux   |
+| Database      | PostgreSQL 16 (R2DBC)             |
+| Messaging     | Apache Kafka (KRaft mode)         |
+| CDC           | Debezium PostgreSQL Connector     |
 | Observability | OpenTelemetry, Jaeger, Prometheus |
-| Build | Gradle 9.2 (Kotlin DSL) |
-| Runtime | Java 24 |
-| Testing | JUnit 5, MockK, Cucumber JVM |
+| Build         | Gradle 9.2 (Kotlin DSL)           |
+| Runtime       | Java 24                           |
+| Testing       | JUnit 5, MockK, Cucumber JVM      |
 
 ## Prerequisites
 
@@ -246,9 +253,11 @@ cdc-debezium/
 
 ### Acceptance Tests (Primary Verification)
 
-**Acceptance tests are the authoritative way to verify the CDC pipeline works correctly.** They validate the complete end-to-end flow from database changes through Kafka to the Spring Boot consumer.
+**Acceptance tests are the authoritative way to verify the CDC pipeline works correctly.** They validate the complete
+end-to-end flow from database changes through Kafka to the Spring Boot consumer.
 
-The tests use Cucumber JVM with Gherkin feature files located in `src/acceptanceTest/resources/features/`. This approach ensures:
+The tests use Cucumber JVM with Gherkin feature files located in `src/acceptanceTest/resources/features/`. This approach
+ensures:
 
 - All infrastructure components integrate correctly
 - CDC events flow through the entire pipeline
@@ -257,11 +266,13 @@ The tests use Cucumber JVM with Gherkin feature files located in `src/acceptance
 
 ```bash
 # Run acceptance tests (requires Docker infrastructure running)
-./gradlew acceptanceTest
+./gradlew clean build acceptanceTest
 
 # View Cucumber HTML report
 open build/reports/cucumber/cucumber.html
 ```
+
+- [Cucumber run report](build/reports/cucumber/cucumber.html)
 
 ### Unit Tests
 
@@ -277,12 +288,12 @@ Unit tests validate individual components in isolation using JUnit 5 with MockK:
 
 ## Infrastructure Services
 
-| Service | Port | Description |
-|---------|------|-------------|
-| PostgreSQL | 5432 | Source database with logical replication |
-| Kafka | 9092, 29092 | Event backbone (KRaft mode) |
-| Kafka Connect | 8083 | Debezium connector runtime |
-| Kafka UI | 8081 | Web UI for Kafka management |
+| Service       | Port        | Description                              |
+|---------------|-------------|------------------------------------------|
+| PostgreSQL    | 5432        | Source database with logical replication |
+| Kafka         | 9092, 29092 | Event backbone (KRaft mode)              |
+| Kafka Connect | 8083        | Debezium connector runtime               |
+| Kafka UI      | 8081        | Web UI for Kafka management              |
 
 ### Useful Commands
 
@@ -370,12 +381,12 @@ Key settings in `docker/debezium/connector-config.json`:
 
 ### Operation Codes
 
-| Code | Meaning |
-|------|---------|
-| `c` | Create (INSERT) |
-| `u` | Update |
-| `d` | Delete |
-| `r` | Read (snapshot) |
+| Code | Meaning         |
+|------|-----------------|
+| `c`  | Create (INSERT) |
+| `u`  | Update          |
+| `d`  | Delete          |
+| `r`  | Read (snapshot) |
 
 ## Troubleshooting
 
@@ -420,4 +431,4 @@ docker compose exec kafka kafka-consumer-groups \
 
 ## License
 
-This project is a spike/proof-of-concept for educational purposes.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
