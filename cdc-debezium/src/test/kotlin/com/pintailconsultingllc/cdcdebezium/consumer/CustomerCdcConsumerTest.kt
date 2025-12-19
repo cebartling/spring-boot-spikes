@@ -2,6 +2,8 @@ package com.pintailconsultingllc.cdcdebezium.consumer
 
 import com.pintailconsultingllc.cdcdebezium.TestFixtures.createEvent
 import com.pintailconsultingllc.cdcdebezium.dto.CustomerCdcEvent
+import com.pintailconsultingllc.cdcdebezium.entity.CustomerEntity
+import com.pintailconsultingllc.cdcdebezium.service.CustomerService
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -10,19 +12,40 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.springframework.kafka.support.Acknowledgment
+import reactor.core.publisher.Mono
 import tools.jackson.databind.ObjectMapper
+import java.time.Instant
+import java.util.UUID
 
 class CustomerCdcConsumerTest {
 
     private lateinit var objectMapper: ObjectMapper
+    private lateinit var customerService: CustomerService
     private lateinit var acknowledgment: Acknowledgment
     private lateinit var consumer: CustomerCdcConsumer
 
     @BeforeEach
     fun setUp() {
         objectMapper = mockk()
+        customerService = mockk()
         acknowledgment = mockk(relaxed = true)
-        consumer = CustomerCdcConsumer(objectMapper)
+        consumer = CustomerCdcConsumer(objectMapper, customerService)
+    }
+
+    private fun stubUpsert(event: CustomerCdcEvent) {
+        val entity = CustomerEntity.create(
+            id = event.id,
+            email = event.email ?: "",
+            status = event.status ?: "",
+            updatedAt = event.updatedAt ?: Instant.now(),
+            sourceTimestamp = event.sourceTimestamp,
+            isNewEntity = true
+        )
+        every { customerService.upsert(event) } returns Mono.just(entity)
+    }
+
+    private fun stubDelete(id: UUID) {
+        every { customerService.delete(id) } returns Mono.empty()
     }
 
     private fun createRecord(
@@ -55,9 +78,11 @@ class CustomerCdcConsumerTest {
             val json = """{"id":"${event.id}","__op":"c"}"""
 
             stubDeserialization(json, event)
+            stubUpsert(event)
             consumeAndVerifyAcknowledged(createRecord(value = json))
 
             verify(exactly = 1) { objectMapper.readValue(json, CustomerCdcEvent::class.java) }
+            verify(exactly = 1) { customerService.upsert(event) }
         }
 
         @Test
@@ -66,7 +91,10 @@ class CustomerCdcConsumerTest {
             val json = """{"id":"${event.id}","__op":"u"}"""
 
             stubDeserialization(json, event)
+            stubUpsert(event)
             consumeAndVerifyAcknowledged(createRecord(value = json))
+
+            verify(exactly = 1) { customerService.upsert(event) }
         }
 
         @Test
@@ -75,7 +103,10 @@ class CustomerCdcConsumerTest {
             val json = """{"id":"${event.id}","__op":"r"}"""
 
             stubDeserialization(json, event)
+            stubUpsert(event)
             consumeAndVerifyAcknowledged(createRecord(value = json))
+
+            verify(exactly = 1) { customerService.upsert(event) }
         }
     }
 
@@ -88,7 +119,10 @@ class CustomerCdcConsumerTest {
             val json = """{"id":"${event.id}","__deleted":"true"}"""
 
             stubDeserialization(json, event)
+            stubDelete(event.id)
             consumeAndVerifyAcknowledged(createRecord(value = json))
+
+            verify(exactly = 1) { customerService.delete(event.id) }
         }
 
         @Test
@@ -97,7 +131,10 @@ class CustomerCdcConsumerTest {
             val json = """{"id":"${event.id}","__op":"d"}"""
 
             stubDeserialization(json, event)
+            stubDelete(event.id)
             consumeAndVerifyAcknowledged(createRecord(value = json))
+
+            verify(exactly = 1) { customerService.delete(event.id) }
         }
     }
 
@@ -140,6 +177,7 @@ class CustomerCdcConsumerTest {
             val json = """{"id":"${event.id}"}"""
 
             stubDeserialization(json, event)
+            stubUpsert(event)
             consumeAndVerifyAcknowledged(createRecord(value = json, partition = 2, offset = 12345))
         }
 
@@ -149,7 +187,9 @@ class CustomerCdcConsumerTest {
             val json = """{"id":"${event.id}"}"""
 
             stubDeserialization(json, event)
+            stubUpsert(event)
             consumeAndVerifyAcknowledged(createRecord(value = json, topic = "different.topic.name"))
         }
     }
 }
+
