@@ -49,6 +49,17 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    depends_on:
+      - kafka
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      DYNAMIC_CONFIG_ENABLED: "true"
 ```
 
 ### PostgreSQL Configuration
@@ -64,7 +75,7 @@ No custom configuration files are required.
 
 ```bash
 # Start infrastructure
-docker compose up -d postgres kafka
+docker compose up -d postgres kafka kafka-ui
 
 # Verify PostgreSQL is ready
 docker compose exec postgres pg_isready
@@ -83,16 +94,21 @@ docker compose exec kafka kafka-topics \
 
 docker compose exec kafka kafka-topics \
   --bootstrap-server localhost:9092 --list
+
+# Open Kafka UI in browser
+open http://localhost:8080
 ```
 
 ## Acceptance Criteria
 
-1. [ ] `docker compose up -d postgres kafka` starts both services without errors
+1. [ ] `docker compose up -d postgres kafka kafka-ui` starts all services without errors
 2. [ ] PostgreSQL accepts connections on port 5432
 3. [ ] `SHOW wal_level;` returns `logical`
 4. [ ] Kafka broker is reachable on port 9092 (internal) and 29092 (external)
 5. [ ] Can create and list Kafka topics
-6. [ ] Services restart cleanly after `docker compose down && docker compose up -d`
+6. [ ] Kafka UI is accessible at http://localhost:8080
+7. [ ] Kafka UI shows the Kafka cluster and topics
+8. [ ] Services restart cleanly after `docker compose down && docker compose up -d`
 
 ## Estimated Complexity
 
@@ -102,4 +118,5 @@ Low - Standard Docker Compose setup with well-documented configurations.
 
 - Use Confluent Platform Kafka image (`confluentinc/cp-kafka:latest`) with KRaft mode (no ZooKeeper required)
 - Use Debezium PostgreSQL image (`quay.io/debezium/postgres:latest`) which comes pre-configured for CDC with logical replication enabled and pgoutput plugin installed
+- Use Kafka UI (`provectuslabs/kafka-ui:latest`) for visual topic/message inspection and consumer group monitoring
 - Keep volumes for data persistence during development
