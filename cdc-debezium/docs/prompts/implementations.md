@@ -49,3 +49,53 @@ Create a feature branch off of main for this work.
 Commit small changes with clear messages.
 Once complete, create a pull request for review.
 ```
+
+## Integrate OpenTelemetry Tracing
+
+```
+Implement the implementation plan found at @docs/implementation-plans/PLAN-006-opentelemetry-tracing.md.
+Think hard about how to execute each step in the plan.
+Create a feature branch off of main for this work.
+Commit small changes with clear messages.
+Once complete, create a pull request for review.
+```
+
+## Integrate OpenTelemetry Metrics
+
+```
+Implement the implementation plan found at @docs/implementation-plans/PLAN-007-opentelemetry-metrics.md.
+Think hard about how to execute each step in the plan.
+Create a feature branch off of main for this work.
+Commit small changes with clear messages.
+Once complete, create a pull request for review.
+```
+
+## Structured Logging Integration
+
+```
+Implement the implementation plan found at @docs/implementation-plans/PLAN-008-structured-logging.md.
+Think hard about how to execute each step in the plan.
+Create a feature branch off of main for this work.
+Commit small changes with clear messages.
+Once complete, create a pull request for review.
+```
+
+## Integrate Observability Infrastructure
+
+```
+Implement the implementation plan found at @docs/implementation-plans/PLAN-009-observability-infrastructure.md.
+Think hard about how to execute each step in the plan.
+Create a feature branch off of main for this work.
+Commit small changes with clear messages.
+Once complete, create a pull request for review.
+```
+
+## Failure Recovery Testing
+
+```
+Implement the implementation plan found at @docs/implementation-plans/PLAN-010-failure-recovery-testing.md.
+Think hard about how to execute each step in the plan.
+Create a feature branch off of main for this work.
+Commit small changes with clear messages.
+Once complete, create a pull request for review.
+```

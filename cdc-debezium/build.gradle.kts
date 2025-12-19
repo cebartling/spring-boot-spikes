@@ -64,6 +64,9 @@ dependencies {
     acceptanceTestImplementation("io.cucumber:cucumber-junit-platform-engine:$cucumberVersion")
     acceptanceTestImplementation("io.cucumber:cucumber-spring:$cucumberVersion")
     acceptanceTestImplementation("org.junit.platform:junit-platform-suite")
+
+    // OpenTelemetry SDK testing for acceptance tests
+    acceptanceTestImplementation("io.opentelemetry:opentelemetry-sdk-testing")
 }
 
 kotlin {

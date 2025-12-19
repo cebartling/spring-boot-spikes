@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: cdc-debezium
+    name: cdc-consumer
   r2dbc:
     url: r2dbc:postgresql://localhost:5432/postgres
     username: postgres
@@ -24,3 +24,26 @@ spring:
     listener:
       ack-mode: manual
       concurrency: 1
+
+management:
+  otlp:
+    metrics:
+      export:
+        url: http://localhost:4318/v1/metrics
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: http://localhost:4318/v1/traces
+    logging:
+      export:
+        otlp:
+          endpoint: http://localhost:4318/v1/logs
+
+otel:
+  service:
+    name: cdc-consumer
+  resource:
+    attributes:
+      deployment.environment: development
+      service.namespace: cdc
