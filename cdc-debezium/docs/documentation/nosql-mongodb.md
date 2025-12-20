@@ -4,17 +4,11 @@ MongoDB serves as the target materialized store for CDC events in this project. 
 
 ## Architecture
 
-```
-┌─────────────────┐     ┌─────────────┐     ┌─────────────────┐
-│   PostgreSQL    │────▶│    Kafka    │────▶│  Spring Boot    │
-│   (Source)      │     │             │     │   Consumer      │
-└─────────────────┘     └─────────────┘     └────────┬────────┘
-                                                     │
-                                                     ▼
-                                            ┌─────────────────┐
-                                            │    MongoDB      │
-                                            │   (Target)      │
-                                            └─────────────────┘
+```mermaid
+flowchart LR
+    PG[(PostgreSQL<br/>Source)] --> KAFKA[Kafka]
+    KAFKA --> SB[Spring Boot<br/>Consumer]
+    SB --> MONGO[(MongoDB<br/>Target)]
 ```
 
 ## Service Configuration
