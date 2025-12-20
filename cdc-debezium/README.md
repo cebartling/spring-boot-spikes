@@ -252,6 +252,7 @@ Unit tests validate individual components in isolation using JUnit 5 with MockK:
 | Kafka         | 9092, 29092 | Event backbone (KRaft mode)              |
 | Kafka Connect | 8083        | Debezium connector runtime               |
 | Kafka UI      | 8081        | Web UI for Kafka management              |
+| MongoDB       | 27017       | Target materialized store                |
 | OTel Collector| 4317, 4318  | OpenTelemetry receiver (gRPC/HTTP)       |
 | Jaeger        | 16686       | Distributed tracing UI                   |
 | Prometheus    | 9090        | Metrics storage and UI                   |
@@ -354,6 +355,7 @@ docker compose exec kafka kafka-consumer-groups \
 ## Documentation
 
 - [CDC Concepts](docs/documentation/cdc-concepts.md) - Change Data Capture and Debezium fundamentals
+- [MongoDB Infrastructure](docs/documentation/nosql-mongodb.md) - Target materialized store setup and usage
 - [Observability](docs/documentation/observability.md) - Tracing, metrics, and structured logging
 - [Troubleshooting](docs/documentation/troubleshooting.md) - Common issues and solutions
 - [Feature Specification](docs/features/FEATURE-001.md) - Complete CDC spike specification
