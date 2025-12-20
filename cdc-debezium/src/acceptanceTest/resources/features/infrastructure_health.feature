@@ -21,6 +21,11 @@ Feature: Infrastructure Health Checks
     And Kafka should be healthy
     And Kafka Connect should be healthy
 
+  @requires-mongodb
+  Scenario: MongoDB is accessible
+    Given MongoDB is running and accessible
+    Then MongoDB should be healthy
+
   @requires-connector
   Scenario: Debezium PostgreSQL connector is running
     Given Kafka Connect is running and accessible

@@ -43,6 +43,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-opentelemetry")
     implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
+    implementation("org.springframework.boot:spring-boot-starter-data-mongodb-reactive")
 
     // OTel Metrics (PLAN-007)
     implementation("io.opentelemetry:opentelemetry-sdk-metrics")
@@ -65,6 +66,10 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
     testImplementation("io.mockk:mockk:1.13.13")
+    testImplementation("org.springframework.boot:spring-boot-starter-data-mongodb-reactive-test")
+    testImplementation("org.springframework.boot:spring-boot-testcontainers")
+    testImplementation("org.testcontainers:mongodb:1.20.4")
+    testImplementation("org.testcontainers:junit-jupiter:1.20.4")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
     // Cucumber dependencies for acceptance testing
@@ -128,6 +133,20 @@ tasks.register<Test>("failureRecoveryTest") {
 
     filter {
         includeTestsMatching("com.pintailconsultingllc.cdcdebezium.RunFailureRecoveryTest")
+    }
+
+    systemProperty("cucumber.junit-platform.naming-strategy", "long")
+}
+
+tasks.register<Test>("mongoDbTest") {
+    description = "Runs MongoDB acceptance tests (requires MongoDB Docker service running)."
+    group = "verification"
+    testClassesDirs = sourceSets["acceptanceTest"].output.classesDirs
+    classpath = sourceSets["acceptanceTest"].runtimeClasspath
+    useJUnitPlatform()
+
+    filter {
+        includeTestsMatching("com.pintailconsultingllc.cdcdebezium.RunMongoDbTest")
     }
 
     systemProperty("cucumber.junit-platform.naming-strategy", "long")
