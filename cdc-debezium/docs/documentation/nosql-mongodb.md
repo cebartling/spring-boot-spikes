@@ -145,14 +145,21 @@ The initialization script (`docker/mongodb/init/01-init.js`) runs automatically 
 2. Creates the `customers` collection with JSON schema validation
 3. Creates indexes for query optimization
 
-## Connection from Spring Boot
+## Spring Boot Integration
 
-To connect the Spring Boot application to MongoDB, add the following dependencies and configuration:
+The Spring Boot application is configured with reactive MongoDB access for persisting CDC events.
 
 ### Dependencies (build.gradle.kts)
 
 ```kotlin
-implementation("org.springframework.boot:spring-boot-starter-data-mongodb-reactive")
+dependencies {
+    implementation("org.springframework.boot:spring-boot-starter-data-mongodb-reactive")
+
+    // Test dependencies
+    testImplementation("org.springframework.boot:spring-boot-testcontainers")
+    testImplementation("org.testcontainers:mongodb:1.20.4")
+    testImplementation("org.testcontainers:junit-jupiter:1.20.4")
+}
 ```
 
 ### Configuration (application.yml)
@@ -162,7 +169,116 @@ spring:
   data:
     mongodb:
       uri: mongodb://cdc_app:cdc_app_password@localhost:27017/cdc_materialized?authSource=cdc_materialized
+      database: cdc_materialized
+      auto-index-creation: false  # Indexes created in init script
+
+logging:
+  level:
+    org.springframework.data.mongodb: DEBUG
+    org.mongodb.driver: INFO
 ```
+
+### MongoConfig
+
+Custom MongoDB configuration with connection pool tuning:
+
+```kotlin
+@Configuration
+@ConditionalOnProperty(name = ["app.mongodb.custom-config.enabled"], havingValue = "true", matchIfMissing = true)
+@EnableReactiveMongoRepositories(basePackages = ["com.pintailconsultingllc.cdcdebezium.repository"])
+class MongoConfig : AbstractReactiveMongoConfiguration() {
+    // Custom connection pool: max 20, min 5 connections
+    // Socket timeout: 10s connect, 30s read
+    // Removes _class field from documents
+}
+```
+
+**File:** `src/main/kotlin/com/pintailconsultingllc/cdcdebezium/config/MongoConfig.kt`
+
+### Domain Model
+
+#### CdcMetadata (Embedded Document)
+
+```kotlin
+data class CdcMetadata(
+    val sourceTimestamp: Long,
+    val operation: CdcOperation,  // INSERT, UPDATE, DELETE
+    val kafkaOffset: Long,
+    val kafkaPartition: Int,
+    val processedAt: Instant = Instant.now()
+)
+```
+
+**File:** `src/main/kotlin/com/pintailconsultingllc/cdcdebezium/document/CdcMetadata.kt`
+
+#### CustomerDocument
+
+```kotlin
+@Document(collection = "customers")
+@CompoundIndex(name = "idx_status_updated", def = "{'status': 1, 'updatedAt': -1}")
+data class CustomerDocument(
+    @Id val id: String,
+    @Indexed(unique = true) val email: String,
+    @Indexed val status: String,
+    val updatedAt: Instant,
+    val cdcMetadata: CdcMetadata
+) {
+    companion object {
+        fun fromCdcEvent(...): CustomerDocument  // Factory method
+    }
+
+    fun isNewerThan(other: CustomerDocument): Boolean  // Timestamp comparison
+}
+```
+
+**File:** `src/main/kotlin/com/pintailconsultingllc/cdcdebezium/document/CustomerDocument.kt`
+
+### Repository
+
+```kotlin
+@Repository
+interface CustomerMongoRepository : ReactiveMongoRepository<CustomerDocument, String> {
+    fun findByEmail(email: String): Mono<CustomerDocument>
+    fun findByStatus(status: String): Flux<CustomerDocument>
+    fun findByStatusOrderByUpdatedAtDesc(status: String): Flux<CustomerDocument>
+    fun existsByEmail(email: String): Mono<Boolean>
+}
+```
+
+**File:** `src/main/kotlin/com/pintailconsultingllc/cdcdebezium/repository/CustomerMongoRepository.kt`
+
+## Testing
+
+### Unit Tests
+
+```bash
+# Run document model unit tests
+./gradlew test --tests "*CustomerDocument*"
+./gradlew test --tests "*CdcMetadata*"
+```
+
+### Acceptance Tests
+
+MongoDB acceptance tests are available for verifying the Spring Data configuration:
+
+```bash
+# Start MongoDB first
+docker compose up -d mongodb
+
+# Run MongoDB acceptance tests
+./gradlew mongoDbTest
+```
+
+**Feature file:** `src/acceptanceTest/resources/features/mongodb_spring_configuration.feature`
+
+Scenarios covered:
+- MongoDB accessibility check
+- ReactiveMongoRepository bean availability
+- Document save and retrieve operations
+- CdcMetadata embedding verification
+- Query by status functionality
+
+**Step definitions:** `src/acceptanceTest/kotlin/com/pintailconsultingllc/cdcdebezium/steps/MongoDbConfigurationSteps.kt`
 
 ## Troubleshooting
 
