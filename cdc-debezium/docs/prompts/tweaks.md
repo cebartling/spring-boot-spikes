@@ -21,3 +21,12 @@ Create a feature branch off of main for this work.
 Commit small changes with clear messages.
 Once complete, create a pull request for review.
 ```
+
+## Tidy Up Documentation
+
+```
+We have a lot of documentation in the merged PRs that needs to be copied over to the @README.md file.
+Create a feature branch off of main for this work.
+Commit small changes with clear messages.
+Once complete, create a pull request for review.
+```
