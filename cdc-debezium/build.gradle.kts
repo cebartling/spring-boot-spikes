@@ -47,6 +47,10 @@ dependencies {
     // OTel Metrics (PLAN-007)
     implementation("io.opentelemetry:opentelemetry-sdk-metrics")
     implementation("io.opentelemetry:opentelemetry-exporter-otlp")
+
+    // Structured JSON logging with trace correlation (PLAN-008)
+    implementation("net.logstash.logback:logstash-logback-encoder:7.4")
+    implementation("io.opentelemetry.instrumentation:opentelemetry-logback-mdc-1.0:2.1.0-alpha")
     implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
