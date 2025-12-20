@@ -1,15 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-    <!-- Import OTel trace context into MDC -->
-    <contextListener class="io.opentelemetry.instrumentation.logback.mdc.v1_0.OpenTelemetryAppender"/>
-
     <!-- Console appender with JSON format -->
     <appender name="CONSOLE_JSON" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-            <includeMdcKeyName>trace_id</includeMdcKeyName>
-            <includeMdcKeyName>span_id</includeMdcKeyName>
-            <includeMdcKeyName>trace_flags</includeMdcKeyName>
-
             <!-- Custom field names for CDC context -->
             <customFields>{"service":"cdc-consumer"}</customFields>
 
@@ -21,6 +14,11 @@
         </encoder>
     </appender>
 
+    <!-- Wrap console appender with OTel to inject trace context into MDC -->
+    <appender name="OTEL" class="io.opentelemetry.instrumentation.logback.mdc.v1_0.OpenTelemetryAppender">
+        <appender-ref ref="CONSOLE_JSON"/>
+    </appender>
+
     <!-- Plain console for development (optional) -->
     <appender name="CONSOLE_PLAIN" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
@@ -28,9 +26,9 @@
         </encoder>
     </appender>
 
-    <!-- Root logger -->
+    <!-- Root logger uses OTel-wrapped appender -->
     <root level="INFO">
-        <appender-ref ref="CONSOLE_JSON"/>
+        <appender-ref ref="OTEL"/>
     </root>
 
     <!-- Application loggers -->
