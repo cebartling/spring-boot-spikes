@@ -584,54 +584,184 @@ sequenceDiagram
 
 ---
 
-# Feature 2.5: Grafana Dashboards
+# Feature 2.5: Grafana Observability Stack (LGTM)
 
 ## Overview
 
-Create comprehensive Grafana dashboards for monitoring CDC pipeline health, performance, and data flow metrics.
+Create a comprehensive observability platform using the Grafana LGTM stack (Grafana + Loki + Tempo + Mimir/Prometheus) for full-signal visibility into the CDC pipeline.
 
-## Dashboard Architecture
+## Justification
+
+For a Spring Boot application paired with a Debezium CDC pipeline, an OpenTelemetry-based observability stack running entirely in Docker Compose provides **full-signal visibility** (traces, metrics, and logs) with minimal coupling and maximum portability.
+
+### Why This Architecture?
+
+**Spring Boot Integration:**
+- Spring Boot integrates cleanly with OpenTelemetry via the Java agent, emitting traces and metrics without invasive code changes
+- Auto-instrumentation captures HTTP requests, Kafka consumer operations, and database calls
+- Custom spans and metrics can be added declaratively where needed
+
+**Debezium/Kafka Connect Observability:**
+- Debezium and Kafka Connect expose rich operational metrics via JMX
+- The OpenTelemetry Collector captures these metrics and normalizes them alongside application telemetry
+- Connector status, lag, and throughput become first-class observability signals
+
+**Centralized Telemetry Processing:**
+- The OpenTelemetry Collector acts as a normalization and routing layer
+- Enrichment (adding service names, environment tags) happens in one place
+- Backend-agnostic: switch from Prometheus to Mimir, or Jaeger to Tempo, without application changes
+
+**Production Alignment:**
+- This architecture mirrors modern cloud observability patterns (Grafana Cloud, AWS, GCP)
+- Skills and configurations transfer directly to production environments
+- Vendor-neutral approach avoids lock-in
+
+**End-to-End Correlation:**
+- Trace context propagates from HTTP requests through Kafka messages to CDC event processing
+- A single trace ID connects the entire request lifecycle
+- Debugging complex event-driven flows becomes tractable
+
+**Developer Experience:**
+- Lightweight and reproducible for local development
+- `docker compose up` provides full observability immediately
+- Iterative debugging with systems-level reasoning
+- No external dependencies or cloud accounts required
+
+## LGTM Stack Components
+
+| Component | Purpose | Data Type |
+|-----------|---------|-----------|
+| **Grafana** | Unified visualization and alerting | Dashboards |
+| **Loki** | Log aggregation with label-based indexing | Logs |
+| **Tempo** | Distributed tracing backend | Traces |
+| **Mimir/Prometheus** | Metrics storage and querying | Metrics |
+| **OTel Collector** | Telemetry collection, processing, routing | All signals |
+
+## Observability Architecture
 
 ```mermaid
-flowchart LR
-    subgraph DATA["Data Sources"]
-        PROM[Prometheus]
-        JAEGER[Jaeger]
+flowchart TB
+    subgraph APPS["Application Layer"]
+        SPRING[Spring Boot Consumer<br/>OTel Java Agent]
+        CONNECT[Kafka Connect<br/>JMX Metrics]
+        KAFKA[Kafka Broker<br/>JMX Metrics]
+        MONGO[MongoDB<br/>Metrics Exporter]
+        PG[PostgreSQL<br/>Metrics Exporter]
     end
 
-    subgraph GRAFANA["Grafana Dashboards"]
-        OVERVIEW[CDC Overview]
-        KAFKA[Kafka Metrics]
-        CONSUMER[Consumer Metrics]
-        MONGO[MongoDB Metrics]
-        VALIDATION[Validation Metrics]
-        ALERTS[Alert Status]
+    subgraph COLLECT["Collection Layer"]
+        OTEL[OpenTelemetry Collector]
+        subgraph PROCESSING["Processing"]
+            ENRICH[Enrichment]
+            BATCH[Batching]
+            FILTER[Filtering]
+        end
     end
 
-    PROM --> OVERVIEW
-    PROM --> KAFKA
-    PROM --> CONSUMER
-    PROM --> MONGO
-    PROM --> VALIDATION
-    JAEGER --> OVERVIEW
+    subgraph LGTM["Grafana LGTM Stack"]
+        subgraph BACKENDS["Storage Backends"]
+            TEMPO[(Tempo<br/>Traces)]
+            LOKI[(Loki<br/>Logs)]
+            PROM[(Prometheus/Mimir<br/>Metrics)]
+        end
+        GRAFANA[Grafana<br/>Unified UI]
+    end
+
+    SPRING -- "traces, metrics, logs" --> OTEL
+    CONNECT -- "JMX metrics" --> OTEL
+    KAFKA -- "JMX metrics" --> OTEL
+    MONGO -- "metrics" --> OTEL
+    PG -- "metrics" --> OTEL
+
+    OTEL --> ENRICH --> BATCH --> FILTER
+
+    FILTER -- "OTLP" --> TEMPO
+    FILTER -- "Loki" --> LOKI
+    FILTER -- "Prometheus Remote Write" --> PROM
+
+    TEMPO --> GRAFANA
+    LOKI --> GRAFANA
+    PROM --> GRAFANA
+```
+
+## Signal Correlation Flow
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant SpringBoot
+    participant Kafka
+    participant Consumer
+    participant MongoDB
+    participant Grafana
+
+    Note over Client,Grafana: Trace ID: abc-123 propagates through entire flow
+
+    Client->>SpringBoot: HTTP Request [trace: abc-123]
+    SpringBoot->>SpringBoot: Generate trace span
+    SpringBoot->>Kafka: Produce CDC event [trace: abc-123 in header]
+    Kafka->>Consumer: Consume event [trace: abc-123]
+    Consumer->>Consumer: Process with child span
+    Consumer->>MongoDB: Write document [trace: abc-123]
+    Consumer->>Consumer: Log with trace context
+
+    Note over Grafana: All signals correlated by trace ID
+    Grafana->>Grafana: View trace in Tempo
+    Grafana->>Grafana: Jump to related logs in Loki
+    Grafana->>Grafana: See metrics at same timestamp
 ```
 
 ## Sub-Features
 
-### 2.5.1: Grafana Infrastructure Setup
+### 2.5.1: Grafana LGTM Infrastructure Setup
 
-**Description:** Add Grafana to Docker Compose with proper configuration.
+**Description:** Deploy the complete Grafana LGTM stack in Docker Compose with OpenTelemetry Collector as the ingestion layer.
 
 **Changes Required:**
 - Add Grafana service to `docker-compose.yml`
-- Configure Prometheus data source
-- Configure Jaeger data source
-- Set up dashboard provisioning
+- Add Tempo service for distributed tracing
+- Add Loki service for log aggregation
+- Configure Prometheus/Mimir for metrics (extend existing Prometheus)
+- Update OpenTelemetry Collector configuration for multi-backend export
+- Configure all data sources in Grafana provisioning
+- Set up dashboard and alerting provisioning
+
+**Docker Compose Services:**
+
+```yaml
+services:
+  grafana:
+    image: grafana/grafana:11.0.0
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning
+      - grafana_data:/var/lib/grafana
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+
+  tempo:
+    image: grafana/tempo:2.4.0
+    command: ["-config.file=/etc/tempo/tempo.yaml"]
+    volumes:
+      - ./docker/tempo/tempo.yaml:/etc/tempo/tempo.yaml
+      - tempo_data:/var/tempo
+
+  loki:
+    image: grafana/loki:2.9.0
+    command: ["-config.file=/etc/loki/loki.yaml"]
+    volumes:
+      - ./docker/loki/loki.yaml:/etc/loki/loki.yaml
+      - loki_data:/var/loki
+```
 
 **Acceptance Criteria:**
-- Grafana accessible at configured port
-- Data sources pre-configured
-- Dashboards auto-provisioned
+- All LGTM components start successfully
+- Grafana accessible at port 3000
+- All data sources (Tempo, Loki, Prometheus) pre-configured
+- Explore view shows data from all three backends
+- Dashboards auto-provisioned on startup
 
 ### 2.5.2: CDC Overview Dashboard
 
@@ -708,6 +838,84 @@ flowchart LR
 **Acceptance Criteria:**
 - Validation health visible
 - Failure patterns identifiable
+
+### 2.5.7: Distributed Tracing Dashboard
+
+**Description:** Trace visualization and analysis using Tempo.
+
+**Panels:**
+- Trace search by service, operation, duration
+- Service graph visualization
+- Trace-to-logs correlation
+- Span duration histograms
+- Error trace highlighting
+- CDC event flow visualization
+
+**Trace Attributes:**
+- `messaging.system = kafka`
+- `messaging.destination.name` (topic)
+- `messaging.kafka.consumer.group`
+- `db.operation` (upsert, delete)
+- `cdc.entity.type` (customer, order, etc.)
+
+**Acceptance Criteria:**
+- Traces visible from HTTP request to MongoDB write
+- Kafka message propagation visible in trace
+- Click-through from trace to related logs
+- Service dependency graph renders correctly
+
+### 2.5.8: Centralized Logs Dashboard
+
+**Description:** Log aggregation and analysis using Loki.
+
+**Panels:**
+- Log stream by service
+- Error log filtering
+- Log volume over time
+- Structured field extraction
+- Trace ID correlation links
+
+**Log Labels:**
+- `service_name`
+- `level` (INFO, WARN, ERROR)
+- `trace_id`, `span_id`
+- `kafka_topic`, `kafka_partition`
+- `entity_type`, `operation`
+
+**LogQL Query Examples:**
+
+```logql
+# Find all error logs for CDC consumer
+{service_name="cdc-consumer"} |= "ERROR"
+
+# Find logs for a specific trace
+{service_name=~".+"} |= "trace_id=abc123"
+
+# Find logs with high processing latency
+{service_name="cdc-consumer"} | json | processing_time_ms > 1000
+```
+
+**Acceptance Criteria:**
+- Logs from all services aggregated
+- Structured log fields queryable
+- Direct link from trace span to logs
+- Log-based alerting functional
+
+### 2.5.9: OpenTelemetry Collector Dashboard
+
+**Description:** Monitor the health and performance of the OTel Collector itself.
+
+**Panels:**
+- Received vs exported telemetry counts
+- Queue depths by signal type
+- Dropped data points
+- Exporter latency and errors
+- Memory and CPU usage
+
+**Acceptance Criteria:**
+- Collector health visible
+- Pipeline bottlenecks identifiable
+- Data loss alerting enabled
 
 ---
 
@@ -1333,8 +1541,12 @@ flowchart TB
 | Component | Technology | Purpose |
 |-----------|------------|---------|
 | Document Store | MongoDB 7.x | Materialized view storage |
-| Visualization | Grafana 10.x | Dashboards and alerting |
-| Alerting | Grafana Unified Alerting | Alert management |
+| Visualization | Grafana 11.x | Unified dashboards and alerting |
+| Distributed Tracing | Grafana Tempo 2.x | Trace storage and querying |
+| Log Aggregation | Grafana Loki 2.x | Log storage with label-based indexing |
+| Metrics | Prometheus / Grafana Mimir | Metrics storage and PromQL querying |
+| Telemetry Collection | OpenTelemetry Collector | Signal collection, processing, routing |
+| Alerting | Grafana Unified Alerting | Multi-signal alert management |
 | Schema Registry | Confluent Schema Registry (optional) | Schema governance |
 | Load Testing | k6 | Performance and load testing |
 | k6 Extensions | xk6-sql, xk6-mongo | Database connectivity for k6 |
@@ -1437,13 +1649,26 @@ gantt
 
 ## Deliverables
 
-- Updated `docker-compose.yml` with MongoDB and Grafana
+- Updated `docker-compose.yml` with MongoDB and Grafana LGTM stack
 - MongoDB document models and repositories
 - Validation service implementation
 - Extended PostgreSQL schema scripts
 - Extended Debezium connector configuration
 - Multi-entity CDC consumer implementation
-- Grafana dashboard JSON definitions
+- Grafana LGTM stack configuration:
+  - Tempo configuration for distributed tracing
+  - Loki configuration for log aggregation
+  - Updated OTel Collector config for multi-backend export
+  - Grafana data source provisioning
+- Grafana dashboard JSON definitions:
+  - CDC Overview dashboard
+  - Kafka Metrics dashboard
+  - Consumer Performance dashboard
+  - MongoDB Operations dashboard
+  - Validation Metrics dashboard
+  - Distributed Tracing dashboard
+  - Centralized Logs dashboard
+  - OTel Collector dashboard
 - Grafana alert rule configurations
 - k6 load test scripts and scenarios
 - k6 Grafana dashboard for load test visualization
