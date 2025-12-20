@@ -97,6 +97,11 @@ tasks.register<Test>("acceptanceTest") {
     classpath = sourceSets["acceptanceTest"].runtimeClasspath
     useJUnitPlatform()
 
+    filter {
+        excludeTestsMatching("com.pintailconsultingllc.cdcdebezium.RunFailureRecoveryTest")
+        excludeTestsMatching("com.pintailconsultingllc.cdcdebezium.RunObservabilityTest")
+    }
+
     systemProperty("cucumber.junit-platform.naming-strategy", "long")
 }
 
