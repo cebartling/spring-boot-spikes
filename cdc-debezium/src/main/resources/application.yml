@@ -47,3 +47,12 @@ otel:
     attributes:
       deployment.environment: development
       service.namespace: cdc
+
+logging:
+  level:
+    root: INFO
+    com.pintailconsultingllc.cdcdebezium: DEBUG
+    org.apache.kafka: WARN
+    org.springframework.kafka: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

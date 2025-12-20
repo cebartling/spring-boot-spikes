@@ -7,6 +7,7 @@ import com.pintailconsultingllc.cdcdebezium.tracing.CdcTracingService
 import io.opentelemetry.api.trace.Span
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.slf4j.LoggerFactory
+import org.slf4j.MDC
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.kafka.support.Acknowledgment
 import org.springframework.stereotype.Component
@@ -35,57 +36,80 @@ class CustomerCdcConsumer(
 
         try {
             span.makeCurrent().use {
-                val key = record.key()
-                val value = record.value()
+                // Add CDC-specific fields to MDC for structured logging
+                MDC.put("kafka_topic", record.topic())
+                MDC.put("kafka_partition", record.partition().toString())
+                MDC.put("kafka_offset", record.offset().toString())
+                MDC.put("message_key", record.key()?.take(36) ?: "null")
 
-                logger.info(
-                    "Received CDC event: topic={}, partition={}, offset={}, key={}",
-                    record.topic(), record.partition(), record.offset(), key
-                )
+                try {
+                    val value = record.value()
 
-                val operation = when {
-                    value == null -> {
-                        logger.info("Received tombstone for key={}", key)
-                        tracingService.setDbOperation(span, CdcTracingService.DbOperation.IGNORE)
-                        "ignore"
+                    logger.info("Received CDC event")
+
+                    val (operation, outcome) = when {
+                        value == null -> {
+                            logger.info("Processing tombstone message")
+                            tracingService.setDbOperation(span, CdcTracingService.DbOperation.IGNORE)
+                            "ignore" to "success"
+                        }
+                        else -> {
+                            val event = objectMapper.readValue(value, CustomerCdcEvent::class.java)
+                            MDC.put("customer_id", event.id.toString())
+                            processEvent(event, span)
+                        }
                     }
-                    else -> {
-                        val event = objectMapper.readValue(value, CustomerCdcEvent::class.java)
-                        processEvent(event, span)
-                    }
+
+                    MDC.put("processing_outcome", outcome)
+                    MDC.put("db_operation", operation)
+
+                    metricsService.recordMessageProcessed(record.topic(), record.partition(), operation)
+                    metricsService.recordProcessingLatency(startTime, record.topic(), record.partition())
+
+                    logger.info("CDC event processed successfully")
+
+                    acknowledgment.acknowledge()
+                    tracingService.endSpanSuccess(span)
+                } finally {
+                    // Clean up MDC
+                    MDC.remove("kafka_topic")
+                    MDC.remove("kafka_partition")
+                    MDC.remove("kafka_offset")
+                    MDC.remove("message_key")
+                    MDC.remove("customer_id")
+                    MDC.remove("processing_outcome")
+                    MDC.remove("db_operation")
                 }
-
-                metricsService.recordMessageProcessed(record.topic(), record.partition(), operation)
-                metricsService.recordProcessingLatency(startTime, record.topic(), record.partition())
-
-                acknowledgment.acknowledge()
-                tracingService.endSpanSuccess(span)
             }
         } catch (e: Exception) {
-            logger.error("Error processing CDC event: key={}", record.key(), e)
+            MDC.put("processing_outcome", "error")
+            MDC.put("error_type", e.javaClass.simpleName)
+
+            logger.error("Error processing CDC event: {}", e.message, e)
+
             metricsService.recordMessageError(record.topic(), record.partition())
             metricsService.recordProcessingLatency(startTime, record.topic(), record.partition())
             tracingService.endSpanError(span, e)
             acknowledgment.acknowledge()
+
+            MDC.remove("processing_outcome")
+            MDC.remove("error_type")
         }
     }
 
-    private fun processEvent(event: CustomerCdcEvent, span: Span): String {
+    private fun processEvent(event: CustomerCdcEvent, span: Span): Pair<String, String> {
         return if (event.isDelete()) {
             tracingService.setDbOperation(span, CdcTracingService.DbOperation.DELETE)
-            logger.info("Processing DELETE for customer: id={}", event.id)
+            logger.info("Processing DELETE operation")
             customerService.delete(event.id).block()
             metricsService.recordDbDelete()
-            "delete"
+            "delete" to "success"
         } else {
             tracingService.setDbOperation(span, CdcTracingService.DbOperation.UPSERT)
-            logger.info(
-                "Processing UPSERT for customer: id={}, email={}, status={}",
-                event.id, event.email, event.status
-            )
+            logger.info("Processing UPSERT operation for email={}, status={}", event.email, event.status)
             customerService.upsert(event).block()
             metricsService.recordDbUpsert()
-            "upsert"
+            "upsert" to "success"
         }
     }
 }

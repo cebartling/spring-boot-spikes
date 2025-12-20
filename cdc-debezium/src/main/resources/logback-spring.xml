@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- Console appender with JSON format -->
+    <appender name="CONSOLE_JSON" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <!-- Custom field names for CDC context -->
+            <customFields>{"service":"cdc-consumer"}</customFields>
+
+            <!-- Include caller info for debugging -->
+            <includeCallerData>false</includeCallerData>
+
+            <!-- Timestamp format -->
+            <timestampPattern>yyyy-MM-dd'T'HH:mm:ss.SSSZ</timestampPattern>
+        </encoder>
+    </appender>
+
+    <!-- Wrap console appender with OTel to inject trace context into MDC -->
+    <appender name="OTEL" class="io.opentelemetry.instrumentation.logback.mdc.v1_0.OpenTelemetryAppender">
+        <appender-ref ref="CONSOLE_JSON"/>
+    </appender>
+
+    <!-- Plain console for development (optional) -->
+    <appender name="CONSOLE_PLAIN" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} [trace_id=%X{trace_id} span_id=%X{span_id}] - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Root logger uses OTel-wrapped appender -->
+    <root level="INFO">
+        <appender-ref ref="OTEL"/>
+    </root>
+
+    <!-- Application loggers -->
+    <logger name="com.pintailconsultingllc.cdcdebezium" level="DEBUG"/>
+
+    <!-- Reduce noise from libraries -->
+    <logger name="org.apache.kafka" level="WARN"/>
+    <logger name="org.springframework.kafka" level="INFO"/>
+    <logger name="io.r2dbc" level="INFO"/>
+</configuration>
