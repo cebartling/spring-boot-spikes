@@ -33,3 +33,14 @@ management:
       enabled: false
     metrics:
       enabled: false
+
+observability:
+  jaeger:
+    url: http://localhost:16686
+  prometheus:
+    url: http://localhost:9090
+  otel-collector:
+    otlp-http-url: http://localhost:4318
+
+playwright:
+  headless: true

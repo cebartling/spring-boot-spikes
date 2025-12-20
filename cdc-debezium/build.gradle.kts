@@ -75,6 +75,9 @@ dependencies {
 
     // OpenTelemetry SDK testing for acceptance tests
     acceptanceTestImplementation("io.opentelemetry:opentelemetry-sdk-testing")
+
+    // Playwright for UI acceptance testing (PLAN-009)
+    acceptanceTestImplementation("com.microsoft.playwright:playwright:1.49.0")
 }
 
 kotlin {
@@ -93,6 +96,20 @@ tasks.register<Test>("acceptanceTest") {
     testClassesDirs = sourceSets["acceptanceTest"].output.classesDirs
     classpath = sourceSets["acceptanceTest"].runtimeClasspath
     useJUnitPlatform()
+
+    systemProperty("cucumber.junit-platform.naming-strategy", "long")
+}
+
+tasks.register<Test>("observabilityTest") {
+    description = "Runs observability infrastructure acceptance tests (requires Docker services running)."
+    group = "verification"
+    testClassesDirs = sourceSets["acceptanceTest"].output.classesDirs
+    classpath = sourceSets["acceptanceTest"].runtimeClasspath
+    useJUnitPlatform()
+
+    filter {
+        includeTestsMatching("com.pintailconsultingllc.cdcdebezium.RunObservabilityTest")
+    }
 
     systemProperty("cucumber.junit-platform.naming-strategy", "long")
 }
