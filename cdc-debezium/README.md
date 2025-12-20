@@ -51,59 +51,11 @@ flowchart LR
 ## What is Change Data Capture (CDC)?
 
 **Change Data Capture (CDC)** is a pattern for tracking row-level changes in a database and propagating those changes to
-downstream systems in real-time. Instead of polling for changes or relying on application-level events, CDC captures
-changes directly from the database's transaction log.
+downstream systems in real-time. This project uses [Debezium](https://debezium.io/) to capture changes from PostgreSQL's
+Write-Ahead Log (WAL) and stream them to Kafka.
 
-### Why CDC?
-
-| Approach           | Drawbacks                                           |
-|--------------------|-----------------------------------------------------|
-| Polling            | Inefficient, delayed, misses intermediate states    |
-| Application events | Requires code changes, can miss direct DB updates   |
-| Triggers           | Performance impact, tight coupling                  |
-| **CDC**            | Non-invasive, captures all changes, preserves order |
-
-### How Debezium Works
-
-[Debezium](https://debezium.io/) is an open-source CDC platform that captures changes from various databases and streams
-them to Kafka. For PostgreSQL, Debezium leverages **logical decoding**—a mechanism that extracts committed changes from
-the Write-Ahead Log (WAL) in a consumable format.
-
-```mermaid
-flowchart LR
-    subgraph PostgreSQL
-        T[Transaction] --> WAL[Write-Ahead Log]
-        WAL --> LD[Logical Decoding]
-        LD --> RS[Replication Slot]
-    end
-
-    subgraph Debezium
-        RS --> PG[pgoutput Plugin]
-        PG --> C[Connector]
-    end
-
-    C --> K[Kafka Topic]
-```
-
-**Key components:**
-
-- **Write-Ahead Log (WAL)**: PostgreSQL's transaction log where all changes are recorded before being applied to tables
-- **Logical Decoding**: PostgreSQL feature that transforms WAL entries into a logical change stream
-- **pgoutput Plugin**: PostgreSQL's native output plugin (v10+) that formats changes for replication
-- **Replication Slot**: Maintains the connector's read position, preventing WAL cleanup until changes are consumed
-- **Log Sequence Number (LSN)**: Unique position in the WAL, used to track progress and enable exactly-once delivery
-
-### Debezium Connector Operation
-
-The connector operates in two phases:
-
-1. **Initial Snapshot**: On first start, captures a consistent snapshot of all existing data as READ events
-2. **Continuous Streaming**: After snapshot completion, monitors the WAL for INSERT, UPDATE, and DELETE operations
-
-This ensures consumers receive a complete picture of the data, followed by real-time updates.
-
-For more details, see
-the [Debezium PostgreSQL Connector documentation](https://debezium.io/documentation/reference/stable/connectors/postgresql.html).
+For detailed information about CDC concepts, Debezium operation, and event formats, see the
+[CDC Concepts documentation](docs/documentation/cdc-concepts.md).
 
 ## Technology Stack
 
@@ -227,6 +179,7 @@ cdc-debezium/
 │   ├── postgres/init/          # Database initialization scripts
 │   └── prometheus/             # Prometheus scrape config
 ├── docs/
+│   ├── documentation/          # User documentation
 │   ├── features/               # Feature specifications
 │   └── implementation-plans/   # Implementation task breakdowns
 └── docker-compose.yml          # Infrastructure services
@@ -362,15 +315,11 @@ Key settings in `docker/debezium/connector-config.json`:
 
 This project includes full OpenTelemetry observability with distributed tracing, metrics, and structured logging.
 
-### Observability Stack
-
 | Component | Port | Purpose |
 |-----------|------|---------|
-| OpenTelemetry Collector | 4317, 4318 | OTLP receiver (gRPC/HTTP) |
 | Jaeger | 16686 | Distributed tracing UI |
 | Prometheus | 9090 | Metrics storage and querying |
-
-### Accessing Observability UIs
+| OTel Collector | 4317, 4318 | OTLP receiver (gRPC/HTTP) |
 
 ```bash
 # Open Jaeger UI (traces)
@@ -378,143 +327,23 @@ open http://localhost:16686
 
 # Open Prometheus UI (metrics)
 open http://localhost:9090
-
-# Check OTel Collector health
-curl -s http://localhost:8888/metrics | head -20
 ```
 
-### Tracing
-
-The CDC consumer emits spans for each message processed with the following attributes:
-
-- `messaging.system`: kafka
-- `messaging.destination.name`: cdc.public.customer
-- `messaging.kafka.consumer.group`: cdc-consumer-group
-- `messaging.kafka.partition`: partition number
-- `messaging.kafka.message.offset`: message offset
-- `db.operation`: upsert, delete, or ignore
-
-To find traces in Jaeger:
-1. Open http://localhost:16686
-2. Select service: `cdc-consumer`
-3. Search for operations: `cdc.public.customer process`
-
-### Metrics
-
-The application exposes the following custom metrics via OpenTelemetry:
-
-| Metric | Type | Description |
-|--------|------|-------------|
-| `cdc_messages_processed_total` | Counter | Total CDC messages processed |
-| `cdc_messages_errors_total` | Counter | Processing errors |
-| `cdc_processing_latency` | Histogram | Processing latency (ms) |
-| `cdc_db_upserts_total` | Counter | Database upsert operations |
-| `cdc_db_deletes_total` | Counter | Database delete operations |
-
-### Prometheus Queries
-
-```promql
-# Throughput (messages/sec)
-rate(cdc_messages_processed_total[1m])
-
-# Error rate
-rate(cdc_messages_errors_total[1m]) / rate(cdc_messages_processed_total[1m])
-
-# P95 latency
-histogram_quantile(0.95, rate(cdc_processing_latency_bucket[5m]))
-
-# Consumer lag
-kafka_consumer_records_lag_max
-```
-
-### Structured Logging
-
-Logs are output in JSON format with trace correlation:
-
-```json
-{
-  "@timestamp": "2024-01-15T10:30:00.123+0000",
-  "level": "INFO",
-  "message": "CDC event processed successfully",
-  "service": "cdc-consumer",
-  "trace_id": "abc123def456",
-  "span_id": "789xyz",
-  "kafka_topic": "cdc.public.customer",
-  "kafka_partition": "0",
-  "kafka_offset": "42",
-  "db_operation": "upsert"
-}
-```
-
-Use the `trace_id` from logs to find the corresponding trace in Jaeger.
-
-## CDC Event Format
-
-### Insert/Update Event
-
-```json
-{
-  "id": "550e8400-e29b-41d4-a716-446655440000",
-  "email": "user@example.com",
-  "status": "active",
-  "updated_at": "2024-01-15T10:30:00Z",
-  "__op": "c",
-  "__source_ts_ms": 1705315800000
-}
-```
-
-### Delete Event (Rewrite Mode)
-
-```json
-{
-  "id": "550e8400-e29b-41d4-a716-446655440000",
-  "email": "user@example.com",
-  "status": "active",
-  "updated_at": "2024-01-15T10:30:00Z",
-  "__deleted": "true",
-  "__op": "d",
-  "__source_ts_ms": 1705315800000
-}
-```
-
-### Operation Codes
-
-| Code | Meaning         |
-|------|-----------------|
-| `c`  | Create (INSERT) |
-| `u`  | Update          |
-| `d`  | Delete          |
-| `r`  | Read (snapshot) |
+For detailed information about tracing, metrics, Prometheus queries, and structured logging, see the
+[Observability documentation](docs/documentation/observability.md).
 
 ## Troubleshooting
 
-### Connector Not Starting
+For common issues and solutions, see the [Troubleshooting Guide](docs/documentation/troubleshooting.md).
+
+Quick diagnostics:
 
 ```bash
-# Check connector logs
-docker compose logs kafka-connect
+# Check all service health
+docker compose ps
 
-# Verify PostgreSQL replication settings
-docker compose exec postgres psql -U postgres -c "SHOW wal_level;"
-# Should return: logical
-```
-
-### No CDC Events
-
-```bash
-# Verify connector is running
-curl -s http://localhost:8083/connectors/postgres-cdc-connector/status | jq '.connector.state'
-# Should return: "RUNNING"
-
-# Check for replication slot
-docker compose exec postgres psql -U postgres -c "SELECT * FROM pg_replication_slots;"
-```
-
-### Consumer Not Receiving Messages
-
-```bash
-# Check if topic exists
-docker compose exec kafka kafka-topics --bootstrap-server localhost:9092 --list
+# Check connector status
+curl -s http://localhost:8083/connectors/postgres-cdc-connector/status | jq
 
 # Check consumer group lag
 docker compose exec kafka kafka-consumer-groups \
@@ -522,46 +351,11 @@ docker compose exec kafka kafka-consumer-groups \
   --describe --group cdc-consumer-group
 ```
 
-### No Traces in Jaeger
-
-```bash
-# Verify OTel Collector is running
-docker compose ps otel-collector
-
-# Check OTel Collector logs
-docker compose logs otel-collector
-
-# Verify OTLP endpoint is receiving data
-curl -s http://localhost:8888/metrics | grep otel
-
-# Test OTLP connectivity
-curl -X POST http://localhost:4318/v1/traces \
-  -H "Content-Type: application/json" \
-  -d '{"resourceSpans":[]}'
-```
-
-### No Metrics in Prometheus
-
-```bash
-# Verify Prometheus targets are UP
-open http://localhost:9090/targets
-
-# Check OTel Collector Prometheus exporter
-curl -s http://localhost:8889/metrics | head -50
-
-# Verify application is exporting metrics
-curl -s http://localhost:8080/actuator/prometheus 2>/dev/null || echo "App not running"
-```
-
-### Correlating Logs with Traces
-
-1. Find a `trace_id` in application logs
-2. Open Jaeger: http://localhost:16686
-3. Use "Search by Trace ID" with the trace ID
-4. View the complete trace with all spans
-
 ## Documentation
 
+- [CDC Concepts](docs/documentation/cdc-concepts.md) - Change Data Capture and Debezium fundamentals
+- [Observability](docs/documentation/observability.md) - Tracing, metrics, and structured logging
+- [Troubleshooting](docs/documentation/troubleshooting.md) - Common issues and solutions
 - [Feature Specification](docs/features/FEATURE-001.md) - Complete CDC spike specification
 - [Implementation Plans](docs/implementation-plans/) - Task breakdowns for each component
 
