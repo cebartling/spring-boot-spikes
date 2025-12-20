@@ -114,6 +114,20 @@ tasks.register<Test>("observabilityTest") {
     systemProperty("cucumber.junit-platform.naming-strategy", "long")
 }
 
+tasks.register<Test>("failureRecoveryTest") {
+    description = "Runs failure and recovery acceptance tests (requires full Docker infrastructure running)."
+    group = "verification"
+    testClassesDirs = sourceSets["acceptanceTest"].output.classesDirs
+    classpath = sourceSets["acceptanceTest"].runtimeClasspath
+    useJUnitPlatform()
+
+    filter {
+        includeTestsMatching("com.pintailconsultingllc.cdcdebezium.RunFailureRecoveryTest")
+    }
+
+    systemProperty("cucumber.junit-platform.naming-strategy", "long")
+}
+
 tasks.named("check") {
     dependsOn("acceptanceTest")
 }
