@@ -4,6 +4,11 @@ server:
 spring:
   application:
     name: cdc-debezium-test
+  data:
+    mongodb:
+      uri: mongodb://cdc_app:cdc_app_password@localhost:27017/cdc_materialized?authSource=cdc_materialized
+      database: cdc_materialized
+      auto-index-creation: true
   kafka:
     bootstrap-servers: localhost:29092
     consumer:

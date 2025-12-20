@@ -138,6 +138,20 @@ tasks.register<Test>("failureRecoveryTest") {
     systemProperty("cucumber.junit-platform.naming-strategy", "long")
 }
 
+tasks.register<Test>("mongoDbTest") {
+    description = "Runs MongoDB acceptance tests (requires MongoDB Docker service running)."
+    group = "verification"
+    testClassesDirs = sourceSets["acceptanceTest"].output.classesDirs
+    classpath = sourceSets["acceptanceTest"].runtimeClasspath
+    useJUnitPlatform()
+
+    filter {
+        includeTestsMatching("com.pintailconsultingllc.cdcdebezium.RunMongoDbTest")
+    }
+
+    systemProperty("cucumber.junit-platform.naming-strategy", "long")
+}
+
 tasks.named("check") {
     dependsOn("acceptanceTest")
 }
