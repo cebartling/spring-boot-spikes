@@ -2,7 +2,7 @@
 
 ## Feature Name
 
-**CDC Platform Enhancement Suite: MongoDB Migration, Data Validation, Schema Expansion, Schema Change Handling, and Grafana Observability**
+**CDC Platform Enhancement Suite: MongoDB Migration, Data Validation, Schema Expansion, Schema Change Handling, Grafana Observability, and Load Testing**
 
 ---
 
@@ -16,8 +16,9 @@ Extend the existing CDC pipeline with production-ready capabilities:
 - **Schema change handling** for graceful evolution of source database schemas
 - **Grafana dashboards** for comprehensive CDC monitoring
 - **Grafana alerting** for proactive issue detection
+- **Load testing with k6** validating performance under realistic workloads
 
-Primary outcome: Transform the CDC spike into a robust, observable, production-viable data synchronization platform.
+Primary outcome: Transform the CDC spike into a robust, observable, performance-validated, production-viable data synchronization platform.
 
 ---
 
@@ -60,6 +61,11 @@ flowchart TB
         ALERTS[Alert Manager]
     end
 
+    subgraph LOADTEST["Load Testing"]
+        K6[k6 Load Generator]
+        SCRIPTS[Test Scenarios]
+    end
+
     PG_WAL --> DBZ
     DBZ --> KAFKA
     KAFKA --> CONSUMER
@@ -73,13 +79,16 @@ flowchart TB
     OTEL --> PROM
     PROM --> GRAFANA
     GRAFANA --> ALERTS
+
+    K6 -. generates load .-> SOURCE
+    K6 -. reads metrics .-> PROM
 ```
 
 ---
 
 ## Feature Breakdown
 
-This enhancement suite is organized into six major features, each with sub-features for incremental implementation.
+This enhancement suite is organized into seven major features, each with sub-features for incremental implementation.
 
 ---
 
@@ -855,6 +864,470 @@ flowchart TB
 
 ---
 
+# Feature 2.7: Load Testing with k6
+
+## Overview
+
+Implement comprehensive load testing for the CDC pipeline using k6, validating system performance, identifying bottlenecks, and establishing baseline metrics under various load conditions.
+
+## Load Testing Architecture
+
+```mermaid
+flowchart LR
+    subgraph K6["k6 Load Generator"]
+        SCENARIOS[Test Scenarios]
+        VUS[Virtual Users]
+        METRICS_OUT[Metrics Output]
+    end
+
+    subgraph TARGETS["Test Targets"]
+        PG[(PostgreSQL)]
+        API[REST API if applicable]
+    end
+
+    subgraph OBSERVE["Observability"]
+        PROM[Prometheus]
+        GRAFANA[Grafana]
+        K6_DASH[k6 Dashboard]
+    end
+
+    SCENARIOS --> VUS
+    VUS --> PG
+    VUS --> API
+    K6 -. metrics .-> PROM
+    PROM --> K6_DASH
+    K6_DASH --> GRAFANA
+```
+
+## Load Test Workflow
+
+```mermaid
+sequenceDiagram
+    participant k6
+    participant PostgreSQL
+    participant Debezium
+    participant Kafka
+    participant Consumer
+    participant MongoDB
+    participant Prometheus
+
+    Note over k6: Start load test scenario
+
+    loop Generate Load
+        k6->>PostgreSQL: INSERT/UPDATE/DELETE
+        PostgreSQL->>Debezium: WAL events
+        Debezium->>Kafka: CDC events
+        Kafka->>Consumer: Process events
+        Consumer->>MongoDB: Materialize
+    end
+
+    k6->>Prometheus: Query metrics
+    Prometheus-->>k6: Latency, throughput, errors
+
+    Note over k6: Generate test report
+```
+
+## Sub-Features
+
+### 2.7.1: k6 Infrastructure Setup
+
+**Description:** Set up k6 for local and CI/CD load testing.
+
+**Changes Required:**
+- Add k6 Docker image to `docker-compose.yml` (optional, for containerized runs)
+- Create `load-tests/` directory structure
+- Configure k6 to output metrics to Prometheus
+- Set up Grafana k6 dashboard
+
+**Directory Structure:**
+```
+load-tests/
+├── scenarios/
+│   ├── baseline.js
+│   ├── stress.js
+│   ├── spike.js
+│   ├── soak.js
+│   └── breakpoint.js
+├── lib/
+│   ├── config.js
+│   ├── data-generators.js
+│   └── helpers.js
+├── thresholds/
+│   └── default-thresholds.json
+└── README.md
+```
+
+**Acceptance Criteria:**
+- k6 can be run locally via CLI or Docker
+- Metrics flow to Prometheus
+- k6 dashboard visible in Grafana
+
+### 2.7.2: Database Load Generation Scripts
+
+**Description:** Create k6 scripts that generate realistic database load patterns.
+
+**Changes Required:**
+- Implement PostgreSQL connection via k6 SQL extension
+- Create data generation functions for each entity type
+- Implement realistic distribution of operations (INSERT/UPDATE/DELETE ratios)
+
+**Example Script Structure:**
+
+```javascript
+// load-tests/scenarios/baseline.js
+import sql from 'k6/x/sql';
+import { randomUUID } from 'k6/crypto';
+import { check, sleep } from 'k6';
+
+const db = sql.open('postgres', __ENV.PG_CONNECTION_STRING);
+
+export const options = {
+    scenarios: {
+        constant_load: {
+            executor: 'constant-arrival-rate',
+            rate: 100,
+            timeUnit: '1s',
+            duration: '5m',
+            preAllocatedVUs: 50,
+            maxVUs: 100,
+        },
+    },
+    thresholds: {
+        'db_query_duration': ['p(95)<100', 'p(99)<200'],
+        'iteration_duration': ['p(95)<500'],
+        'checks': ['rate>0.99'],
+    },
+};
+
+export default function () {
+    // Generate and execute database operations
+    const operation = selectOperation(); // 70% INSERT, 20% UPDATE, 10% DELETE
+
+    switch (operation) {
+        case 'INSERT':
+            insertCustomer(db);
+            break;
+        case 'UPDATE':
+            updateCustomer(db);
+            break;
+        case 'DELETE':
+            deleteCustomer(db);
+            break;
+    }
+
+    sleep(0.01); // Small delay between operations
+}
+```
+
+**Acceptance Criteria:**
+- Scripts generate realistic database traffic
+- Operation distribution is configurable
+- Data is valid and triggers CDC events
+
+### 2.7.3: CDC Pipeline Performance Scenarios
+
+**Description:** Define specific test scenarios for CDC pipeline validation.
+
+**Scenario Types:**
+
+| Scenario | Purpose | Configuration |
+|----------|---------|---------------|
+| **Baseline** | Establish normal performance metrics | 100 ops/sec for 5 minutes |
+| **Stress** | Find performance limits | Ramp from 100 to 1000 ops/sec |
+| **Spike** | Test sudden load increases | Burst to 5x normal for 1 minute |
+| **Soak** | Identify memory leaks, degradation | 100 ops/sec for 2 hours |
+| **Breakpoint** | Find system breaking point | Increase until failure |
+
+```mermaid
+graph TB
+    subgraph SCENARIOS["Load Test Scenarios"]
+        BASELINE["Baseline Test<br/>100 ops/sec, 5 min"]
+        STRESS["Stress Test<br/>Ramp 100→1000 ops/sec"]
+        SPIKE["Spike Test<br/>5x burst, 1 min"]
+        SOAK["Soak Test<br/>100 ops/sec, 2 hours"]
+        BREAK["Breakpoint Test<br/>Increase until failure"]
+    end
+
+    subgraph METRICS["Key Metrics"]
+        THROUGHPUT[Throughput]
+        LATENCY[End-to-end Latency]
+        LAG[Consumer Lag]
+        ERRORS[Error Rate]
+        RESOURCES[Resource Usage]
+    end
+
+    BASELINE --> THROUGHPUT
+    BASELINE --> LATENCY
+    STRESS --> LAG
+    STRESS --> ERRORS
+    SPIKE --> LAG
+    SOAK --> RESOURCES
+    BREAK --> ERRORS
+```
+
+**Acceptance Criteria:**
+- All five scenario types are implemented
+- Each scenario has defined success thresholds
+- Scenarios can run independently or in sequence
+
+### 2.7.4: End-to-End Latency Measurement
+
+**Description:** Measure the complete latency from database write to MongoDB materialization.
+
+**Approach:**
+- Embed unique correlation IDs in test data
+- Track timestamp at PostgreSQL insert
+- Query MongoDB for correlation ID with timeout
+- Calculate end-to-end latency
+
+**Implementation:**
+
+```javascript
+// Measure E2E latency
+export function measureE2ELatency() {
+    const correlationId = randomUUID();
+    const startTime = Date.now();
+
+    // Insert into PostgreSQL
+    db.exec(`
+        INSERT INTO customer (id, email, status, updated_at)
+        VALUES ('${correlationId}', 'load-test-${correlationId}@test.com', 'active', NOW())
+    `);
+
+    // Poll MongoDB for the record (with timeout)
+    const maxWait = 30000; // 30 seconds
+    const pollInterval = 100; // 100ms
+    let found = false;
+
+    while (Date.now() - startTime < maxWait && !found) {
+        const result = mongo.findOne('customers', { _id: correlationId });
+        if (result) {
+            found = true;
+            const e2eLatency = Date.now() - startTime;
+            e2eLatencyTrend.add(e2eLatency);
+        } else {
+            sleep(pollInterval / 1000);
+        }
+    }
+
+    check(found, { 'record materialized': (f) => f === true });
+}
+```
+
+**Metrics Collected:**
+- `cdc_e2e_latency_ms` - End-to-end latency histogram
+- `cdc_e2e_success_rate` - Percentage of records successfully materialized
+- `cdc_e2e_timeout_rate` - Records not found within timeout
+
+**Acceptance Criteria:**
+- E2E latency is accurately measured
+- Timeouts are properly handled
+- Metrics are exported to Prometheus
+
+### 2.7.5: Consumer Lag Correlation
+
+**Description:** Correlate k6 load generation with Kafka consumer lag.
+
+**Changes Required:**
+- Query Prometheus for consumer lag during tests
+- Correlate lag with load generation rate
+- Identify lag accumulation patterns
+
+**Metrics to Monitor:**
+- `kafka_consumer_lag` - Messages behind
+- `kafka_consumer_lag_rate` - Rate of lag change
+- Load generation rate vs consumption rate
+
+**Acceptance Criteria:**
+- Lag is monitored during load tests
+- Lag recovery time is measured
+- Lag thresholds are validated
+
+### 2.7.6: Resource Utilization Monitoring
+
+**Description:** Monitor system resources during load tests.
+
+**Resources to Track:**
+- CPU usage (PostgreSQL, Kafka, Consumer, MongoDB)
+- Memory usage (heap, native)
+- Network I/O
+- Disk I/O
+- Connection pool usage
+
+**Thresholds:**
+
+| Resource | Warning | Critical |
+|----------|---------|----------|
+| CPU | > 70% | > 90% |
+| Memory | > 70% | > 85% |
+| Disk I/O | > 60% | > 80% |
+| Connections | > 80% pool | > 95% pool |
+
+**Acceptance Criteria:**
+- Resource usage is captured during tests
+- Thresholds trigger test warnings
+- Resource data is included in reports
+
+### 2.7.7: Performance Baseline Establishment
+
+**Description:** Establish and document baseline performance metrics.
+
+**Baseline Metrics:**
+
+| Metric | Target | Measurement |
+|--------|--------|-------------|
+| Throughput | > 500 events/sec | Sustained for 5 minutes |
+| E2E Latency (p50) | < 500ms | Under normal load |
+| E2E Latency (p95) | < 2000ms | Under normal load |
+| E2E Latency (p99) | < 5000ms | Under normal load |
+| Error Rate | < 0.1% | Over test duration |
+| Consumer Lag Recovery | < 60 seconds | After load spike |
+
+**Acceptance Criteria:**
+- Baseline metrics are documented
+- Baseline test is repeatable
+- Metrics are stored for trend analysis
+
+### 2.7.8: Load Test Reporting
+
+**Description:** Generate comprehensive load test reports.
+
+**Report Contents:**
+- Test configuration and parameters
+- Summary statistics (throughput, latency, errors)
+- Percentile distributions
+- Time-series graphs
+- Resource utilization
+- Threshold violations
+- Recommendations
+
+**Report Formats:**
+- JSON (machine-readable)
+- HTML (human-readable dashboard)
+- Grafana annotations (for correlation)
+
+**Example Report Structure:**
+
+```json
+{
+    "testRun": {
+        "id": "baseline-2024-01-15-1430",
+        "scenario": "baseline",
+        "duration": "5m",
+        "startTime": "2024-01-15T14:30:00Z"
+    },
+    "summary": {
+        "totalOperations": 30000,
+        "throughput": {
+            "mean": 100,
+            "max": 115
+        },
+        "latency": {
+            "p50": 45,
+            "p95": 120,
+            "p99": 250
+        },
+        "errors": {
+            "total": 3,
+            "rate": 0.0001
+        }
+    },
+    "thresholds": {
+        "passed": true,
+        "violations": []
+    }
+}
+```
+
+**Acceptance Criteria:**
+- Reports are generated automatically
+- Reports include all key metrics
+- Historical reports can be compared
+
+### 2.7.9: CI/CD Integration
+
+**Description:** Integrate load tests into the CI/CD pipeline.
+
+**Integration Points:**
+- Run baseline tests on every PR (quick smoke test)
+- Run full test suite on main branch merges
+- Schedule nightly soak tests
+- Block deployments on threshold violations
+
+**GitHub Actions Example:**
+
+```yaml
+load-test:
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v4
+    - name: Start infrastructure
+      run: docker compose up -d
+    - name: Wait for services
+      run: ./scripts/wait-for-services.sh
+    - name: Run k6 baseline test
+      uses: grafana/k6-action@v0.3.1
+      with:
+        filename: load-tests/scenarios/baseline.js
+        flags: --out prometheus=remote_url=${{ secrets.PROMETHEUS_URL }}
+    - name: Check thresholds
+      run: ./scripts/check-thresholds.sh
+```
+
+**Acceptance Criteria:**
+- Load tests run in CI/CD
+- Threshold violations fail the build
+- Results are archived for analysis
+
+### 2.7.10: Chaos Engineering Integration
+
+**Description:** Combine load testing with chaos engineering for resilience validation.
+
+**Chaos Scenarios:**
+
+```mermaid
+flowchart TB
+    subgraph CHAOS["Chaos Scenarios"]
+        C1[Kill Kafka Broker]
+        C2[Kill Consumer Pod]
+        C3[Network Partition]
+        C4[CPU Stress]
+        C5[Memory Pressure]
+        C6[Disk Full]
+    end
+
+    subgraph LOAD["Load Test"]
+        K6[k6 Baseline Load]
+    end
+
+    subgraph OBSERVE["Observations"]
+        RECOVERY[Recovery Time]
+        DATALOSS[Data Loss Check]
+        DEGRADATION[Performance Degradation]
+    end
+
+    K6 --> C1
+    K6 --> C2
+    K6 --> C3
+    C1 --> RECOVERY
+    C2 --> DATALOSS
+    C3 --> DEGRADATION
+```
+
+**Scenarios:**
+- Consumer restart during load
+- Kafka broker failure
+- MongoDB connection loss
+- Network latency injection
+- Resource exhaustion
+
+**Acceptance Criteria:**
+- Chaos scenarios are defined
+- Recovery behavior is validated
+- No data loss during controlled failures
+
+---
+
 ## Technology Stack Additions
 
 | Component | Technology | Purpose |
@@ -863,6 +1336,9 @@ flowchart TB
 | Visualization | Grafana 10.x | Dashboards and alerting |
 | Alerting | Grafana Unified Alerting | Alert management |
 | Schema Registry | Confluent Schema Registry (optional) | Schema governance |
+| Load Testing | k6 | Performance and load testing |
+| k6 Extensions | xk6-sql, xk6-mongo | Database connectivity for k6 |
+| Chaos Engineering | Chaos Toolkit / Litmus (optional) | Resilience testing |
 
 ---
 
@@ -904,6 +1380,14 @@ The feature suite is successful when:
    - Alert routing works as configured
    - No alert fatigue (appropriate thresholds)
 
+7. **Load Testing**
+   - All test scenarios execute successfully
+   - Baseline performance metrics are established
+   - E2E latency meets target thresholds (p95 < 2000ms)
+   - Throughput exceeds 500 events/sec sustained
+   - Load tests are integrated into CI/CD pipeline
+   - Chaos scenarios validate resilience
+
 ---
 
 ## Implementation Order
@@ -941,6 +1425,12 @@ gantt
 
     section Phase 6
     2.4.1-2.4.6 Schema Handling     :p6a, after p5a, 2
+    2.7.1-2.7.2 k6 Infrastructure   :p6b, after p5b, 1
+
+    section Phase 7
+    2.7.3-2.7.7 Load Test Scenarios :p7a, after p6b, 2
+    2.7.8-2.7.9 Reporting & CI/CD   :p7b, after p7a, 1
+    2.7.10 Chaos Engineering        :p7c, after p7b, 1
 ```
 
 ---
@@ -955,6 +1445,11 @@ gantt
 - Multi-entity CDC consumer implementation
 - Grafana dashboard JSON definitions
 - Grafana alert rule configurations
+- k6 load test scripts and scenarios
+- k6 Grafana dashboard for load test visualization
+- Load test CI/CD pipeline configuration
+- Performance baseline documentation
+- Chaos engineering test scenarios
 - Updated documentation and README
 
 ---
