@@ -5,6 +5,7 @@ import com.mongodb.MongoClientSettings
 import com.mongodb.reactivestreams.client.MongoClient
 import com.mongodb.reactivestreams.client.MongoClients
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.data.mongodb.ReactiveMongoDatabaseFactory
@@ -17,6 +18,7 @@ import org.springframework.data.mongodb.repository.config.EnableReactiveMongoRep
 import java.util.concurrent.TimeUnit
 
 @Configuration
+@ConditionalOnProperty(name = ["app.mongodb.custom-config.enabled"], havingValue = "true", matchIfMissing = true)
 @EnableReactiveMongoRepositories(basePackages = ["com.pintailconsultingllc.cdcdebezium.repository"])
 class MongoConfig : AbstractReactiveMongoConfiguration() {
 
@@ -51,7 +53,7 @@ class MongoConfig : AbstractReactiveMongoConfiguration() {
     }
 
     @Bean
-    fun reactiveMongoTemplate(
+    override fun reactiveMongoTemplate(
         factory: ReactiveMongoDatabaseFactory,
         converter: MappingMongoConverter
     ): ReactiveMongoTemplate {
