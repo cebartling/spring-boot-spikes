@@ -43,9 +43,4 @@ db.customers.createIndex({ 'cdcMetadata.sourceTimestamp': -1 });
 db.customers.createIndex({ 'cdcMetadata.processedAt': -1 });
 db.customers.createIndex({ 'status': 1 });
 
-// Create placeholder collections for future entities
-db.createCollection('addresses');
-db.createCollection('orders');
-db.createCollection('order_items');
-
 print('MongoDB initialization complete');

@@ -29,9 +29,6 @@ The following collections are created during initialization:
 | Collection | Purpose |
 |------------|---------|
 | `customers` | Materialized customer data from CDC events |
-| `addresses` | Placeholder for future address materialization |
-| `orders` | Placeholder for future order materialization |
-| `order_items` | Placeholder for future order item materialization |
 
 ### Customer Collection Schema
 
@@ -147,7 +144,6 @@ The initialization script (`docker/mongodb/init/01-init.js`) runs automatically 
 1. Creates the `cdc_app` user with `readWrite` permissions
 2. Creates the `customers` collection with JSON schema validation
 3. Creates indexes for query optimization
-4. Creates placeholder collections for future entities
 
 ## Connection from Spring Boot
 
