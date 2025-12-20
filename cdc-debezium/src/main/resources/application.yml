@@ -4,6 +4,11 @@ server:
 spring:
   application:
     name: cdc-consumer
+  data:
+    mongodb:
+      uri: mongodb://cdc_app:cdc_app_password@localhost:27017/cdc_materialized?authSource=cdc_materialized
+      database: cdc_materialized
+      auto-index-creation: false
   r2dbc:
     url: r2dbc:postgresql://localhost:5432/postgres
     username: postgres
@@ -54,5 +59,7 @@ logging:
     com.pintailconsultingllc.cdcdebezium: DEBUG
     org.apache.kafka: WARN
     org.springframework.kafka: INFO
+    org.springframework.data.mongodb: DEBUG
+    org.mongodb.driver: INFO
   pattern:
     console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
