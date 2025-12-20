@@ -23,7 +23,7 @@ Add Kafka Connect service with Debezium:
 
 ```yaml
 kafka-connect:
-  image: debezium/connect:2.5
+  image: quay.io/debezium/connect:3.4.0
   depends_on:
     - kafka
     - postgres
