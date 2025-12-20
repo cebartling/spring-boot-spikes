@@ -51,59 +51,11 @@ flowchart LR
 ## What is Change Data Capture (CDC)?
 
 **Change Data Capture (CDC)** is a pattern for tracking row-level changes in a database and propagating those changes to
-downstream systems in real-time. Instead of polling for changes or relying on application-level events, CDC captures
-changes directly from the database's transaction log.
+downstream systems in real-time. This project uses [Debezium](https://debezium.io/) to capture changes from PostgreSQL's
+Write-Ahead Log (WAL) and stream them to Kafka.
 
-### Why CDC?
-
-| Approach           | Drawbacks                                           |
-|--------------------|-----------------------------------------------------|
-| Polling            | Inefficient, delayed, misses intermediate states    |
-| Application events | Requires code changes, can miss direct DB updates   |
-| Triggers           | Performance impact, tight coupling                  |
-| **CDC**            | Non-invasive, captures all changes, preserves order |
-
-### How Debezium Works
-
-[Debezium](https://debezium.io/) is an open-source CDC platform that captures changes from various databases and streams
-them to Kafka. For PostgreSQL, Debezium leverages **logical decoding**—a mechanism that extracts committed changes from
-the Write-Ahead Log (WAL) in a consumable format.
-
-```mermaid
-flowchart LR
-    subgraph PostgreSQL
-        T[Transaction] --> WAL[Write-Ahead Log]
-        WAL --> LD[Logical Decoding]
-        LD --> RS[Replication Slot]
-    end
-
-    subgraph Debezium
-        RS --> PG[pgoutput Plugin]
-        PG --> C[Connector]
-    end
-
-    C --> K[Kafka Topic]
-```
-
-**Key components:**
-
-- **Write-Ahead Log (WAL)**: PostgreSQL's transaction log where all changes are recorded before being applied to tables
-- **Logical Decoding**: PostgreSQL feature that transforms WAL entries into a logical change stream
-- **pgoutput Plugin**: PostgreSQL's native output plugin (v10+) that formats changes for replication
-- **Replication Slot**: Maintains the connector's read position, preventing WAL cleanup until changes are consumed
-- **Log Sequence Number (LSN)**: Unique position in the WAL, used to track progress and enable exactly-once delivery
-
-### Debezium Connector Operation
-
-The connector operates in two phases:
-
-1. **Initial Snapshot**: On first start, captures a consistent snapshot of all existing data as READ events
-2. **Continuous Streaming**: After snapshot completion, monitors the WAL for INSERT, UPDATE, and DELETE operations
-
-This ensures consumers receive a complete picture of the data, followed by real-time updates.
-
-For more details, see
-the [Debezium PostgreSQL Connector documentation](https://debezium.io/documentation/reference/stable/connectors/postgresql.html).
+For detailed information about CDC concepts, Debezium operation, and event formats, see the
+[CDC Concepts documentation](docs/documentation/cdc-concepts.md).
 
 ## Technology Stack
 
@@ -209,19 +161,25 @@ cdc-debezium/
 ├── src/
 │   ├── main/
 │   │   ├── kotlin/com/pintailconsultingllc/cdcdebezium/
-│   │   │   ├── config/          # Jackson configuration
+│   │   │   ├── config/          # Jackson, OTel configuration
 │   │   │   ├── consumer/        # Kafka CDC consumer
-│   │   │   └── dto/             # Data transfer objects
+│   │   │   ├── dto/             # Data transfer objects
+│   │   │   ├── metrics/         # OpenTelemetry metrics
+│   │   │   └── tracing/         # OpenTelemetry tracing
 │   │   └── resources/
-│   │       └── application.yml  # Application configuration
+│   │       ├── application.yml  # Application configuration
+│   │       └── logback-spring.xml # Structured logging config
 │   ├── test/                    # Unit tests
 │   └── acceptanceTest/          # Cucumber acceptance tests
 │       ├── kotlin/.../steps/    # Step definitions
 │       └── resources/features/  # Gherkin feature files
 ├── docker/
 │   ├── debezium/               # Debezium connector config
-│   └── postgres/init/          # Database initialization scripts
+│   ├── otel/                   # OpenTelemetry Collector config
+│   ├── postgres/init/          # Database initialization scripts
+│   └── prometheus/             # Prometheus scrape config
 ├── docs/
+│   ├── documentation/          # User documentation
 │   ├── features/               # Feature specifications
 │   └── implementation-plans/   # Implementation task breakdowns
 └── docker-compose.yml          # Infrastructure services
@@ -294,6 +252,9 @@ Unit tests validate individual components in isolation using JUnit 5 with MockK:
 | Kafka         | 9092, 29092 | Event backbone (KRaft mode)              |
 | Kafka Connect | 8083        | Debezium connector runtime               |
 | Kafka UI      | 8081        | Web UI for Kafka management              |
+| OTel Collector| 4317, 4318  | OpenTelemetry receiver (gRPC/HTTP)       |
+| Jaeger        | 16686       | Distributed tracing UI                   |
+| Prometheus    | 9090        | Metrics storage and UI                   |
 
 ### Useful Commands
 
@@ -350,73 +311,39 @@ Key settings in `docker/debezium/connector-config.json`:
 - **Delete handling**: `rewrite` (adds `__deleted` field)
 - **Tombstones**: Enabled for Kafka log compaction
 
-## CDC Event Format
+## Observability
 
-### Insert/Update Event
+This project includes full OpenTelemetry observability with distributed tracing, metrics, and structured logging.
 
-```json
-{
-  "id": "550e8400-e29b-41d4-a716-446655440000",
-  "email": "user@example.com",
-  "status": "active",
-  "updated_at": "2024-01-15T10:30:00Z",
-  "__op": "c",
-  "__source_ts_ms": 1705315800000
-}
+| Component | Port | Purpose |
+|-----------|------|---------|
+| Jaeger | 16686 | Distributed tracing UI |
+| Prometheus | 9090 | Metrics storage and querying |
+| OTel Collector | 4317, 4318 | OTLP receiver (gRPC/HTTP) |
+
+```bash
+# Open Jaeger UI (traces)
+open http://localhost:16686
+
+# Open Prometheus UI (metrics)
+open http://localhost:9090
 ```
 
-### Delete Event (Rewrite Mode)
-
-```json
-{
-  "id": "550e8400-e29b-41d4-a716-446655440000",
-  "email": "user@example.com",
-  "status": "active",
-  "updated_at": "2024-01-15T10:30:00Z",
-  "__deleted": "true",
-  "__op": "d",
-  "__source_ts_ms": 1705315800000
-}
-```
-
-### Operation Codes
-
-| Code | Meaning         |
-|------|-----------------|
-| `c`  | Create (INSERT) |
-| `u`  | Update          |
-| `d`  | Delete          |
-| `r`  | Read (snapshot) |
+For detailed information about tracing, metrics, Prometheus queries, and structured logging, see the
+[Observability documentation](docs/documentation/observability.md).
 
 ## Troubleshooting
 
-### Connector Not Starting
+For common issues and solutions, see the [Troubleshooting Guide](docs/documentation/troubleshooting.md).
+
+Quick diagnostics:
 
 ```bash
-# Check connector logs
-docker compose logs kafka-connect
+# Check all service health
+docker compose ps
 
-# Verify PostgreSQL replication settings
-docker compose exec postgres psql -U postgres -c "SHOW wal_level;"
-# Should return: logical
-```
-
-### No CDC Events
-
-```bash
-# Verify connector is running
-curl -s http://localhost:8083/connectors/postgres-cdc-connector/status | jq '.connector.state'
-# Should return: "RUNNING"
-
-# Check for replication slot
-docker compose exec postgres psql -U postgres -c "SELECT * FROM pg_replication_slots;"
-```
-
-### Consumer Not Receiving Messages
-
-```bash
-# Check if topic exists
-docker compose exec kafka kafka-topics --bootstrap-server localhost:9092 --list
+# Check connector status
+curl -s http://localhost:8083/connectors/postgres-cdc-connector/status | jq
 
 # Check consumer group lag
 docker compose exec kafka kafka-consumer-groups \
@@ -426,6 +353,9 @@ docker compose exec kafka kafka-consumer-groups \
 
 ## Documentation
 
+- [CDC Concepts](docs/documentation/cdc-concepts.md) - Change Data Capture and Debezium fundamentals
+- [Observability](docs/documentation/observability.md) - Tracing, metrics, and structured logging
+- [Troubleshooting](docs/documentation/troubleshooting.md) - Common issues and solutions
 - [Feature Specification](docs/features/FEATURE-001.md) - Complete CDC spike specification
 - [Implementation Plans](docs/implementation-plans/) - Task breakdowns for each component
 
