@@ -209,18 +209,23 @@ cdc-debezium/
 ├── src/
 │   ├── main/
 │   │   ├── kotlin/com/pintailconsultingllc/cdcdebezium/
-│   │   │   ├── config/          # Jackson configuration
+│   │   │   ├── config/          # Jackson, OTel configuration
 │   │   │   ├── consumer/        # Kafka CDC consumer
-│   │   │   └── dto/             # Data transfer objects
+│   │   │   ├── dto/             # Data transfer objects
+│   │   │   ├── metrics/         # OpenTelemetry metrics
+│   │   │   └── tracing/         # OpenTelemetry tracing
 │   │   └── resources/
-│   │       └── application.yml  # Application configuration
+│   │       ├── application.yml  # Application configuration
+│   │       └── logback-spring.xml # Structured logging config
 │   ├── test/                    # Unit tests
 │   └── acceptanceTest/          # Cucumber acceptance tests
 │       ├── kotlin/.../steps/    # Step definitions
 │       └── resources/features/  # Gherkin feature files
 ├── docker/
 │   ├── debezium/               # Debezium connector config
-│   └── postgres/init/          # Database initialization scripts
+│   ├── otel/                   # OpenTelemetry Collector config
+│   ├── postgres/init/          # Database initialization scripts
+│   └── prometheus/             # Prometheus scrape config
 ├── docs/
 │   ├── features/               # Feature specifications
 │   └── implementation-plans/   # Implementation task breakdowns
@@ -294,6 +299,9 @@ Unit tests validate individual components in isolation using JUnit 5 with MockK:
 | Kafka         | 9092, 29092 | Event backbone (KRaft mode)              |
 | Kafka Connect | 8083        | Debezium connector runtime               |
 | Kafka UI      | 8081        | Web UI for Kafka management              |
+| OTel Collector| 4317, 4318  | OpenTelemetry receiver (gRPC/HTTP)       |
+| Jaeger        | 16686       | Distributed tracing UI                   |
+| Prometheus    | 9090        | Metrics storage and UI                   |
 
 ### Useful Commands
 
@@ -349,6 +357,96 @@ Key settings in `docker/debezium/connector-config.json`:
 - **Snapshot mode**: `initial` (snapshot existing data on first run)
 - **Delete handling**: `rewrite` (adds `__deleted` field)
 - **Tombstones**: Enabled for Kafka log compaction
+
+## Observability
+
+This project includes full OpenTelemetry observability with distributed tracing, metrics, and structured logging.
+
+### Observability Stack
+
+| Component | Port | Purpose |
+|-----------|------|---------|
+| OpenTelemetry Collector | 4317, 4318 | OTLP receiver (gRPC/HTTP) |
+| Jaeger | 16686 | Distributed tracing UI |
+| Prometheus | 9090 | Metrics storage and querying |
+
+### Accessing Observability UIs
+
+```bash
+# Open Jaeger UI (traces)
+open http://localhost:16686
+
+# Open Prometheus UI (metrics)
+open http://localhost:9090
+
+# Check OTel Collector health
+curl -s http://localhost:8888/metrics | head -20
+```
+
+### Tracing
+
+The CDC consumer emits spans for each message processed with the following attributes:
+
+- `messaging.system`: kafka
+- `messaging.destination.name`: cdc.public.customer
+- `messaging.kafka.consumer.group`: cdc-consumer-group
+- `messaging.kafka.partition`: partition number
+- `messaging.kafka.message.offset`: message offset
+- `db.operation`: upsert, delete, or ignore
+
+To find traces in Jaeger:
+1. Open http://localhost:16686
+2. Select service: `cdc-consumer`
+3. Search for operations: `cdc.public.customer process`
+
+### Metrics
+
+The application exposes the following custom metrics via OpenTelemetry:
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `cdc_messages_processed_total` | Counter | Total CDC messages processed |
+| `cdc_messages_errors_total` | Counter | Processing errors |
+| `cdc_processing_latency` | Histogram | Processing latency (ms) |
+| `cdc_db_upserts_total` | Counter | Database upsert operations |
+| `cdc_db_deletes_total` | Counter | Database delete operations |
+
+### Prometheus Queries
+
+```promql
+# Throughput (messages/sec)
+rate(cdc_messages_processed_total[1m])
+
+# Error rate
+rate(cdc_messages_errors_total[1m]) / rate(cdc_messages_processed_total[1m])
+
+# P95 latency
+histogram_quantile(0.95, rate(cdc_processing_latency_bucket[5m]))
+
+# Consumer lag
+kafka_consumer_records_lag_max
+```
+
+### Structured Logging
+
+Logs are output in JSON format with trace correlation:
+
+```json
+{
+  "@timestamp": "2024-01-15T10:30:00.123+0000",
+  "level": "INFO",
+  "message": "CDC event processed successfully",
+  "service": "cdc-consumer",
+  "trace_id": "abc123def456",
+  "span_id": "789xyz",
+  "kafka_topic": "cdc.public.customer",
+  "kafka_partition": "0",
+  "kafka_offset": "42",
+  "db_operation": "upsert"
+}
+```
+
+Use the `trace_id` from logs to find the corresponding trace in Jaeger.
 
 ## CDC Event Format
 
@@ -423,6 +521,44 @@ docker compose exec kafka kafka-consumer-groups \
   --bootstrap-server localhost:9092 \
   --describe --group cdc-consumer-group
 ```
+
+### No Traces in Jaeger
+
+```bash
+# Verify OTel Collector is running
+docker compose ps otel-collector
+
+# Check OTel Collector logs
+docker compose logs otel-collector
+
+# Verify OTLP endpoint is receiving data
+curl -s http://localhost:8888/metrics | grep otel
+
+# Test OTLP connectivity
+curl -X POST http://localhost:4318/v1/traces \
+  -H "Content-Type: application/json" \
+  -d '{"resourceSpans":[]}'
+```
+
+### No Metrics in Prometheus
+
+```bash
+# Verify Prometheus targets are UP
+open http://localhost:9090/targets
+
+# Check OTel Collector Prometheus exporter
+curl -s http://localhost:8889/metrics | head -50
+
+# Verify application is exporting metrics
+curl -s http://localhost:8080/actuator/prometheus 2>/dev/null || echo "App not running"
+```
+
+### Correlating Logs with Traces
+
+1. Find a `trace_id` in application logs
+2. Open Jaeger: http://localhost:16686
+3. Use "Search by Trace ID" with the trace ID
+4. View the complete trace with all spans
 
 ## Documentation
 
