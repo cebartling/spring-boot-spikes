@@ -6,6 +6,7 @@ import com.pintailconsultingllc.cdcdebezium.document.CustomerDocument
 import com.pintailconsultingllc.cdcdebezium.repository.CustomerMongoRepository
 import io.cucumber.datatable.DataTable
 import io.cucumber.java.After
+import io.cucumber.java.Before
 import io.cucumber.java.en.And
 import io.cucumber.java.en.Given
 import io.cucumber.java.en.Then
@@ -38,6 +39,19 @@ class MongoDbConfigurationSteps {
     private var retrievedDocument: CustomerDocument? = null
     private var queryResults: List<CustomerDocument> = emptyList()
     private val savedDocumentIds = mutableListOf<String>()
+
+    @Before("@requires-mongodb")
+    fun setup() {
+        // Clean up all test data to ensure test isolation
+        try {
+            customerMongoRepository.deleteAll()
+                .timeout(Duration.ofSeconds(5))
+                .block()
+        } catch (_: Exception) {
+        }
+        savedDocumentIds.clear()
+        queryResults = emptyList()
+    }
 
     @After("@requires-mongodb")
     fun cleanup() {
