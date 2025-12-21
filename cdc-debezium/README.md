@@ -197,6 +197,12 @@ cdc-debezium/
 # Run acceptance tests only
 ./gradlew acceptanceTest
 
+# Run MongoDB acceptance tests only
+./gradlew mongoDbTest
+
+# Run observability acceptance tests only
+./gradlew observabilityTest
+
 # Run all tests
 ./gradlew check
 
