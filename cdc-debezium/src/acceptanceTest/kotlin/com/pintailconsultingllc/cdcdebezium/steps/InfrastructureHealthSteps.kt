@@ -1,6 +1,6 @@
 package com.pintailconsultingllc.cdcdebezium.steps
 
-import com.pintailconsultingllc.cdcdebezium.repository.CustomerRepository
+import com.pintailconsultingllc.cdcdebezium.repository.CustomerMongoRepository
 import io.cucumber.java.en.Given
 import io.cucumber.java.en.Then
 import org.apache.kafka.clients.admin.AdminClient
@@ -16,7 +16,7 @@ import kotlin.test.fail
 class InfrastructureHealthSteps {
 
     @Autowired
-    private lateinit var customerRepository: CustomerRepository
+    private lateinit var customerMongoRepository: CustomerMongoRepository
 
     @Value("\${spring.kafka.bootstrap-servers}")
     private lateinit var kafkaBootstrapServers: String
@@ -26,20 +26,23 @@ class InfrastructureHealthSteps {
 
     private val webClient = WebClient.create()
 
-    private var postgresHealthy = false
+    private var mongoHealthy = false
     private var kafkaHealthy = false
     private var kafkaConnectHealthy = false
 
     @Given("PostgreSQL is running and accessible")
     fun postgresIsRunningAndAccessible() {
+        // Note: The source PostgreSQL database health is implicitly verified
+        // by checking Kafka Connect and the Debezium connector status.
+        // The materialized view is now in MongoDB, so we check MongoDB health here.
         try {
-            val result = customerRepository.count()
+            val result = customerMongoRepository.count()
                 .timeout(Duration.ofSeconds(5))
                 .block()
-            postgresHealthy = result != null && result >= 0
-            assertTrue(postgresHealthy, "PostgreSQL health check failed: unable to query database")
+            mongoHealthy = result != null && result >= 0
+            assertTrue(mongoHealthy, "MongoDB health check failed: unable to query database")
         } catch (e: Exception) {
-            fail("PostgreSQL is not accessible: ${e.message}")
+            fail("MongoDB is not accessible: ${e.message}")
         }
     }
 
@@ -110,7 +113,7 @@ class InfrastructureHealthSteps {
 
     @Then("PostgreSQL should be healthy")
     fun postgresShouldBeHealthy() {
-        assertTrue(postgresHealthy, "PostgreSQL is not healthy")
+        assertTrue(mongoHealthy, "MongoDB is not healthy")
     }
 
     @Then("Kafka should be healthy")

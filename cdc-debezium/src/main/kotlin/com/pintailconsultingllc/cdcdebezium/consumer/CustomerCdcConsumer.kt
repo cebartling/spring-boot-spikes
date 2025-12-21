@@ -2,7 +2,7 @@ package com.pintailconsultingllc.cdcdebezium.consumer
 
 import com.pintailconsultingllc.cdcdebezium.dto.CustomerCdcEvent
 import com.pintailconsultingllc.cdcdebezium.metrics.CdcMetricsService
-import com.pintailconsultingllc.cdcdebezium.service.CustomerService
+import com.pintailconsultingllc.cdcdebezium.service.CustomerMongoService
 import com.pintailconsultingllc.cdcdebezium.tracing.CdcTracingService
 import io.opentelemetry.api.trace.Span
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -17,7 +17,7 @@ import java.time.Instant
 @Component
 class CustomerCdcConsumer(
     private val objectMapper: ObjectMapper,
-    private val customerService: CustomerService,
+    private val customerMongoService: CustomerMongoService,
     private val tracingService: CdcTracingService,
     private val metricsService: CdcMetricsService
 ) {
@@ -56,7 +56,7 @@ class CustomerCdcConsumer(
                         else -> {
                             val event = objectMapper.readValue(value, CustomerCdcEvent::class.java)
                             MDC.put("customer_id", event.id.toString())
-                            processEvent(event, span)
+                            processEvent(event, span, record.offset(), record.partition())
                         }
                     }
 
@@ -97,17 +97,27 @@ class CustomerCdcConsumer(
         }
     }
 
-    private fun processEvent(event: CustomerCdcEvent, span: Span): Pair<String, String> {
+    private fun processEvent(
+        event: CustomerCdcEvent,
+        span: Span,
+        kafkaOffset: Long,
+        kafkaPartition: Int
+    ): Pair<String, String> {
         return if (event.isDelete()) {
             tracingService.setDbOperation(span, CdcTracingService.DbOperation.DELETE)
             logger.info("Processing DELETE operation")
-            customerService.delete(event.id).block()
+            customerMongoService.delete(
+                id = event.id.toString(),
+                sourceTimestamp = event.sourceTimestamp ?: System.currentTimeMillis(),
+                kafkaOffset = kafkaOffset,
+                kafkaPartition = kafkaPartition
+            ).block()
             metricsService.recordDbDelete()
             "delete" to "success"
         } else {
             tracingService.setDbOperation(span, CdcTracingService.DbOperation.UPSERT)
             logger.info("Processing UPSERT operation for email={}, status={}", event.email, event.status)
-            customerService.upsert(event).block()
+            customerMongoService.upsert(event, kafkaOffset, kafkaPartition).block()
             metricsService.recordDbUpsert()
             "upsert" to "success"
         }

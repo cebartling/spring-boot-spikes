@@ -1,6 +1,6 @@
 package com.pintailconsultingllc.cdcdebezium.steps
 
-import com.pintailconsultingllc.cdcdebezium.repository.CustomerRepository
+import com.pintailconsultingllc.cdcdebezium.repository.CustomerMongoRepository
 import com.pintailconsultingllc.cdcdebezium.util.DockerComposeHelper
 import com.pintailconsultingllc.cdcdebezium.util.KafkaTestHelper
 import io.cucumber.datatable.DataTable
@@ -11,6 +11,7 @@ import io.cucumber.java.en.Then
 import io.cucumber.java.en.When
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.data.mongodb.core.ReactiveMongoTemplate
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Flux
@@ -24,7 +25,10 @@ import kotlin.test.fail
 class FailureRecoverySteps {
 
     @Autowired
-    private lateinit var customerRepository: CustomerRepository
+    private lateinit var customerMongoRepository: CustomerMongoRepository
+
+    @Autowired
+    private lateinit var mongoTemplate: ReactiveMongoTemplate
 
     @Autowired
     private lateinit var databaseClient: DatabaseClient
@@ -80,7 +84,7 @@ class FailureRecoverySteps {
 
     @Given("I record the initial customer count")
     fun iRecordTheInitialCustomerCount() {
-        initialCustomerCount = customerRepository.count().block() ?: 0L
+        initialCustomerCount = customerMongoRepository.count().block() ?: 0L
     }
 
     @Given("I stop the Kafka Connect service")
@@ -312,7 +316,7 @@ class FailureRecoverySteps {
 
     @Then("the materialized customer count should increase by {int}")
     fun theMaterializedCustomerCountShouldIncreaseBy(increment: Int) {
-        val currentCount = customerRepository.count().block() ?: 0L
+        val currentCount = customerMongoRepository.count().block() ?: 0L
         assertEquals(
             initialCustomerCount + increment,
             currentCount,
@@ -322,13 +326,8 @@ class FailureRecoverySteps {
 
     @Then("a customer should exist with email {string}")
     fun aCustomerShouldExistWithEmail(email: String) {
-        val exists = databaseClient.sql("SELECT COUNT(*) FROM customer_materialized WHERE email = :email")
-            .bind("email", email)
-            .map { row -> row.get(0, Long::class.javaObjectType)!! }
-            .first()
-            .block() ?: 0L
-
-        assertTrue(exists > 0, "Customer with email '$email' not found in materialized table")
+        val exists = customerMongoRepository.findByEmail(email).block()
+        assertTrue(exists != null, "Customer with email '$email' not found in materialized table")
     }
 
     @Then("the Kafka consumer lag should be {int}")
@@ -339,12 +338,10 @@ class FailureRecoverySteps {
 
     @Then("{int} customers should exist with email prefix {string}")
     fun customersShouldExistWithEmailPrefix(expectedCount: Int, emailPrefix: String) {
-        val count = databaseClient.sql(
-            "SELECT COUNT(*) FROM customer_materialized WHERE email LIKE :pattern"
-        )
-            .bind("pattern", "$emailPrefix%")
-            .map { row -> row.get(0, Long::class.javaObjectType)!! }
-            .first()
+        // Use MongoDB regex query to find documents with matching email prefix
+        val count = customerMongoRepository.findAll()
+            .filter { it.email.startsWith(emailPrefix) }
+            .count()
             .block() ?: 0L
 
         assertEquals(
