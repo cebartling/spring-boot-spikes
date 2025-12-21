@@ -30,3 +30,16 @@ Create a feature branch off of main for this work.
 Commit small changes with clear messages.
 Once complete, create a pull request for review.
 ```
+
+## Fix Skipped Acceptance Tests
+
+```
+We have a lot of acceptance tests that are currently being skipped by the various runners:
+- `./gradlew acceptanceTest`
+- `./gradlew mongoDbTest`
+- `./gradlew observabilityTest`
+Unskip these tests and ensure they run successfully or remove them.
+Create a fix branch off of main for this work.
+Commit small changes with clear messages.
+Once complete, create a pull request for review.
+```
