@@ -8,7 +8,7 @@ import org.junit.platform.suite.api.Suite
 
 @Suite
 @IncludeEngines("cucumber")
-@SelectClasspathResource("features")
+@SelectClasspathResource("features/observability_infrastructure.feature")
 @ConfigurationParameter(key = Constants.GLUE_PROPERTY_NAME, value = "com.pintailconsultingllc.cdcdebezium")
 @ConfigurationParameter(key = Constants.PLUGIN_PROPERTY_NAME, value = "pretty, html:build/reports/cucumber/observability-cucumber.html, json:build/reports/cucumber/observability-cucumber.json")
 @ConfigurationParameter(key = Constants.JUNIT_PLATFORM_NAMING_STRATEGY_PROPERTY_NAME, value = "long")
