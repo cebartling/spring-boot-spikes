@@ -26,8 +26,8 @@ class TemporalConsistencyRule : ValidationRule<CustomerCdcEvent> {
         val warnings = mutableListOf<String>()
         val errors = mutableListOf<String>()
 
-        event.sourceTimestamp?.let { ts ->
-            val eventTime = Instant.ofEpochMilli(ts)
+        event.sourceTimestamp?.let { sourceTimestamp ->
+            val eventTime = Instant.ofEpochMilli(sourceTimestamp)
 
             if (eventTime.isAfter(now.plus(MAX_CLOCK_DRIFT))) {
                 errors.add("Source timestamp is in the future: $eventTime (now: $now)")
