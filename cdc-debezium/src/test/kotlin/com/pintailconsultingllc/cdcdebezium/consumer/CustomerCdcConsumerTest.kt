@@ -8,6 +8,8 @@ import com.pintailconsultingllc.cdcdebezium.dto.CustomerCdcEvent
 import com.pintailconsultingllc.cdcdebezium.metrics.CdcMetricsService
 import com.pintailconsultingllc.cdcdebezium.service.CustomerMongoService
 import com.pintailconsultingllc.cdcdebezium.tracing.CdcTracingService
+import com.pintailconsultingllc.cdcdebezium.validation.AggregatedValidationResult
+import com.pintailconsultingllc.cdcdebezium.validation.ValidationService
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -29,6 +31,7 @@ class CustomerCdcConsumerTest {
     private lateinit var customerMongoService: CustomerMongoService
     private lateinit var tracingService: CdcTracingService
     private lateinit var metricsService: CdcMetricsService
+    private lateinit var validationService: ValidationService
     private lateinit var acknowledgment: Acknowledgment
     private lateinit var consumer: CustomerCdcConsumer
     private lateinit var mockSpan: Span
@@ -40,6 +43,7 @@ class CustomerCdcConsumerTest {
         customerMongoService = mockk()
         tracingService = mockk(relaxed = true)
         metricsService = mockk(relaxed = true)
+        validationService = mockk(relaxed = true)
         acknowledgment = mockk(relaxed = true)
         mockSpan = mockk(relaxed = true)
         mockScope = mockk(relaxed = true)
@@ -47,7 +51,35 @@ class CustomerCdcConsumerTest {
         every { tracingService.startSpan(any(), any()) } returns mockSpan
         every { mockSpan.makeCurrent() } returns mockScope
 
-        consumer = CustomerCdcConsumer(objectMapper, customerMongoService, tracingService, metricsService)
+        consumer = CustomerCdcConsumer(
+            objectMapper,
+            customerMongoService,
+            tracingService,
+            metricsService,
+            validationService
+        )
+    }
+
+    private fun stubValidationPasses(event: CustomerCdcEvent) {
+        every { validationService.validate(event) } returns AggregatedValidationResult.fromResults(
+            results = emptyList(),
+            eventId = event.id.toString(),
+            entityType = "customer"
+        )
+    }
+
+    private fun stubValidationFails(event: CustomerCdcEvent) {
+        every { validationService.validate(event) } returns AggregatedValidationResult(
+            valid = false,
+            results = listOf(
+                com.pintailconsultingllc.cdcdebezium.validation.ValidationResult.failure(
+                    "TEST_RULE",
+                    "Validation failed"
+                )
+            ),
+            eventId = event.id.toString(),
+            entityType = "customer"
+        )
     }
 
     private fun stubUpsert(event: CustomerCdcEvent) {
@@ -108,10 +140,12 @@ class CustomerCdcConsumerTest {
             val json = """{"id":"${event.id}","__op":"c"}"""
 
             stubDeserialization(json, event)
+            stubValidationPasses(event)
             stubUpsert(event)
             consumeAndVerifyAcknowledged(createRecord(value = json))
 
             verify(exactly = 1) { objectMapper.readValue(json, CustomerCdcEvent::class.java) }
+            verify(exactly = 1) { validationService.validate(event) }
             verify(exactly = 1) { customerMongoService.upsert(event, any(), any()) }
         }
 
@@ -121,6 +155,7 @@ class CustomerCdcConsumerTest {
             val json = """{"id":"${event.id}","__op":"u"}"""
 
             stubDeserialization(json, event)
+            stubValidationPasses(event)
             stubUpsert(event)
             consumeAndVerifyAcknowledged(createRecord(value = json))
 
@@ -133,6 +168,7 @@ class CustomerCdcConsumerTest {
             val json = """{"id":"${event.id}","__op":"r"}"""
 
             stubDeserialization(json, event)
+            stubValidationPasses(event)
             stubUpsert(event)
             consumeAndVerifyAcknowledged(createRecord(value = json))
 
@@ -149,6 +185,7 @@ class CustomerCdcConsumerTest {
             val json = """{"id":"${event.id}","__deleted":"true"}"""
 
             stubDeserialization(json, event)
+            stubValidationPasses(event)
             stubDelete(event.id)
             consumeAndVerifyAcknowledged(createRecord(value = json))
 
@@ -169,6 +206,7 @@ class CustomerCdcConsumerTest {
             val json = """{"id":"${event.id}","__op":"d"}"""
 
             stubDeserialization(json, event)
+            stubValidationPasses(event)
             stubDelete(event.id)
             consumeAndVerifyAcknowledged(createRecord(value = json))
 
@@ -223,6 +261,7 @@ class CustomerCdcConsumerTest {
             val json = """{"id":"${event.id}"}"""
 
             stubDeserialization(json, event)
+            stubValidationPasses(event)
             stubUpsert(event)
             consumeAndVerifyAcknowledged(createRecord(value = json, partition = 2, offset = 12345))
         }
@@ -233,8 +272,37 @@ class CustomerCdcConsumerTest {
             val json = """{"id":"${event.id}"}"""
 
             stubDeserialization(json, event)
+            stubValidationPasses(event)
             stubUpsert(event)
             consumeAndVerifyAcknowledged(createRecord(value = json, topic = "different.topic.name"))
+        }
+    }
+
+    @Nested
+    inner class ValidationFailures {
+
+        @Test
+        fun `skips processing when validation fails`() {
+            val event = createEvent()
+            val json = """{"id":"${event.id}"}"""
+
+            stubDeserialization(json, event)
+            stubValidationFails(event)
+            consumeAndVerifyAcknowledged(createRecord(value = json))
+
+            verify(exactly = 1) { validationService.validate(event) }
+            verify(exactly = 0) { customerMongoService.upsert(any(), any(), any()) }
+            verify(exactly = 0) { customerMongoService.delete(any(), any(), any(), any(), any()) }
+        }
+
+        @Test
+        fun `acknowledges message when validation fails`() {
+            val event = createEvent()
+            val json = """{"id":"${event.id}"}"""
+
+            stubDeserialization(json, event)
+            stubValidationFails(event)
+            consumeAndVerifyAcknowledged(createRecord(value = json))
         }
     }
 }
