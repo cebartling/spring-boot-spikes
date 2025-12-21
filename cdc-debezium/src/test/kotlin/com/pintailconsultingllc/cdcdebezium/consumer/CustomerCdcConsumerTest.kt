@@ -1,10 +1,12 @@
 package com.pintailconsultingllc.cdcdebezium.consumer
 
 import com.pintailconsultingllc.cdcdebezium.TestFixtures.createEvent
+import com.pintailconsultingllc.cdcdebezium.document.CdcMetadata
+import com.pintailconsultingllc.cdcdebezium.document.CdcOperation
+import com.pintailconsultingllc.cdcdebezium.document.CustomerDocument
 import com.pintailconsultingllc.cdcdebezium.dto.CustomerCdcEvent
-import com.pintailconsultingllc.cdcdebezium.entity.CustomerEntity
 import com.pintailconsultingllc.cdcdebezium.metrics.CdcMetricsService
-import com.pintailconsultingllc.cdcdebezium.service.CustomerService
+import com.pintailconsultingllc.cdcdebezium.service.CustomerMongoService
 import com.pintailconsultingllc.cdcdebezium.tracing.CdcTracingService
 import io.mockk.every
 import io.mockk.mockk
@@ -24,7 +26,7 @@ import java.util.UUID
 class CustomerCdcConsumerTest {
 
     private lateinit var objectMapper: ObjectMapper
-    private lateinit var customerService: CustomerService
+    private lateinit var customerMongoService: CustomerMongoService
     private lateinit var tracingService: CdcTracingService
     private lateinit var metricsService: CdcMetricsService
     private lateinit var acknowledgment: Acknowledgment
@@ -35,7 +37,7 @@ class CustomerCdcConsumerTest {
     @BeforeEach
     fun setUp() {
         objectMapper = mockk()
-        customerService = mockk()
+        customerMongoService = mockk()
         tracingService = mockk(relaxed = true)
         metricsService = mockk(relaxed = true)
         acknowledgment = mockk(relaxed = true)
@@ -45,23 +47,35 @@ class CustomerCdcConsumerTest {
         every { tracingService.startSpan(any(), any()) } returns mockSpan
         every { mockSpan.makeCurrent() } returns mockScope
 
-        consumer = CustomerCdcConsumer(objectMapper, customerService, tracingService, metricsService)
+        consumer = CustomerCdcConsumer(objectMapper, customerMongoService, tracingService, metricsService)
     }
 
     private fun stubUpsert(event: CustomerCdcEvent) {
-        val entity = CustomerEntity.create(
-            id = event.id,
+        val document = CustomerDocument(
+            id = event.id.toString(),
             email = event.email ?: "",
             status = event.status ?: "",
             updatedAt = event.updatedAt ?: Instant.now(),
-            sourceTimestamp = event.sourceTimestamp,
-            isNewEntity = true
+            cdcMetadata = CdcMetadata(
+                sourceTimestamp = event.sourceTimestamp ?: System.currentTimeMillis(),
+                operation = CdcOperation.INSERT,
+                kafkaOffset = 0L,
+                kafkaPartition = 0
+            )
         )
-        every { customerService.upsert(event) } returns Mono.just(entity)
+        every { customerMongoService.upsert(event, any(), any()) } returns Mono.just(document)
     }
 
     private fun stubDelete(id: UUID) {
-        every { customerService.delete(id) } returns Mono.empty()
+        every {
+            customerMongoService.delete(
+                id = id.toString(),
+                sourceTimestamp = any(),
+                kafkaOffset = any(),
+                kafkaPartition = any(),
+                softDelete = any()
+            )
+        } returns Mono.empty()
     }
 
     private fun createRecord(
@@ -98,7 +112,7 @@ class CustomerCdcConsumerTest {
             consumeAndVerifyAcknowledged(createRecord(value = json))
 
             verify(exactly = 1) { objectMapper.readValue(json, CustomerCdcEvent::class.java) }
-            verify(exactly = 1) { customerService.upsert(event) }
+            verify(exactly = 1) { customerMongoService.upsert(event, any(), any()) }
         }
 
         @Test
@@ -110,7 +124,7 @@ class CustomerCdcConsumerTest {
             stubUpsert(event)
             consumeAndVerifyAcknowledged(createRecord(value = json))
 
-            verify(exactly = 1) { customerService.upsert(event) }
+            verify(exactly = 1) { customerMongoService.upsert(event, any(), any()) }
         }
 
         @Test
@@ -122,7 +136,7 @@ class CustomerCdcConsumerTest {
             stubUpsert(event)
             consumeAndVerifyAcknowledged(createRecord(value = json))
 
-            verify(exactly = 1) { customerService.upsert(event) }
+            verify(exactly = 1) { customerMongoService.upsert(event, any(), any()) }
         }
     }
 
@@ -138,7 +152,15 @@ class CustomerCdcConsumerTest {
             stubDelete(event.id)
             consumeAndVerifyAcknowledged(createRecord(value = json))
 
-            verify(exactly = 1) { customerService.delete(event.id) }
+            verify(exactly = 1) {
+                customerMongoService.delete(
+                    id = event.id.toString(),
+                    sourceTimestamp = any(),
+                    kafkaOffset = any(),
+                    kafkaPartition = any(),
+                    softDelete = any()
+                )
+            }
         }
 
         @Test
@@ -150,7 +172,15 @@ class CustomerCdcConsumerTest {
             stubDelete(event.id)
             consumeAndVerifyAcknowledged(createRecord(value = json))
 
-            verify(exactly = 1) { customerService.delete(event.id) }
+            verify(exactly = 1) {
+                customerMongoService.delete(
+                    id = event.id.toString(),
+                    sourceTimestamp = any(),
+                    kafkaOffset = any(),
+                    kafkaPartition = any(),
+                    softDelete = any()
+                )
+            }
         }
     }
 
