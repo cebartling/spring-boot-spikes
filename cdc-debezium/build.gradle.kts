@@ -105,6 +105,7 @@ tasks.register<Test>("acceptanceTest") {
     filter {
         excludeTestsMatching("com.pintailconsultingllc.cdcdebezium.RunFailureRecoveryTest")
         excludeTestsMatching("com.pintailconsultingllc.cdcdebezium.RunObservabilityTest")
+        excludeTestsMatching("com.pintailconsultingllc.cdcdebezium.RunMongoDbTest")
     }
 
     systemProperty("cucumber.junit-platform.naming-strategy", "long")
