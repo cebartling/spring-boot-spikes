@@ -4,6 +4,8 @@ import com.pintailconsultingllc.cdcdebezium.dto.CustomerCdcEvent
 import com.pintailconsultingllc.cdcdebezium.metrics.CdcMetricsService
 import com.pintailconsultingllc.cdcdebezium.service.CustomerMongoService
 import com.pintailconsultingllc.cdcdebezium.tracing.CdcTracingService
+import com.pintailconsultingllc.cdcdebezium.validation.AggregatedValidationResult
+import com.pintailconsultingllc.cdcdebezium.validation.ValidationService
 import io.opentelemetry.api.trace.Span
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.slf4j.LoggerFactory
@@ -19,7 +21,8 @@ class CustomerCdcConsumer(
     private val objectMapper: ObjectMapper,
     private val customerMongoService: CustomerMongoService,
     private val tracingService: CdcTracingService,
-    private val metricsService: CdcMetricsService
+    private val metricsService: CdcMetricsService,
+    private val validationService: ValidationService
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -103,6 +106,12 @@ class CustomerCdcConsumer(
         kafkaOffset: Long,
         kafkaPartition: Int
     ): Pair<String, String> {
+        val validationResult = validationService.validate(event)
+
+        if (!validationResult.valid) {
+            return handleValidationFailure(event, validationResult)
+        }
+
         return if (event.isDelete()) {
             tracingService.setDbOperation(span, CdcTracingService.DbOperation.DELETE)
             logger.info("Processing DELETE operation")
@@ -121,5 +130,18 @@ class CustomerCdcConsumer(
             metricsService.recordDbUpsert()
             "upsert" to "success"
         }
+    }
+
+    private fun handleValidationFailure(
+        event: CustomerCdcEvent,
+        result: AggregatedValidationResult
+    ): Pair<String, String> {
+        logger.error(
+            "Validation failed - eventId={}, entityType={}, failures={}",
+            result.eventId,
+            result.entityType,
+            result.failures.map { "${it.ruleId}: ${it.message}" }
+        )
+        return "validation_failed" to "skipped"
     }
 }
