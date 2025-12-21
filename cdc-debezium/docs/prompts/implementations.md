@@ -139,3 +139,23 @@ Create a feature branch off of main for this work.
 Commit small changes with clear messages.
 Once complete, create a pull request for review.
 ```
+
+## Evolve Schema to Include Extended Address Information
+
+```
+Implement the implementation plan found at @docs/implementation-plans/PLAN-015-extended-schema-address.md.
+Think hard about how to execute each step in the plan.
+Create a feature branch off of main for this work.
+Commit small changes with clear messages.
+Once complete, create a pull request for review.
+```
+
+## Evolve Schema to Include Orders Information
+
+```
+Implement the implementation plan found at @docs/implementation-plans/PLAN-016-extended-schema-orders.md.
+Think hard about how to execute each step in the plan.
+Create a feature branch off of main for this work.
+Commit small changes with clear messages.
+Once complete, create a pull request for review.
+```
