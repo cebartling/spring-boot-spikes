@@ -155,6 +155,7 @@ Once complete, create a pull request for review.
 ```
 Implement the implementation plan found at @docs/implementation-plans/PLAN-016-extended-schema-orders.md.
 Think hard about how to execute each step in the plan.
+Be attentive to opportunities for new or updated Cucumber acceptance tests.
 Create a feature branch off of main for this work.
 Commit small changes with clear messages.
 Once complete, create a pull request for review.
