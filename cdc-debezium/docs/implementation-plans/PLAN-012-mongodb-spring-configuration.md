@@ -331,12 +331,18 @@ curl http://localhost:8080/actuator/health
 
 ## Acceptance Criteria
 
-- [ ] Application starts with MongoDB connection and health check shows MongoDB as UP
-- [ ] ReactiveMongoRepository beans are available and properly autowired
-- [ ] Documents can be saved and retrieved by id
-- [ ] CdcMetadata is properly embedded with sourceTimestamp, operation, and processedAt fields
-- [ ] Unique email constraint is enforced (duplicate key exception on conflict)
-- [ ] Documents can be queried by status with proper ordering
+- [x] Application starts with MongoDB connection and health check shows MongoDB as UP
+- [x] ReactiveMongoRepository beans are available and properly autowired
+- [x] Documents can be saved and retrieved by id
+- [x] CdcMetadata is properly embedded with sourceTimestamp, operation, and processedAt fields
+- [x] Unique email constraint is enforced (duplicate key exception on conflict)
+- [x] Documents can be queried by status with proper ordering
+
+### Automated Acceptance Tests
+
+See `src/test/kotlin/com/pintailconsultingllc/cdcdebezium/acceptance/MongoDbSpringConfigurationAcceptanceTest.kt`
+
+Run with: `./gradlew acceptanceTest --tests "*.MongoDbSpringConfigurationAcceptanceTest"`
 
 ## Estimated Complexity
 
