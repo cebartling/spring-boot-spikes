@@ -22,10 +22,7 @@ class SchemaValidationRule : ValidationRule<CustomerCdcEvent> {
             } else if (!isValidEmail(event.email)) {
                 errors.add("email format is invalid: ${event.email}")
             }
-
-            if (event.status.isNullOrBlank()) {
-                errors.add("status is required for non-delete events")
-            }
+            // status is optional - schema evolution allows missing fields
         }
 
         return if (errors.isEmpty()) {
