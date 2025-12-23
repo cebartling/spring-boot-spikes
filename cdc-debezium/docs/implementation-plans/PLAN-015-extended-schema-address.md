@@ -552,12 +552,18 @@ docker compose exec mongodb mongosh \
 
 ## Acceptance Criteria
 
-- [ ] New address is captured via CDC and exists in MongoDB within 5 seconds
-- [ ] Address update propagates to MongoDB correctly
-- [ ] Address delete propagates to MongoDB correctly
-- [ ] Customer deletion cascades to addresses (no orphaned addresses in MongoDB)
-- [ ] Address type is validated (billing, shipping, home, work only)
-- [ ] Customer-address relationship is maintained (queries by customerId return correct addresses)
+- [x] New address is captured via CDC and exists in MongoDB within 5 seconds
+- [x] Address update propagates to MongoDB correctly
+- [x] Address delete propagates to MongoDB correctly
+- [x] Customer deletion cascades to addresses (no orphaned addresses in MongoDB)
+- [x] Address type is validated (billing, shipping, home, work only)
+- [x] Customer-address relationship is maintained (queries by customerId return correct addresses)
+
+### Automated Acceptance Tests
+
+See `src/test/kotlin/com/pintailconsultingllc/cdcdebezium/acceptance/ExtendedSchemaAddressAcceptanceTest.kt`
+
+Run with: `./gradlew acceptanceTest --tests "*.ExtendedSchemaAddressAcceptanceTest"`
 
 ## Estimated Complexity
 
