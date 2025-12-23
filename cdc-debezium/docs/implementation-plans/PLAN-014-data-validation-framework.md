@@ -588,13 +588,19 @@ docker compose logs cdc-consumer | grep -i "validation failed"
 
 ## Acceptance Criteria
 
-- [ ] Valid event passes all validation rules and is persisted to MongoDB
-- [ ] Event with missing required field fails schema validation with appropriate message
-- [ ] Event with invalid email format fails schema validation
-- [ ] Event with invalid status fails business validation with valid status list
-- [ ] Event with future timestamp fails temporal validation
-- [ ] Validation metrics are recorded (cdc.validation.passed, cdc.validation.failed)
-- [ ] Validation latency is tracked with count and timing data
+- [x] Valid event passes all validation rules and is persisted to MongoDB
+- [x] Event with missing required field fails schema validation with appropriate message
+- [x] Event with invalid email format fails schema validation
+- [x] Event with invalid status fails business validation with valid status list
+- [x] Event with future timestamp fails temporal validation
+- [x] Validation metrics are recorded (cdc.validation.passed, cdc.validation.failed)
+- [x] Validation latency is tracked with count and timing data
+
+### Automated Acceptance Tests
+
+See `src/test/kotlin/com/pintailconsultingllc/cdcdebezium/acceptance/DataValidationFrameworkAcceptanceTest.kt`
+
+Run with: `./gradlew acceptanceTest --tests "*.DataValidationFrameworkAcceptanceTest"`
 
 ## Estimated Complexity
 
