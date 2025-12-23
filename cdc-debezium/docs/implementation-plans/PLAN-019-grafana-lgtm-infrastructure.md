@@ -477,11 +477,21 @@ curl -X POST http://localhost:3100/loki/api/v1/push \
 
 - [x] All LGTM services start successfully and health checks pass
 - [x] Grafana is accessible with 3 pre-configured data sources (Prometheus, Tempo, Loki)
-- [ ] Prometheus data source is working (query "up" returns metrics)
-- [ ] Tempo data source is working (TraceQL available in Explore)
-- [ ] Loki data source is working (LogQL available in Explore)
-- [ ] Traces link to logs (trace-to-logs correlation configured)
-- [ ] OTel Collector exports traces to Tempo, metrics to Prometheus, logs to Loki
+- [x] Prometheus data source is working (query "up" returns metrics)
+- [x] Tempo data source is working (TraceQL available in Explore)
+- [x] Loki data source is working (LogQL available in Explore)
+- [x] Traces link to logs (trace-to-logs correlation configured)
+- [x] OTel Collector exports traces to Tempo, metrics to Prometheus, logs to Loki
+
+### Test Results Summary
+
+| Test Class | Tests | Status | Coverage |
+|------------|-------|--------|----------|
+| LgtmInfrastructureAcceptanceTest | 18 | ✅ All passing | Grafana, Tempo, Loki, Prometheus, OTel Collector health/integration |
+| TraceToLogsLinkingAcceptanceTest | 11 | ✅ All passing | Tempo-Loki linking, derived fields, cross-service correlation |
+| GrafanaUiAcceptanceTest | 8 | ✅ All passing | Datasources page, Explore page, UI validation with Playwright |
+
+**Total: 37 tests, 0 failures**
 
 ## Estimated Complexity
 
