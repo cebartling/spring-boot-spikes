@@ -53,6 +53,13 @@ class CdcMetricsService {
             .build()
     }
 
+    private val tombstones: LongCounter by lazy {
+        meter.counterBuilder("cdc.events.tombstones")
+            .setDescription("Total number of tombstone messages received")
+            .setUnit("{messages}")
+            .build()
+    }
+
     fun recordMessageProcessed(topic: String, partition: Int, operation: String) {
         messagesProcessed.add(
             1,
@@ -91,6 +98,13 @@ class CdcMetricsService {
 
     fun recordDbDelete() {
         dbDeletes.add(1)
+    }
+
+    fun recordTombstone(topic: String) {
+        tombstones.add(
+            1,
+            Attributes.of(TOPIC, topic)
+        )
     }
 
     fun <T> timed(
