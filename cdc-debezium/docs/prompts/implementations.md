@@ -182,3 +182,36 @@ Create a feature branch off of main for this work.
 Commit small changes with clear messages.
 Once complete, create a pull request for review.
 ```
+
+## Grafana LGTM Infrastructure
+
+```
+Implement the implementation plan found at @docs/implementation-plans/PLAN-019-grafana-lgtm-infrastructure.md.
+Think hard about how to execute each step in the plan.
+Be attentive to opportunities for new or updated JUnit 6-based acceptance tests.
+Create a feature branch off of main for this work.
+Commit small changes with clear messages.
+Once complete, create a pull request for review.
+```
+
+## Grafana Dashboards
+
+```
+Implement the implementation plan found at @docs/implementation-plans/PLAN-020-grafana-dashboards.md.
+Think hard about how to execute each step in the plan.
+Be attentive to opportunities for new or updated JUnit 6-based acceptance tests.
+Create a feature branch off of main for this work.
+Commit small changes with clear messages.
+Once complete, create a pull request for review.
+```
+
+## Grafana LGTM Infrastructure
+
+```
+Implement the implementation plan found at @docs/implementation-plans/PLAN-021-grafana-alerting.md.
+Think hard about how to execute each step in the plan.
+Be attentive to opportunities for new or updated JUnit 6-based acceptance tests.
+Create a feature branch off of main for this work.
+Commit small changes with clear messages.
+Once complete, create a pull request for review.
+```
