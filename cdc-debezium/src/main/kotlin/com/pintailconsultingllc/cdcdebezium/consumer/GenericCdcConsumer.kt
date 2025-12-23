@@ -1,6 +1,8 @@
 package com.pintailconsultingllc.cdcdebezium.consumer
 
 import com.pintailconsultingllc.cdcdebezium.metrics.CdcMetricsService
+import com.pintailconsultingllc.cdcdebezium.schema.SchemaChangeDetector
+import com.pintailconsultingllc.cdcdebezium.schema.SchemaVersionTracker
 import com.pintailconsultingllc.cdcdebezium.tracing.CdcTracingService
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.slf4j.LoggerFactory
@@ -8,6 +10,7 @@ import org.slf4j.MDC
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.kafka.support.Acknowledgment
 import org.springframework.stereotype.Component
+import reactor.core.publisher.Flux
 import java.time.Instant
 
 /**
@@ -19,7 +22,9 @@ import java.time.Instant
 class GenericCdcConsumer(
     private val router: CdcEventRouter,
     private val metricsService: CdcMetricsService,
-    private val tracingService: CdcTracingService
+    private val tracingService: CdcTracingService,
+    private val schemaDetector: SchemaChangeDetector,
+    private val schemaTracker: SchemaVersionTracker
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -61,6 +66,22 @@ class GenericCdcConsumer(
                             "ignore" to "success"
                         }
                         else -> {
+                            val entityType = extractEntityType(topic)
+
+                            val schemaChanges = schemaDetector.detectChanges(
+                                entityType = entityType,
+                                rawJson = value,
+                                kafkaOffset = record.offset(),
+                                kafkaPartition = record.partition()
+                            )
+
+                            if (schemaChanges.isNotEmpty()) {
+                                Flux.fromIterable(schemaChanges)
+                                    .flatMap { schemaTracker.recordSchemaChange(it) }
+                                    .then()
+                                    .block()
+                            }
+
                             @Suppress("UNCHECKED_CAST")
                             val typedRecord = record as ConsumerRecord<String, String>
                             router.route(typedRecord)
@@ -108,5 +129,9 @@ class GenericCdcConsumer(
             MDC.remove("processing_outcome")
             MDC.remove("error_type")
         }
+    }
+
+    private fun extractEntityType(topic: String): String {
+        return topic.substringAfterLast(".")
     }
 }
