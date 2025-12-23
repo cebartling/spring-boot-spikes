@@ -58,12 +58,9 @@ exporters:
   # Logs to Loki (LGTM stack)
   loki:
     endpoint: http://loki:3100/loki/api/v1/push
-    labels:
-      attributes:
-        service.name: service_name
-        level: level
-      resource:
-        service.namespace: namespace
+    default_labels_enabled:
+      exporter: true
+      job: true
 
   # Metrics to Prometheus via remote write (LGTM stack)
   prometheusremotewrite:
