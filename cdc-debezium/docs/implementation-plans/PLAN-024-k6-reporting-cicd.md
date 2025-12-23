@@ -734,68 +734,15 @@ open http://localhost:3000/d/k6-results
 
 ## Acceptance Criteria
 
-```gherkin
-Feature: k6 Reporting and CI/CD Integration
-  As a DevOps engineer
-  I want automated performance testing in CI/CD
-  So that performance regressions are caught early
-
-  Scenario: Performance tests run on pull requests
-    Given a pull request is opened that modifies source code
-    When the PR workflow triggers
-    Then performance tests should run automatically
-    And results should be posted as PR comment
-
-  Scenario: Performance tests run on schedule
-    Given the scheduled trigger is configured for 2 AM daily
-    When the scheduled time occurs
-    Then baseline performance tests should run
-    And results should be uploaded as artifacts
-
-  Scenario: Manual test execution with scenario selection
-    Given the workflow dispatch trigger is configured
-    When I manually trigger the workflow
-    And I select "stress" as the scenario
-    Then only the stress test should run
-
-  Scenario: HTML reports are generated
-    Given a k6 test has completed
-    And JSON results are available
-    When the report generation step runs
-    Then an HTML report should be created
-    And it should be included in the artifacts
-
-  Scenario: Threshold violations fail PR checks
-    Given threshold values are defined
-    When a test exceeds threshold limits
-    Then the test should be marked as failed
-    And the PR check should fail
-
-  Scenario: Grafana dashboard displays live results
-    Given k6 is configured with Prometheus remote write
-    When a test is running
-    Then metrics should appear in the k6 Results dashboard
-    And VUs, latency, and error rates should be visible
-
-  Scenario: Test results are archived
-    Given a performance test completes
-    When artifacts are uploaded
-    Then JSON and HTML results should be available for 30 days
-    And logs should be available for 7 days
-
-  Scenario: Runner script executes multiple scenarios
-    Given the run-tests.sh script exists
-    When I run "./run-tests.sh baseline,stress"
-    Then both baseline and stress tests should execute
-    And a summary should be printed at the end
-
-  Scenario: PR gets performance summary comment
-    Given a PR triggers performance tests
-    When tests complete
-    Then a comment should be added to the PR
-    And it should indicate pass/fail status
-    And it should link to detailed artifacts
-```
+- [ ] Performance tests run automatically on pull requests with results posted as PR comment
+- [ ] Performance tests run on schedule (2 AM daily) with artifacts uploaded
+- [ ] Manual test execution supports scenario selection (baseline, stress, etc.)
+- [ ] HTML reports are generated from JSON results and included in artifacts
+- [ ] Threshold violations fail PR checks
+- [ ] Grafana dashboard displays live results (VUs, latency, error rates)
+- [ ] Test results are archived (JSON/HTML for 30 days, logs for 7 days)
+- [ ] Runner script executes multiple scenarios and prints summary
+- [ ] PR gets performance summary comment with pass/fail status and artifact links
 
 ## CI/CD Flow
 

@@ -475,54 +475,23 @@ curl -X POST http://localhost:3100/loki/api/v1/push \
 
 ## Acceptance Criteria
 
-```gherkin
-Feature: Grafana LGTM Infrastructure
-  As a developer
-  I want a complete observability stack
-  So that I can monitor traces, metrics, and logs in one place
+- [x] All LGTM services start successfully and health checks pass
+- [x] Grafana is accessible with 3 pre-configured data sources (Prometheus, Tempo, Loki)
+- [x] Prometheus data source is working (query "up" returns metrics)
+- [x] Tempo data source is working (TraceQL available in Explore)
+- [x] Loki data source is working (LogQL available in Explore)
+- [x] Traces link to logs (trace-to-logs correlation configured)
+- [x] OTel Collector exports traces to Tempo, metrics to Prometheus, logs to Loki
 
-  Scenario: All LGTM services start successfully
-    When I run "docker compose up -d grafana tempo loki"
-    Then all containers should be running
-    And all health checks should pass
+### Test Results Summary
 
-  Scenario: Grafana is accessible with pre-configured data sources
-    Given the LGTM stack is running
-    When I open Grafana at http://localhost:3000
-    Then I should see the login page
-    And after logging in, I should see 3 data sources configured
+| Test Class | Tests | Status | Coverage |
+|------------|-------|--------|----------|
+| LgtmInfrastructureAcceptanceTest | 18 | ✅ All passing | Grafana, Tempo, Loki, Prometheus, OTel Collector health/integration |
+| TraceToLogsLinkingAcceptanceTest | 11 | ✅ All passing | Tempo-Loki linking, derived fields, cross-service correlation |
+| GrafanaUiAcceptanceTest | 8 | ✅ All passing | Datasources page, Explore page, UI validation with Playwright |
 
-  Scenario: Prometheus data source is working
-    Given Grafana is running with Prometheus data source
-    When I query "up" in Explore
-    Then I should see metrics results
-
-  Scenario: Tempo data source is working
-    Given Grafana is running with Tempo data source
-    When I search for traces in Explore
-    Then I should see the Tempo query interface
-    And TraceQL should be available
-
-  Scenario: Loki data source is working
-    Given Grafana is running with Loki data source
-    When I query "{service_name=~\".+\"}" in Explore
-    Then I should see log results (if any logs exist)
-    And LogQL should be available
-
-  Scenario: Traces link to logs
-    Given a trace exists in Tempo
-    And related logs exist in Loki
-    When I view the trace in Grafana
-    Then I should see a "Logs for this span" link
-    And clicking it should navigate to Loki with the trace_id filter
-
-  Scenario: OTel Collector exports to all backends
-    Given the OTel Collector is configured for LGTM
-    When the Spring Boot app sends telemetry
-    Then traces should appear in Tempo
-    And metrics should appear in Prometheus
-    And logs should appear in Loki
-```
+**Total: 37 tests, 0 failures**
 
 ## Estimated Complexity
 

@@ -714,69 +714,14 @@ docker compose logs -f cdc-consumer
 
 ## Acceptance Criteria
 
-```gherkin
-Feature: Chaos Engineering Integration
-  As a reliability engineer
-  I want to inject failures into the CDC pipeline
-  So that I can verify system resilience and recovery
-
-  Scenario: Pipeline recovers from MongoDB crash
-    Given the CDC pipeline is running
-    And events are being processed
-    When MongoDB container is killed
-    And MongoDB is restarted after 60 seconds
-    Then the consumer should reconnect within 30 seconds
-    And no events should be permanently lost
-    And processing should resume normally
-
-  Scenario: Pipeline handles Kafka network partition
-    Given the CDC pipeline is running
-    When network connectivity to Kafka is lost for 30 seconds
-    Then the consumer should detect the partition
-    And the consumer should reconnect after partition heals
-    And all events should eventually be processed
-
-  Scenario: Consumer crash and recovery
-    Given the CDC pipeline is running
-    And events are accumulating in Kafka
-    When the consumer container is killed
-    And the consumer is restarted after 30 seconds
-    Then the consumer should resume from last committed offset
-    And Kafka consumer lag should decrease over time
-    And no duplicate events should be processed
-
-  Scenario: Network latency injection
-    Given the CDC pipeline is running
-    When 200ms network latency is added to all connections
-    Then end-to-end latency should increase proportionally
-    And error rate should remain below 1%
-    And throughput should decrease but not stop
-
-  Scenario: Recovery time meets SLA
-    Given any chaos scenario is executed
-    When the fault is resolved
-    Then the system should recover within 60 seconds
-    And normal operation should resume
-    And recovery time metric should be recorded
-
-  Scenario: No data loss during chaos
-    Given a load test is running during chaos injection
-    When any chaos scenario completes
-    Then total events written to PostgreSQL should equal events in MongoDB
-    And idempotency should prevent duplicates
-
-  Scenario: Alerts fire during chaos
-    Given Grafana alerting is configured
-    When a chaos scenario causes service disruption
-    Then appropriate alerts should fire
-    And alerts should resolve after recovery
-
-  Scenario: Chaos scenarios are reproducible
-    Given the chaos runner script exists
-    When I run "./chaos/run-chaos.sh mongodb-failure"
-    Then the same sequence of events should occur
-    And results should be consistent across runs
-```
+- [ ] Pipeline recovers from MongoDB crash (reconnect within 30s, no data loss)
+- [ ] Pipeline handles Kafka network partition (reconnect after heal, all events processed)
+- [ ] Consumer crash and recovery works (resume from last offset, no duplicates)
+- [ ] Network latency injection handled gracefully (error rate <1%, throughput reduced but not stopped)
+- [ ] Recovery time meets SLA (system recovers within 60 seconds)
+- [ ] No data loss during chaos (PostgreSQL events equal MongoDB events)
+- [ ] Alerts fire during chaos and resolve after recovery
+- [ ] Chaos scenarios are reproducible (consistent results across runs)
 
 ## Chaos Scenarios Summary
 

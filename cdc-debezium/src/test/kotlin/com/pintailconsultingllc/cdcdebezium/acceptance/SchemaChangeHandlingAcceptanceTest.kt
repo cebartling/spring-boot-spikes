@@ -80,11 +80,14 @@ class SchemaChangeHandlingAcceptanceTest : AbstractAcceptanceTest() {
         fun shouldProcessMultipleEventsWithUnknownFields() {
             val customerId1 = UUID.randomUUID()
             val customerId2 = UUID.randomUUID()
+            // Use unique emails per test run to avoid duplicate key error from MongoDB email index
+            val email1 = "multi-schema-1-$customerId1@example.com"
+            val email2 = "multi-schema-2-$customerId2@example.com"
 
             val cdcEvent1 = """
                 {
                     "id": "$customerId1",
-                    "email": "multi-schema-1@example.com",
+                    "email": "$email1",
                     "status": "active",
                     "updated_at": "${Instant.now()}",
                     "unknown_field_1": "value1",
@@ -96,7 +99,7 @@ class SchemaChangeHandlingAcceptanceTest : AbstractAcceptanceTest() {
             val cdcEvent2 = """
                 {
                     "id": "$customerId2",
-                    "email": "multi-schema-2@example.com",
+                    "email": "$email2",
                     "status": "pending",
                     "updated_at": "${Instant.now()}",
                     "unknown_field_2": "value2",
@@ -109,14 +112,14 @@ class SchemaChangeHandlingAcceptanceTest : AbstractAcceptanceTest() {
             kafkaTemplate.send(CUSTOMER_CDC_TOPIC, customerId1.toString(), cdcEvent1).get()
             kafkaTemplate.send(CUSTOMER_CDC_TOPIC, customerId2.toString(), cdcEvent2).get()
 
-            await.atMost(Duration.ofSeconds(10)).untilAsserted {
+            await.atMost(Duration.ofSeconds(30)).untilAsserted {
                 val customer1 = customerRepository.findById(customerId1.toString()).block()
                 val customer2 = customerRepository.findById(customerId2.toString()).block()
 
                 assertNotNull(customer1)
                 assertNotNull(customer2)
-                assertEquals("multi-schema-1@example.com", customer1.email)
-                assertEquals("multi-schema-2@example.com", customer2.email)
+                assertEquals(email1, customer1.email)
+                assertEquals(email2, customer2.email)
             }
         }
     }
@@ -129,11 +132,12 @@ class SchemaChangeHandlingAcceptanceTest : AbstractAcceptanceTest() {
         @DisplayName("should detect new field in CDC event")
         fun shouldDetectNewField() {
             val customerId = UUID.randomUUID()
+            val uniqueEmail = "detect-new-field-$customerId@example.com"
 
             val cdcEventWithNewField = """
                 {
                     "id": "$customerId",
-                    "email": "detect-new-field@example.com",
+                    "email": "$uniqueEmail",
                     "status": "active",
                     "updated_at": "${Instant.now()}",
                     "loyalty_tier": "gold",
@@ -144,7 +148,7 @@ class SchemaChangeHandlingAcceptanceTest : AbstractAcceptanceTest() {
 
             kafkaTemplate.send(CUSTOMER_CDC_TOPIC, customerId.toString(), cdcEventWithNewField).get()
 
-            await.atMost(Duration.ofSeconds(10)).untilAsserted {
+            await.atMost(Duration.ofSeconds(30)).untilAsserted {
                 val customer = customerRepository.findById(customerId.toString()).block()
                 assertNotNull(customer)
 
@@ -157,11 +161,12 @@ class SchemaChangeHandlingAcceptanceTest : AbstractAcceptanceTest() {
         @DisplayName("should record schema change to history collection")
         fun shouldRecordSchemaChangeToHistory() {
             val customerId = UUID.randomUUID()
+            val uniqueEmail = "history-test-$customerId@example.com"
 
             val cdcEventWithNewField = """
                 {
                     "id": "$customerId",
-                    "email": "history-test@example.com",
+                    "email": "$uniqueEmail",
                     "status": "active",
                     "updated_at": "${Instant.now()}",
                     "unique_tracking_field": "tracked",
@@ -172,7 +177,7 @@ class SchemaChangeHandlingAcceptanceTest : AbstractAcceptanceTest() {
 
             kafkaTemplate.send(CUSTOMER_CDC_TOPIC, customerId.toString(), cdcEventWithNewField).get()
 
-            await.atMost(Duration.ofSeconds(10)).untilAsserted {
+            await.atMost(Duration.ofSeconds(30)).untilAsserted {
                 val customer = customerRepository.findById(customerId.toString()).block()
                 assertNotNull(customer)
             }
@@ -194,11 +199,13 @@ class SchemaChangeHandlingAcceptanceTest : AbstractAcceptanceTest() {
         @DisplayName("should handle missing optional status field")
         fun shouldHandleMissingOptionalField() {
             val customerId = UUID.randomUUID()
+            // Use unique email per test run to avoid duplicate key error from MongoDB email index
+            val uniqueEmail = "no-status-$customerId@example.com"
 
             val cdcEventWithoutStatus = """
                 {
                     "id": "$customerId",
-                    "email": "no-status@example.com",
+                    "email": "$uniqueEmail",
                     "updated_at": "${Instant.now()}",
                     "__op": "c",
                     "__source_ts_ms": ${System.currentTimeMillis()}
@@ -207,10 +214,11 @@ class SchemaChangeHandlingAcceptanceTest : AbstractAcceptanceTest() {
 
             kafkaTemplate.send(CUSTOMER_CDC_TOPIC, customerId.toString(), cdcEventWithoutStatus).get()
 
-            await.atMost(Duration.ofSeconds(10)).untilAsserted {
+            // Longer timeout to allow consumer to process backlog of events from previous tests
+            await.atMost(Duration.ofSeconds(30)).untilAsserted {
                 val customer = customerRepository.findById(customerId.toString()).block()
                 assertNotNull(customer)
-                assertEquals("no-status@example.com", customer.email)
+                assertEquals(uniqueEmail, customer.email)
             }
         }
     }

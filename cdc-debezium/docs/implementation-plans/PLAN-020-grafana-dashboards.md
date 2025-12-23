@@ -744,70 +744,16 @@ open "http://localhost:3000/d/cdc-overview"
 
 ## Acceptance Criteria
 
-```gherkin
-Feature: Grafana Dashboards
-  As a CDC pipeline operator
-  I want comprehensive dashboards
-  So that I can monitor pipeline health and performance
-
-  Scenario: CDC Overview dashboard loads successfully
-    Given Grafana is running
-    When I navigate to the CDC Overview dashboard
-    Then I should see the dashboard title "CDC Pipeline Overview"
-    And I should see panels for events processed, consumer lag, and errors
-
-  Scenario: Dashboard displays real-time CDC metrics
-    Given the CDC pipeline is processing events
-    When I view the CDC Overview dashboard
-    Then the "Events Processed (Rate)" panel should show non-zero values
-    And the metrics should update every 10 seconds
-
-  Scenario: Consumer Performance dashboard shows Kafka metrics
-    Given Kafka consumer is connected
-    When I view the Consumer Performance dashboard
-    Then I should see consumer lag by partition
-    And I should see records consumed rate
-
-  Scenario: MongoDB Operations dashboard shows write metrics
-    Given MongoDB operations are occurring
-    When I view the MongoDB Operations dashboard
-    Then I should see operations by type (upsert, delete)
-    And I should see operation latency percentiles
-
-  Scenario: Service Map displays trace topology
-    Given traces are being collected in Tempo
-    When I view the Service Map dashboard
-    Then I should see the service dependency graph
-    And I should be able to search for traces
-
-  Scenario: Logs Explorer shows application logs
-    Given logs are being sent to Loki
-    When I view the Logs Explorer dashboard
-    Then I should see logs grouped by level
-    And I should be able to filter by search term
-
-  Scenario: Dashboard variables work correctly
-    Given the CDC Overview dashboard is displayed
-    When I select a specific entity_type from the variable dropdown
-    Then the panels should filter to show only that entity type
-
-  Scenario: Trace links work from logs
-    Given a log entry exists with trace_id
-    When I click on the trace_id link in Logs Explorer
-    Then I should be navigated to the trace view in Tempo
-
-  Scenario: Dashboard panels link to each other
-    Given I am viewing the CDC Overview dashboard
-    When I click on an error count panel
-    Then I should be able to drill down to the Logs Explorer
-    And the logs should be filtered to show errors
-
-  Scenario: Dashboards persist across restarts
-    Given dashboards are provisioned
-    When I restart the Grafana container
-    Then all dashboards should still be available
-    And dashboard configurations should be unchanged
-```
+- [ ] CDC Overview dashboard loads successfully with panels for events processed, consumer lag, and errors
+- [ ] Dashboard displays real-time CDC metrics (updates every 10 seconds)
+- [ ] Consumer Performance dashboard shows Kafka consumer lag by partition and records consumed rate
+- [ ] MongoDB Operations dashboard shows operations by type and latency percentiles
+- [ ] Service Map displays trace topology from Tempo
+- [ ] Logs Explorer shows application logs grouped by level with search filtering
+- [ ] Dashboard variables work correctly (filtering by entity_type)
+- [ ] Trace links work from logs (click through to Tempo)
+- [ ] Dashboard panels link to each other for drill-down navigation
+- [ ] Dashboards persist across container restarts
 
 ## Panel Types Reference
 

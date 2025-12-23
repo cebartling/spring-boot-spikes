@@ -606,81 +606,17 @@ curl -u admin:admin "http://localhost:3000/api/v1/alertmanager/grafana/api/v2/al
 
 ## Acceptance Criteria
 
-```gherkin
-Feature: Grafana Alerting
-  As a CDC pipeline operator
-  I want automated alerts for critical issues
-  So that I can respond quickly to pipeline problems
-
-  Scenario: Alert rules are provisioned on startup
-    Given Grafana is configured with alert rules
-    When Grafana starts
-    Then alert rules should be visible in the Alerting UI
-    And there should be alerts in CDC Critical, Warning, and Info groups
-
-  Scenario: Consumer stopped alert fires when processing stops
-    Given the CDC consumer is running
-    When I stop the CDC consumer
-    And wait for 2 minutes
-    Then the "CDC Consumer Stopped Processing" alert should be firing
-    And the alert severity should be "critical"
-
-  Scenario: Consumer stopped alert resolves when processing resumes
-    Given the "CDC Consumer Stopped Processing" alert is firing
-    When I start the CDC consumer
-    And wait for the evaluation interval
-    Then the alert should transition to "resolved"
-    And a resolution notification should be sent
-
-  Scenario: High error rate alert fires above threshold
-    Given the CDC consumer is processing events
-    When more than 5% of events fail processing
-    For 2 minutes
-    Then the "High CDC Processing Error Rate" alert should be firing
-
-  Scenario: High consumer lag alert fires above threshold
-    Given the CDC consumer is running
-    When Kafka consumer lag exceeds 10000 records
-    For 5 minutes
-    Then the "High Consumer Lag Detected" alert should be firing
-    And the severity should be "warning"
-
-  Scenario: Critical alerts route to PagerDuty
-    Given PagerDuty contact point is configured
-    When a critical severity alert fires
-    Then PagerDuty should receive the alert
-    And Slack should also receive the alert
-
-  Scenario: Warning alerts route to Slack only
-    Given Slack contact point is configured
-    When a warning severity alert fires
-    Then Slack should receive the alert after 5 minutes
-    And PagerDuty should NOT receive the alert
-
-  Scenario: Info alerts are batched to email
-    Given email contact point is configured
-    When multiple info severity alerts fire
-    Then alerts should be grouped for 30 minutes
-    And a single email digest should be sent
-
-  Scenario: Alerts are muted during maintenance window
-    Given a maintenance window is configured for Sunday 2-4 AM
-    When an alert fires during the maintenance window
-    Then no notifications should be sent
-    And the alert should still be recorded in history
-
-  Scenario: Alert annotations include runbook links
-    Given an alert rule has a runbook_url annotation
-    When the alert fires
-    Then the notification should include the runbook URL
-    And operators can click through to documentation
-
-  Scenario: Schema change alerts fire immediately
-    Given schema change detection is enabled
-    When a new field is detected in a CDC event
-    Then the "Schema Change Detected" alert should fire
-    And the notification should include entity_type and field_name
-```
+- [ ] Alert rules are provisioned on startup (Critical, Warning, Info groups visible)
+- [ ] Consumer stopped alert fires when processing stops for 2 minutes (critical severity)
+- [ ] Consumer stopped alert resolves when processing resumes
+- [ ] High error rate alert fires when >5% of events fail for 2 minutes
+- [ ] High consumer lag alert fires when lag exceeds 10000 records for 5 minutes (warning)
+- [ ] Critical alerts route to PagerDuty and Slack
+- [ ] Warning alerts route to Slack only (after 5 minute delay)
+- [ ] Info alerts are batched and sent as email digest
+- [ ] Alerts are muted during configured maintenance windows
+- [ ] Alert annotations include runbook links
+- [ ] Schema change alerts fire immediately with entity_type and field_name
 
 ## Alert Response Flowchart
 

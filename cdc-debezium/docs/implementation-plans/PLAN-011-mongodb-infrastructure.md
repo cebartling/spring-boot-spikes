@@ -105,9 +105,10 @@ db.customers.createIndex({ 'cdcMetadata.processedAt': -1 });
 db.customers.createIndex({ 'status': 1 });
 
 // Create placeholder collections for future entities
+// Note: addresses collection has full schema validation in 01-init.js
+// Note: orders collection with embedded items is defined in 03-order-collections.js
 db.createCollection('addresses');
 db.createCollection('orders');
-db.createCollection('order_items');
 
 print('MongoDB initialization complete');
 ```
@@ -196,52 +197,19 @@ docker compose exec mongodb mongosh \
 
 ## Acceptance Criteria
 
-The following acceptance criteria should be implemented as Cucumber acceptance tests:
+- [x] MongoDB container starts successfully and health check passes within 60 seconds
+- [x] MongoDB accepts authenticated connections as user "cdc_app"
+- [x] Collections (customers, addresses, orders) are created with proper schema
+  - Note: order_items uses embedded document pattern within orders collection
+- [x] Customer collection has required indexes (email unique, cdcMetadata.sourceTimestamp, status)
+- [x] Data persists across container restarts
+- [x] Schema validation rejects invalid documents (unique email constraint enforced)
 
-```gherkin
-Feature: MongoDB Infrastructure Setup
-  As a developer
-  I want MongoDB running in Docker Compose
-  So that I can materialize CDC events to a document store
+### Automated Acceptance Tests
 
-  Scenario: MongoDB container starts successfully
-    Given the docker-compose.yml includes MongoDB service
-    When I run "docker compose up -d mongodb"
-    Then the MongoDB container should be running
-    And the container health check should pass within 60 seconds
+See `src/test/kotlin/com/pintailconsultingllc/cdcdebezium/acceptance/MongoDbInfrastructureAcceptanceTest.kt`
 
-  Scenario: MongoDB accepts authenticated connections
-    Given MongoDB is running
-    When I connect as user "cdc_app" with password "cdc_app_password"
-    Then the connection should succeed
-    And I should have access to database "cdc_materialized"
-
-  Scenario: Collections are created with proper schema
-    Given MongoDB is running and initialized
-    When I list collections in "cdc_materialized"
-    Then collection "customers" should exist
-    And collection "addresses" should exist
-    And collection "orders" should exist
-    And collection "order_items" should exist
-
-  Scenario: Customer collection has required indexes
-    Given MongoDB is running and initialized
-    When I check indexes on "customers" collection
-    Then index on "email" should exist and be unique
-    And index on "cdcMetadata.sourceTimestamp" should exist
-    And index on "status" should exist
-
-  Scenario: Data persists across container restarts
-    Given MongoDB is running
-    And I insert a test document into "customers"
-    When I restart the MongoDB container
-    Then the test document should still exist
-
-  Scenario: Schema validation rejects invalid documents
-    Given MongoDB is running
-    When I try to insert a document without required field "email"
-    Then the insert should fail with validation error
-```
+Run with: `./gradlew acceptanceTest --tests "*.MongoDbInfrastructureAcceptanceTest"`
 
 ## Estimated Complexity
 

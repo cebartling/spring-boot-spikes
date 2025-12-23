@@ -331,52 +331,18 @@ curl http://localhost:8080/actuator/health
 
 ## Acceptance Criteria
 
-The following acceptance criteria should be implemented as Cucumber acceptance tests:
+- [x] Application starts with MongoDB connection and health check shows MongoDB as UP
+- [x] ReactiveMongoRepository beans are available and properly autowired
+- [x] Documents can be saved and retrieved by id
+- [x] CdcMetadata is properly embedded with sourceTimestamp, operation, and processedAt fields
+- [x] Unique email constraint is enforced (duplicate key exception on conflict)
+- [x] Documents can be queried by status with proper ordering
 
-```gherkin
-Feature: MongoDB Spring Data Configuration
-  As a developer
-  I want Spring Boot configured with reactive MongoDB
-  So that I can persist CDC events to MongoDB
+### Automated Acceptance Tests
 
-  Scenario: Application starts with MongoDB connection
-    Given the application.yml contains MongoDB configuration
-    When the application starts
-    Then MongoDB connection pool should be initialized
-    And the application health check should show MongoDB as UP
+See `src/test/kotlin/com/pintailconsultingllc/cdcdebezium/acceptance/MongoDbSpringConfigurationAcceptanceTest.kt`
 
-  Scenario: ReactiveMongoRepository is available
-    Given the application context is loaded
-    When I autowire CustomerMongoRepository
-    Then the repository bean should be available
-    And it should be a reactive repository
-
-  Scenario: Document can be saved and retrieved
-    Given MongoDB is running
-    And the application is started
-    When I save a CustomerDocument with id "test-123"
-    Then the document should be persisted in MongoDB
-    And I should be able to retrieve it by id
-
-  Scenario: CdcMetadata is properly embedded
-    Given MongoDB is running
-    When I save a CustomerDocument with CDC metadata
-    Then the document should contain cdcMetadata field
-    And cdcMetadata should have sourceTimestamp
-    And cdcMetadata should have operation
-    And cdcMetadata should have processedAt
-
-  Scenario: Unique email constraint is enforced
-    Given a CustomerDocument with email "unique@test.com" exists
-    When I try to save another document with the same email
-    Then a duplicate key exception should be thrown
-
-  Scenario: Documents can be queried by status
-    Given multiple CustomerDocuments with different statuses exist
-    When I query for documents with status "active"
-    Then only documents with status "active" should be returned
-    And they should be ordered by updatedAt descending
-```
+Run with: `./gradlew acceptanceTest --tests "*.MongoDbSpringConfigurationAcceptanceTest"`
 
 ## Estimated Complexity
 

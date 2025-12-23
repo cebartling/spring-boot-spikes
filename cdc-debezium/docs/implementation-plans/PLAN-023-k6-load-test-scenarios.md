@@ -794,61 +794,13 @@ open http://localhost:3000/d/k6-results
 
 ## Acceptance Criteria
 
-```gherkin
-Feature: k6 Load Test Scenarios
-  As a performance engineer
-  I want comprehensive load test scenarios
-  So that I can validate CDC pipeline performance characteristics
-
-  Scenario: Baseline test establishes performance metrics
-    Given the CDC pipeline is running
-    When I execute the baseline test with 10 VUs for 5 minutes
-    Then throughput should be measured and recorded
-    And p95 E2E latency should be under 2 seconds
-    And error rate should be under 1%
-
-  Scenario: Stress test finds breaking points
-    Given the CDC pipeline is running
-    When I execute the stress test ramping to 150 VUs
-    Then the system should handle increased load
-    And error rate should remain under 5%
-    And recovery should occur when load decreases
-
-  Scenario: Spike test validates burst handling
-    Given the CDC pipeline is running
-    When I execute the spike test with sudden 500 VU burst
-    Then the system should not crash
-    And all events should eventually propagate
-    And latency should return to normal after spike
-
-  Scenario: Soak test validates long-term stability
-    Given the CDC pipeline is running
-    When I execute the soak test for 2 hours at 50 VUs
-    Then no memory leaks should be detected
-    And processing time should remain consistent
-    And error rate should remain under 1%
-
-  Scenario: E2E latency test measures CDC propagation time
-    Given the CDC pipeline is running
-    When I execute the E2E latency test
-    Then p50 latency should be under 500ms
-    And p95 latency should be under 2000ms
-    And latency breakdown should show CDC propagation time
-
-  Scenario: Mixed workload test simulates realistic usage
-    Given the CDC pipeline is running
-    When I execute the mixed workload test
-    Then create, update, and delete operations should all succeed
-    And workload distribution should match configuration
-    And overall success rate should exceed 95%
-
-  Scenario: Test results are exported to Prometheus
-    Given Prometheus remote write is configured
-    When I run any load test
-    Then k6 metrics should appear in Prometheus
-    And custom CDC metrics should be available
-    And Grafana dashboards should display results
-```
+- [ ] Baseline test establishes metrics (p95 E2E latency <2s, error rate <1%)
+- [ ] Stress test finds breaking points (error rate <5%, recovery after load decrease)
+- [ ] Spike test validates burst handling (no crash, eventual propagation, latency recovery)
+- [ ] Soak test validates long-term stability (no memory leaks, consistent processing time)
+- [ ] E2E latency test measures CDC propagation (p50 <500ms, p95 <2000ms)
+- [ ] Mixed workload test simulates realistic usage (>95% success rate)
+- [ ] Test results are exported to Prometheus and visible in Grafana dashboards
 
 ## Estimated Complexity
 

@@ -646,59 +646,13 @@ docker compose exec postgres psql -U postgres -d cdc_source -c \
 
 ## Acceptance Criteria
 
-```gherkin
-Feature: k6 Load Testing Infrastructure
-  As a performance engineer
-  I want a k6 load testing setup
-  So that I can measure CDC pipeline performance
-
-  Scenario: Custom k6 image builds successfully
-    Given the k6 Dockerfile exists
-    When I build the k6 image
-    Then the build should complete without errors
-    And the image should include xk6-sql extension
-    And the image should include xk6-mongo extension
-
-  Scenario: k6 can connect to PostgreSQL
-    Given the CDC stack is running
-    And k6 is configured with PostgreSQL credentials
-    When I run the health check script
-    Then k6 should successfully connect to PostgreSQL
-    And the "PostgreSQL connected" check should pass
-
-  Scenario: k6 can connect to MongoDB
-    Given the CDC stack is running
-    And k6 is configured with MongoDB URI
-    When I run the health check script
-    Then k6 should successfully connect to MongoDB
-    And the "MongoDB connected" check should pass
-
-  Scenario: k6 can write to PostgreSQL
-    Given k6 is connected to PostgreSQL
-    When I insert a test customer record
-    Then the insert should succeed
-    And the record should be retrievable
-
-  Scenario: k6 metrics export to Prometheus
-    Given k6 is configured with Prometheus remote write
-    When I run a load test
-    Then k6 metrics should appear in Prometheus
-    And metrics should include pg_write_duration
-    And metrics should include mongo_read_duration
-
-  Scenario: k6 shared configuration loads correctly
-    Given the config.js module exists
-    When a test script imports the config
-    Then PostgreSQL connection string should be available
-    And MongoDB URI should be available
-    And threshold values should be defined
-
-  Scenario: k6 helper modules work correctly
-    Given postgres.js and mongodb.js modules exist
-    When I run the health check script
-    Then all database operations should use custom metrics
-    And errors should be properly counted
-```
+- [ ] Custom k6 image builds successfully with xk6-sql and xk6-mongo extensions
+- [ ] k6 can connect to PostgreSQL (health check passes)
+- [ ] k6 can connect to MongoDB (health check passes)
+- [ ] k6 can write test records to PostgreSQL
+- [ ] k6 metrics export to Prometheus (pg_write_duration, mongo_read_duration)
+- [ ] Shared configuration loads correctly (PostgreSQL, MongoDB, thresholds)
+- [ ] Helper modules work correctly with custom metrics and error counting
 
 ## k6 Extension Capabilities
 
