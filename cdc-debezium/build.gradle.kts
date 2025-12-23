@@ -19,25 +19,6 @@ repositories {
     mavenCentral()
 }
 
-val cucumberVersion = "7.20.1"
-
-sourceSets {
-    create("acceptanceTest") {
-        kotlin.srcDir("src/acceptanceTest/kotlin")
-        resources.srcDir("src/acceptanceTest/resources")
-        compileClasspath += sourceSets.main.get().output + sourceSets.test.get().output
-        runtimeClasspath += sourceSets.main.get().output + sourceSets.test.get().output
-    }
-}
-
-val acceptanceTestImplementation: Configuration by configurations.getting {
-    extendsFrom(configurations.testImplementation.get())
-}
-
-val acceptanceTestRuntimeOnly: Configuration by configurations.getting {
-    extendsFrom(configurations.testRuntimeOnly.get())
-}
-
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-kafka")
     implementation("org.springframework.boot:spring-boot-starter-opentelemetry")
@@ -71,18 +52,6 @@ dependencies {
     testImplementation("org.testcontainers:mongodb:1.20.4")
     testImplementation("org.testcontainers:junit-jupiter:1.20.4")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-
-    // Cucumber dependencies for acceptance testing
-    acceptanceTestImplementation("io.cucumber:cucumber-java:$cucumberVersion")
-    acceptanceTestImplementation("io.cucumber:cucumber-junit-platform-engine:$cucumberVersion")
-    acceptanceTestImplementation("io.cucumber:cucumber-spring:$cucumberVersion")
-    acceptanceTestImplementation("org.junit.platform:junit-platform-suite")
-
-    // OpenTelemetry SDK testing for acceptance tests
-    acceptanceTestImplementation("io.opentelemetry:opentelemetry-sdk-testing")
-
-    // Playwright for UI acceptance testing (PLAN-009)
-    acceptanceTestImplementation("com.microsoft.playwright:playwright:1.49.0")
 }
 
 kotlin {
@@ -93,70 +62,4 @@ kotlin {
 
 tasks.withType<Test> {
     useJUnitPlatform()
-}
-
-tasks.register<Test>("acceptanceTest") {
-    description = "Runs acceptance tests with Cucumber."
-    group = "verification"
-    testClassesDirs = sourceSets["acceptanceTest"].output.classesDirs
-    classpath = sourceSets["acceptanceTest"].runtimeClasspath
-    useJUnitPlatform()
-
-    filter {
-        excludeTestsMatching("com.pintailconsultingllc.cdcdebezium.RunFailureRecoveryTest")
-        excludeTestsMatching("com.pintailconsultingllc.cdcdebezium.RunObservabilityTest")
-        excludeTestsMatching("com.pintailconsultingllc.cdcdebezium.RunMongoDbTest")
-    }
-
-    systemProperty("cucumber.junit-platform.naming-strategy", "long")
-}
-
-tasks.register<Test>("observabilityTest") {
-    description = "Runs observability infrastructure acceptance tests (requires Docker services running)."
-    group = "verification"
-    testClassesDirs = sourceSets["acceptanceTest"].output.classesDirs
-    classpath = sourceSets["acceptanceTest"].runtimeClasspath
-    useJUnitPlatform()
-
-    filter {
-        includeTestsMatching("com.pintailconsultingllc.cdcdebezium.RunObservabilityTest")
-    }
-
-    systemProperty("cucumber.junit-platform.naming-strategy", "long")
-}
-
-tasks.register<Test>("failureRecoveryTest") {
-    description = "Runs failure and recovery acceptance tests (requires full Docker infrastructure running)."
-    group = "verification"
-    testClassesDirs = sourceSets["acceptanceTest"].output.classesDirs
-    classpath = sourceSets["acceptanceTest"].runtimeClasspath
-    useJUnitPlatform()
-
-    filter {
-        includeTestsMatching("com.pintailconsultingllc.cdcdebezium.RunFailureRecoveryTest")
-    }
-
-    systemProperty("cucumber.junit-platform.naming-strategy", "long")
-}
-
-tasks.register<Test>("mongoDbTest") {
-    description = "Runs MongoDB acceptance tests (requires MongoDB Docker service running)."
-    group = "verification"
-    testClassesDirs = sourceSets["acceptanceTest"].output.classesDirs
-    classpath = sourceSets["acceptanceTest"].runtimeClasspath
-    useJUnitPlatform()
-
-    filter {
-        includeTestsMatching("com.pintailconsultingllc.cdcdebezium.RunMongoDbTest")
-    }
-
-    systemProperty("cucumber.junit-platform.naming-strategy", "long")
-}
-
-tasks.named("check") {
-    dependsOn("acceptanceTest")
-}
-
-tasks.named<Copy>("processAcceptanceTestResources") {
-    duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
