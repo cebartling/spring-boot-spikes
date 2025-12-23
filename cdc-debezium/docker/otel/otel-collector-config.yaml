@@ -10,6 +10,13 @@ receivers:
       http:
         endpoint: 0.0.0.0:4318
 
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: 'otel-collector'
+          static_configs:
+            - targets: ['localhost:8888']
+
 processors:
   batch:
     timeout: 1s
@@ -25,15 +32,46 @@ processors:
       - key: environment
         value: development
         action: upsert
+      - key: service.instance.id
+        from_attribute: host.name
+        action: upsert
+
+  attributes:
+    actions:
+      - key: environment
+        value: local
+        action: upsert
 
 exporters:
-  # Traces to Jaeger
+  # Traces to Jaeger (legacy, kept for compatibility)
   otlp/jaeger:
     endpoint: jaeger:4317
     tls:
       insecure: true
 
-  # Metrics to Prometheus (pull-based)
+  # Traces to Tempo (LGTM stack)
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+
+  # Logs to Loki (LGTM stack)
+  loki:
+    endpoint: http://loki:3100/loki/api/v1/push
+    labels:
+      attributes:
+        service.name: service_name
+        level: level
+      resource:
+        service.namespace: namespace
+
+  # Metrics to Prometheus via remote write (LGTM stack)
+  prometheusremotewrite:
+    endpoint: http://prometheus:9090/api/v1/write
+    tls:
+      insecure: true
+
+  # Metrics to Prometheus (pull-based, legacy)
   prometheus:
     endpoint: 0.0.0.0:8889
     namespace: cdc
@@ -51,18 +89,18 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      processors: [memory_limiter, batch, resource]
-      exporters: [otlp/jaeger, debug]
+      processors: [memory_limiter, batch, resource, attributes]
+      exporters: [otlp/jaeger, otlp/tempo]
 
     metrics:
-      receivers: [otlp]
+      receivers: [otlp, prometheus]
       processors: [memory_limiter, batch, resource]
-      exporters: [prometheus, debug]
+      exporters: [prometheus, prometheusremotewrite]
 
     logs:
       receivers: [otlp]
-      processors: [memory_limiter, batch]
-      exporters: [debug]
+      processors: [memory_limiter, batch, resource, attributes]
+      exporters: [loki, debug]
 
   telemetry:
     logs:
