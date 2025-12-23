@@ -160,3 +160,25 @@ Create a feature branch off of main for this work.
 Commit small changes with clear messages.
 Once complete, create a pull request for review.
 ```
+
+## Multi-Table Consumer
+
+```
+Implement the implementation plan found at @docs/implementation-plans/PLAN-017-multi-table-consumer.md.
+Think hard about how to execute each step in the plan.
+Be attentive to opportunities for new or updated Cucumber acceptance tests.
+Create a feature branch off of main for this work.
+Commit small changes with clear messages.
+Once complete, create a pull request for review.
+```
+
+## Schema Change Handling
+
+```
+Implement the implementation plan found at @docs/implementation-plans/PLAN-018-schema-change-handling.md.
+Think hard about how to execute each step in the plan.
+Be attentive to opportunities for new or updated Cucumber acceptance tests.
+Create a feature branch off of main for this work.
+Commit small changes with clear messages.
+Once complete, create a pull request for review.
+```
