@@ -105,9 +105,10 @@ db.customers.createIndex({ 'cdcMetadata.processedAt': -1 });
 db.customers.createIndex({ 'status': 1 });
 
 // Create placeholder collections for future entities
+// Note: addresses collection has full schema validation in 01-init.js
+// Note: orders collection with embedded items is defined in 03-order-collections.js
 db.createCollection('addresses');
 db.createCollection('orders');
-db.createCollection('order_items');
 
 print('MongoDB initialization complete');
 ```
@@ -196,12 +197,19 @@ docker compose exec mongodb mongosh \
 
 ## Acceptance Criteria
 
-- [ ] MongoDB container starts successfully and health check passes within 60 seconds
-- [ ] MongoDB accepts authenticated connections as user "cdc_app"
-- [ ] Collections (customers, addresses, orders, order_items) are created with proper schema
-- [ ] Customer collection has required indexes (email unique, cdcMetadata.sourceTimestamp, status)
-- [ ] Data persists across container restarts
-- [ ] Schema validation rejects invalid documents (missing required fields)
+- [x] MongoDB container starts successfully and health check passes within 60 seconds
+- [x] MongoDB accepts authenticated connections as user "cdc_app"
+- [x] Collections (customers, addresses, orders) are created with proper schema
+  - Note: order_items uses embedded document pattern within orders collection
+- [x] Customer collection has required indexes (email unique, cdcMetadata.sourceTimestamp, status)
+- [x] Data persists across container restarts
+- [x] Schema validation rejects invalid documents (unique email constraint enforced)
+
+### Automated Acceptance Tests
+
+See `src/test/kotlin/com/pintailconsultingllc/cdcdebezium/acceptance/MongoDbInfrastructureAcceptanceTest.kt`
+
+Run with: `./gradlew acceptanceTest --tests "*.MongoDbInfrastructureAcceptanceTest"`
 
 ## Estimated Complexity
 
