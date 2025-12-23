@@ -430,13 +430,19 @@ docker compose exec mongodb mongosh \
 
 ## Acceptance Criteria
 
-- [ ] INSERT event creates new document in MongoDB with cdcMetadata.operation "INSERT"
-- [ ] UPDATE event modifies existing document with updated status and cdcMetadata
-- [ ] DELETE event removes document from MongoDB
-- [ ] Duplicate INSERT is handled idempotently (no error, single document)
-- [ ] Out-of-order events are handled correctly (older events skipped)
-- [ ] Delete on non-existent document succeeds without error
-- [ ] CDC metadata is properly recorded (sourceTimestamp, operation, kafkaOffset, kafkaPartition, processedAt)
+- [x] INSERT event creates new document in MongoDB with cdcMetadata.operation "INSERT"
+- [x] UPDATE event modifies existing document with updated status and cdcMetadata
+- [x] DELETE event removes document from MongoDB
+- [x] Duplicate INSERT is handled idempotently (no error, single document)
+- [x] Out-of-order events are handled correctly (older events skipped)
+- [x] Delete on non-existent document succeeds without error
+- [x] CDC metadata is properly recorded (sourceTimestamp, operation, kafkaOffset, kafkaPartition, processedAt)
+
+### Automated Acceptance Tests
+
+See `src/test/kotlin/com/pintailconsultingllc/cdcdebezium/acceptance/MongoDbConsumerMigrationAcceptanceTest.kt`
+
+Run with: `./gradlew acceptanceTest --tests "*.MongoDbConsumerMigrationAcceptanceTest"`
 
 ## Estimated Complexity
 
