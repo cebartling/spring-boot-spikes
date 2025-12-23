@@ -28,7 +28,7 @@ class CustomerCdcConsumer(
 
     @KafkaListener(
         topics = ["cdc.public.customer"],
-        groupId = "cdc-consumer-group"
+        groupId = "\${spring.kafka.consumer.group-id}"
     )
     fun consume(
         record: ConsumerRecord<String, String?>,
