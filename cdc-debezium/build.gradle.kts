@@ -50,7 +50,9 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-data-mongodb-reactive-test")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("org.testcontainers:mongodb:1.20.4")
+    testImplementation("org.testcontainers:kafka:1.20.4")
     testImplementation("org.testcontainers:junit-jupiter:1.20.4")
+    testImplementation("org.awaitility:awaitility-kotlin:4.2.2")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
@@ -62,4 +64,19 @@ kotlin {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+}
+
+tasks.named<Test>("test") {
+    useJUnitPlatform {
+        excludeTags("acceptance")
+    }
+}
+
+tasks.register<Test>("acceptanceTest") {
+    description = "Runs acceptance tests."
+    group = "verification"
+    useJUnitPlatform {
+        includeTags("acceptance")
+    }
+    shouldRunAfter(tasks.test)
 }
