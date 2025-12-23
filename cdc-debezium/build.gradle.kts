@@ -19,6 +19,8 @@ repositories {
     mavenCentral()
 }
 
+extra["junit-jupiter.version"] = "6.0.0"
+
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-kafka")
     implementation("org.springframework.boot:spring-boot-starter-opentelemetry")
@@ -49,7 +51,7 @@ dependencies {
     testImplementation("io.mockk:mockk:1.13.13")
     testImplementation("org.springframework.boot:spring-boot-starter-data-mongodb-reactive-test")
     testImplementation("org.awaitility:awaitility-kotlin:4.2.2")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:6.0.0")
 }
 
 kotlin {
