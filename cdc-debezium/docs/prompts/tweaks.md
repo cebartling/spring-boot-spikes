@@ -43,3 +43,24 @@ Create a fix branch off of main for this work.
 Commit small changes with clear messages.
 Once complete, create a pull request for review.
 ```
+
+## Reimplement Acceptance Tests
+
+```
+I removed all the Cucumber acceptance tests due to number of issues.
+I need to reimplement these tests using a more stable framework.
+Let's use JUnit 5 to create reliable acceptance tests.
+Keep them separate from the unit tests using tags.
+Create a feature branch off of main for this work.
+Commit small changes with clear messages.
+Once complete, create a pull request for review.
+```
+
+## Upgrade to JUnit 6
+
+```
+Upgrade the testing framework from JUnit 5 to JUnit 6 to take advantage of the latest features and improvements.
+Create a feature branch off of main for this work.
+Commit small changes with clear messages.
+Once complete, create a pull request for review.
+```
