@@ -552,45 +552,12 @@ docker compose exec mongodb mongosh \
 
 ## Acceptance Criteria
 
-```gherkin
-Feature: Address Entity CDC
-  As a CDC pipeline
-  I want to capture address changes
-  So that customer addresses are materialized in MongoDB
-
-  Scenario: New address is captured via CDC
-    Given a customer "alice@example.com" exists
-    When I insert a new shipping address for the customer
-    Then within 5 seconds the address should exist in MongoDB
-    And the address customerId should match the customer id
-
-  Scenario: Address update propagates to MongoDB
-    Given an address exists for customer "alice@example.com"
-    When I update the street to "999 New Street"
-    Then within 5 seconds the MongoDB address should have street "999 New Street"
-
-  Scenario: Address delete propagates to MongoDB
-    Given an address with id "test-address-id" exists in MongoDB
-    When I delete the address from PostgreSQL
-    Then within 5 seconds the address should not exist in MongoDB
-
-  Scenario: Customer deletion cascades to addresses
-    Given a customer with addresses exists
-    When I delete the customer from PostgreSQL
-    Then all associated addresses should be deleted via CDC
-    And no addresses for that customer should exist in MongoDB
-
-  Scenario: Address type is validated
-    Given valid address types are "billing", "shipping", "home", "work"
-    When an address with type "invalid" is processed
-    Then validation should fail
-    And the error should indicate invalid type
-
-  Scenario: Customer-address relationship is maintained
-    Given multiple customers with multiple addresses each
-    When I query addresses by customerId
-    Then only addresses for that customer should be returned
-```
+- [ ] New address is captured via CDC and exists in MongoDB within 5 seconds
+- [ ] Address update propagates to MongoDB correctly
+- [ ] Address delete propagates to MongoDB correctly
+- [ ] Customer deletion cascades to addresses (no orphaned addresses in MongoDB)
+- [ ] Address type is validated (billing, shipping, home, work only)
+- [ ] Customer-address relationship is maintained (queries by customerId return correct addresses)
 
 ## Estimated Complexity
 

@@ -430,66 +430,13 @@ docker compose exec mongodb mongosh \
 
 ## Acceptance Criteria
 
-The following acceptance criteria should be implemented as Cucumber acceptance tests:
-
-```gherkin
-Feature: MongoDB Consumer Service Migration
-  As a CDC pipeline
-  I want to materialize events to MongoDB
-  So that I have a document-based materialized view
-
-  Background:
-    Given MongoDB is running and initialized
-    And Kafka is running with CDC topics
-    And the Spring Boot application is running
-
-  Scenario: INSERT event creates new document in MongoDB
-    When I insert a customer with id "test-001" into PostgreSQL
-    Then within 5 seconds a document with id "test-001" should exist in MongoDB
-    And the document should have cdcMetadata.operation "INSERT"
-
-  Scenario: UPDATE event modifies existing document
-    Given a customer with id "test-002" exists in PostgreSQL
-    And the customer has been materialized to MongoDB
-    When I update the customer status to "inactive" in PostgreSQL
-    Then within 5 seconds the MongoDB document status should be "inactive"
-    And cdcMetadata.operation should be "UPDATE"
-
-  Scenario: DELETE event removes document from MongoDB
-    Given a customer with id "test-003" exists in both PostgreSQL and MongoDB
-    When I delete the customer from PostgreSQL
-    Then within 5 seconds the document should not exist in MongoDB
-
-  Scenario: Duplicate INSERT is handled idempotently
-    Given a customer with id "test-004" exists in MongoDB
-    When the same INSERT event is processed again
-    Then no error should occur
-    And only one document with id "test-004" should exist
-
-  Scenario: Out-of-order events are handled correctly
-    Given a customer with id "test-005" was inserted at timestamp 1000
-    And the customer was updated at timestamp 2000
-    When an UPDATE event with timestamp 1500 is processed
-    Then the update should be skipped
-    And the document should retain the timestamp 2000 data
-
-  Scenario: Delete on non-existent document succeeds
-    Given no customer with id "test-006" exists in MongoDB
-    When a DELETE event for id "test-006" is processed
-    Then no error should occur
-    And the operation should complete successfully
-
-  Scenario: CDC metadata is properly recorded
-    When I insert a customer into PostgreSQL
-    And the event is processed by the consumer
-    Then the MongoDB document should contain:
-      | field                        | type      |
-      | cdcMetadata.sourceTimestamp  | number    |
-      | cdcMetadata.operation        | string    |
-      | cdcMetadata.kafkaOffset      | number    |
-      | cdcMetadata.kafkaPartition   | number    |
-      | cdcMetadata.processedAt      | timestamp |
-```
+- [ ] INSERT event creates new document in MongoDB with cdcMetadata.operation "INSERT"
+- [ ] UPDATE event modifies existing document with updated status and cdcMetadata
+- [ ] DELETE event removes document from MongoDB
+- [ ] Duplicate INSERT is handled idempotently (no error, single document)
+- [ ] Out-of-order events are handled correctly (older events skipped)
+- [ ] Delete on non-existent document succeeds without error
+- [ ] CDC metadata is properly recorded (sourceTimestamp, operation, kafkaOffset, kafkaPartition, processedAt)
 
 ## Estimated Complexity
 

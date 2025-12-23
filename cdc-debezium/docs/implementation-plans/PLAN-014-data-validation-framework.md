@@ -588,52 +588,13 @@ docker compose logs cdc-consumer | grep -i "validation failed"
 
 ## Acceptance Criteria
 
-```gherkin
-Feature: Data Validation Framework
-  As a CDC pipeline operator
-  I want incoming events validated
-  So that data integrity is maintained
-
-  Scenario: Valid event passes all validation rules
-    Given a CDC event with valid schema and business data
-    When the event is processed by the validation service
-    Then all validation rules should pass
-    And the event should be persisted to MongoDB
-
-  Scenario: Event with missing required field fails schema validation
-    Given a CDC event without an email field
-    When the event is processed by the validation service
-    Then schema validation should fail
-    And the failure should indicate "email is required"
-
-  Scenario: Event with invalid email format fails schema validation
-    Given a CDC event with email "not-an-email"
-    When the event is processed by the validation service
-    Then schema validation should fail
-    And the failure should indicate "email format is invalid"
-
-  Scenario: Event with invalid status fails business validation
-    Given a CDC event with status "unknown-status"
-    When the event is processed by the validation service
-    Then business validation should fail
-    And the failure should list valid statuses
-
-  Scenario: Event with future timestamp fails temporal validation
-    Given a CDC event with sourceTimestamp 1 hour in the future
-    When the event is processed by the validation service
-    Then temporal validation should fail
-    And the failure should indicate "timestamp is in the future"
-
-  Scenario: Validation metrics are recorded
-    When 10 valid events and 5 invalid events are processed
-    Then metric "cdc.validation.passed" should equal 10
-    And metric "cdc.validation.failed" should equal 5
-
-  Scenario: Validation latency is tracked
-    When multiple events are validated
-    Then metric "cdc.validation.latency" should be recorded
-    And the metric should have count and timing data
-```
+- [ ] Valid event passes all validation rules and is persisted to MongoDB
+- [ ] Event with missing required field fails schema validation with appropriate message
+- [ ] Event with invalid email format fails schema validation
+- [ ] Event with invalid status fails business validation with valid status list
+- [ ] Event with future timestamp fails temporal validation
+- [ ] Validation metrics are recorded (cdc.validation.passed, cdc.validation.failed)
+- [ ] Validation latency is tracked with count and timing data
 
 ## Estimated Complexity
 

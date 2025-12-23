@@ -555,54 +555,13 @@ docker compose exec mongodb mongosh \
 
 ## Acceptance Criteria
 
-```gherkin
-Feature: Order Entity CDC with Embedded Items
-  As a CDC pipeline
-  I want to capture orders with embedded items
-  So that order data is optimally stored in MongoDB
-
-  Scenario: New order is captured via CDC
-    Given a customer exists
-    When I create a new order for the customer
-    Then within 5 seconds the order should exist in MongoDB
-    And the order status should be "pending"
-    And the items array should be empty
-
-  Scenario: Order item is embedded in order document
-    Given an order exists in both PostgreSQL and MongoDB
-    When I add an item to the order in PostgreSQL
-    Then within 5 seconds the order document should have the item embedded
-    And the item should have productSku and quantity
-
-  Scenario: Multiple items are properly embedded
-    Given an order with 2 items exists
-    When I query the order from MongoDB
-    Then the items array should have 2 elements
-    And each item should have correct lineTotal
-
-  Scenario: Order item update updates embedded document
-    Given an order with item quantity 1 exists
-    When I update the item quantity to 5 in PostgreSQL
-    Then within 5 seconds the embedded item quantity should be 5
-    And the lineTotal should be recalculated
-
-  Scenario: Order item delete removes from embedded array
-    Given an order with 2 items exists
-    When I delete one item from PostgreSQL
-    Then within 5 seconds the order should have only 1 item
-
-  Scenario: Order total is synchronized
-    Given an order with items totaling $100
-    When the PostgreSQL trigger updates total_amount
-    Then within 5 seconds MongoDB totalAmount should be $100
-
-  Scenario: Out-of-order item events are handled
-    Given an item update event with timestamp 2000
-    And the embedded item has timestamp 3000
-    When the older event is processed
-    Then the update should be skipped
-    And the newer data should be retained
-```
+- [ ] New order is captured via CDC and exists in MongoDB within 5 seconds
+- [ ] Order item is embedded in order document with productSku and quantity
+- [ ] Multiple items are properly embedded with correct lineTotal values
+- [ ] Order item update updates embedded document and recalculates lineTotal
+- [ ] Order item delete removes from embedded array
+- [ ] Order total is synchronized when PostgreSQL trigger updates total_amount
+- [ ] Out-of-order item events are handled correctly (older events skipped)
 
 ## Estimated Complexity
 
