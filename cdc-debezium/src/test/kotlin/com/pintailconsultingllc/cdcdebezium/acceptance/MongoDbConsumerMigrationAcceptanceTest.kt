@@ -25,9 +25,13 @@ class MongoDbConsumerMigrationAcceptanceTest : AbstractAcceptanceTest() {
     @Autowired
     private lateinit var customerRepository: CustomerMongoRepository
 
+    @Autowired
+    private lateinit var consumerReadinessChecker: KafkaConsumerReadinessChecker
+
     @BeforeEach
     fun setUp() {
         customerRepository.deleteAll().block()
+        consumerReadinessChecker.waitForConsumerReady()
     }
 
     @Nested

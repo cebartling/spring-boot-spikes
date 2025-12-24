@@ -30,10 +30,14 @@ class ExtendedSchemaAddressAcceptanceTest : AbstractAcceptanceTest() {
     @Autowired
     private lateinit var customerRepository: CustomerMongoRepository
 
+    @Autowired
+    private lateinit var consumerReadinessChecker: KafkaConsumerReadinessChecker
+
     @BeforeEach
     fun setUp() {
         addressRepository.deleteAll().block()
         customerRepository.deleteAll().block()
+        consumerReadinessChecker.waitForConsumerReady()
     }
 
     @Nested

@@ -36,11 +36,15 @@ class SchemaChangeHandlingAcceptanceTest : AbstractAcceptanceTest() {
     @Autowired
     private lateinit var mongoTemplate: ReactiveMongoTemplate
 
+    @Autowired
+    private lateinit var consumerReadinessChecker: KafkaConsumerReadinessChecker
+
     @BeforeEach
     fun setUp() {
         customerRepository.deleteAll().block()
         mongoTemplate.dropCollection("schema_history").block()
         schemaDetector.resetTracking()
+        consumerReadinessChecker.waitForConsumerReady()
     }
 
     @Nested

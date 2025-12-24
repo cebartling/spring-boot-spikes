@@ -31,9 +31,13 @@ class DataValidationFrameworkAcceptanceTest : AbstractAcceptanceTest() {
     @Autowired
     private lateinit var validationService: ValidationService
 
+    @Autowired
+    private lateinit var consumerReadinessChecker: KafkaConsumerReadinessChecker
+
     @BeforeEach
     fun setUp() {
         customerRepository.deleteAll().block()
+        consumerReadinessChecker.waitForConsumerReady()
     }
 
     @Nested
