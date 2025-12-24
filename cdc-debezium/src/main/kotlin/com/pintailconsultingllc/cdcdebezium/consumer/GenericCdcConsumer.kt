@@ -29,6 +29,7 @@ class GenericCdcConsumer(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     @KafkaListener(
+        id = "cdc-consumer",
         topics = [
             "cdc.public.customer",
             "cdc.public.address",

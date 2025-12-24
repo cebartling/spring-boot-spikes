@@ -6,6 +6,7 @@ import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.index.CompoundIndex
 import org.springframework.data.mongodb.core.index.Indexed
 import org.springframework.data.mongodb.core.mapping.Document
+import org.springframework.data.mongodb.core.mapping.Field
 import java.math.BigDecimal
 import java.time.Instant
 
@@ -71,6 +72,7 @@ data class OrderDocument(
 }
 
 data class OrderItemEmbedded(
+    @Field("id")
     val id: String,
     val productSku: String,
     val productName: String,
