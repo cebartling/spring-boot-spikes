@@ -31,21 +31,29 @@ flowchart LR
 
     subgraph App["Application"]
         SB[Spring Boot<br/>Consumer]
+        MG[(MongoDB)]
     end
 
-    subgraph Observability["Observability"]
+    subgraph Observability["Observability Stack"]
         OT[OpenTelemetry<br/>Collector]
-        J[Jaeger]
+        T[Tempo]
+        L[Loki]
         P[Prometheus]
+        G[Grafana]
     end
 
     PG -->|WAL Changes| KC
     KC -->|CDC Events| K
     K -->|Consume| SB
+    SB -->|Materialize| MG
     SB -.->|Traces| OT
     SB -.->|Metrics| OT
-    OT --> J
+    SB -.->|Logs| L
+    OT --> T
     OT --> P
+    T --> G
+    L --> G
+    P --> G
 ```
 
 ## What is Change Data Capture (CDC)?
@@ -59,17 +67,17 @@ For detailed information about CDC concepts, Debezium operation, and event forma
 
 ## Technology Stack
 
-| Component     | Technology                        |
-|---------------|-----------------------------------|
-| Language      | Kotlin 2.2                        |
-| Framework     | Spring Boot 4.0, Spring WebFlux   |
-| Database      | PostgreSQL 16 (R2DBC)             |
-| Messaging     | Apache Kafka (KRaft mode)         |
-| CDC           | Debezium PostgreSQL Connector     |
-| Observability | OpenTelemetry, Jaeger, Prometheus |
-| Build         | Gradle 9.2 (Kotlin DSL)           |
-| Runtime       | Java 24                           |
-| Testing       | JUnit 5, MockK, Cucumber JVM      |
+| Component     | Technology                                      |
+|---------------|-------------------------------------------------|
+| Language      | Kotlin 2.2                                      |
+| Framework     | Spring Boot 4.0, Spring WebFlux                 |
+| Database      | PostgreSQL 16 (R2DBC), MongoDB 8.x              |
+| Messaging     | Apache Kafka (KRaft mode)                       |
+| CDC           | Debezium PostgreSQL Connector                   |
+| Observability | OpenTelemetry, Grafana LGTM (Loki, Tempo, Prometheus) |
+| Build         | Gradle 9.2 (Kotlin DSL)                         |
+| Runtime       | Java 24                                         |
+| Testing       | JUnit 5, MockK, Cucumber JVM                    |
 
 ## Prerequisites
 
@@ -107,7 +115,7 @@ gradle -version  # Should show Gradle 9.2.1
 ### 1. Start Infrastructure
 
 ```bash
-# Start PostgreSQL, Kafka, Kafka Connect, and Kafka UI
+# Start all services (PostgreSQL, Kafka, MongoDB, Grafana LGTM stack, etc.)
 docker compose up -d
 
 # Wait for services to be healthy
@@ -115,6 +123,9 @@ docker compose ps
 
 # Verify Kafka Connect is ready
 curl -s http://localhost:8083/ | jq
+
+# Open Grafana to view dashboards
+open http://localhost:3000  # admin / admin
 ```
 
 ### 2. Deploy Debezium Connector
@@ -175,9 +186,14 @@ cdc-debezium/
 │       └── resources/features/  # Gherkin feature files
 ├── docker/
 │   ├── debezium/               # Debezium connector config
+│   ├── grafana/                # Grafana dashboards and datasources
+│   │   └── provisioning/       # Auto-provisioned dashboards
+│   ├── loki/                   # Loki log aggregation config
+│   ├── mongodb/init/           # MongoDB initialization scripts
 │   ├── otel/                   # OpenTelemetry Collector config
 │   ├── postgres/init/          # Database initialization scripts
-│   └── prometheus/             # Prometheus scrape config
+│   ├── prometheus/             # Prometheus scrape config
+│   └── tempo/                  # Tempo tracing config
 ├── docs/
 │   ├── documentation/          # User documentation
 │   ├── features/               # Feature specifications
@@ -252,16 +268,19 @@ Unit tests validate individual components in isolation using JUnit 5 with MockK:
 
 ## Infrastructure Services
 
-| Service       | Port        | Description                              |
-|---------------|-------------|------------------------------------------|
-| PostgreSQL    | 5432        | Source database with logical replication |
-| Kafka         | 9092, 29092 | Event backbone (KRaft mode)              |
-| Kafka Connect | 8083        | Debezium connector runtime               |
-| Kafka UI      | 8081        | Web UI for Kafka management              |
-| MongoDB       | 27017       | Target materialized store                |
-| OTel Collector| 4317, 4318  | OpenTelemetry receiver (gRPC/HTTP)       |
-| Jaeger        | 16686       | Distributed tracing UI                   |
-| Prometheus    | 9090        | Metrics storage and UI                   |
+| Service        | Port        | Description                              |
+|----------------|-------------|------------------------------------------|
+| PostgreSQL     | 5432        | Source database with logical replication |
+| Kafka          | 9092, 29092 | Event backbone (KRaft mode)              |
+| Kafka Connect  | 8083        | Debezium connector runtime               |
+| Kafka UI       | 8081        | Web UI for Kafka management              |
+| MongoDB        | 27017       | Target materialized store                |
+| OTel Collector | 4317, 4318  | OpenTelemetry receiver (gRPC/HTTP)       |
+| Grafana        | 3000        | Unified observability UI and dashboards  |
+| Tempo          | 3200        | Distributed tracing backend              |
+| Loki           | 3100        | Log aggregation backend                  |
+| Prometheus     | 9090        | Metrics storage and querying             |
+| Jaeger         | 16686       | Distributed tracing UI (legacy)          |
 
 ### Useful Commands
 
@@ -320,20 +339,41 @@ Key settings in `docker/debezium/connector-config.json`:
 
 ## Observability
 
-This project includes full OpenTelemetry observability with distributed tracing, metrics, and structured logging.
+This project includes a complete Grafana LGTM observability stack with distributed tracing, metrics, log aggregation,
+and pre-built dashboards.
+
+### Grafana Dashboards
+
+The project includes 5 pre-provisioned Grafana dashboards for monitoring the CDC pipeline:
+
+| Dashboard | Purpose |
+|-----------|---------|
+| **CDC Overview** | High-level pipeline health, throughput, and error rates |
+| **Consumer Performance** | Kafka consumer metrics, processing latency, and lag |
+| **MongoDB Operations** | Database operation metrics, query performance |
+| **Service Map** | Distributed trace visualization and service dependencies |
+| **Logs Explorer** | Centralized log search and correlation with traces |
+
+### Observability Stack
 
 | Component | Port | Purpose |
 |-----------|------|---------|
-| Jaeger | 16686 | Distributed tracing UI |
+| Grafana | 3000 | Unified observability UI with dashboards |
+| Tempo | 3200 | Distributed tracing backend |
+| Loki | 3100 | Log aggregation and querying |
 | Prometheus | 9090 | Metrics storage and querying |
 | OTel Collector | 4317, 4318 | OTLP receiver (gRPC/HTTP) |
 
 ```bash
-# Open Jaeger UI (traces)
-open http://localhost:16686
+# Open Grafana UI (dashboards, traces, logs, metrics)
+open http://localhost:3000
+# Default credentials: admin / admin
 
-# Open Prometheus UI (metrics)
+# Open Prometheus UI (direct metrics queries)
 open http://localhost:9090
+
+# Open Jaeger UI (legacy tracing)
+open http://localhost:16686
 ```
 
 For detailed information about tracing, metrics, Prometheus queries, and structured logging, see the
