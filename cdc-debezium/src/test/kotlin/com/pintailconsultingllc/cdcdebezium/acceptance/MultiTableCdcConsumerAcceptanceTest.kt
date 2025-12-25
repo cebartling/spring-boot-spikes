@@ -37,11 +37,15 @@ class MultiTableCdcConsumerAcceptanceTest : AbstractAcceptanceTest() {
     @Autowired
     private lateinit var cdcEventRouter: CdcEventRouter
 
+    @Autowired
+    private lateinit var consumerReadinessChecker: KafkaConsumerReadinessChecker
+
     @BeforeEach
     fun setUp() {
         customerRepository.deleteAll().block()
         addressRepository.deleteAll().block()
         orderRepository.deleteAll().block()
+        consumerReadinessChecker.waitForConsumerReady()
     }
 
     @Nested

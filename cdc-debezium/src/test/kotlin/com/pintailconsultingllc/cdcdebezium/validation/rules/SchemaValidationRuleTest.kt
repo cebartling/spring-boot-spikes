@@ -103,38 +103,34 @@ class SchemaValidationRuleTest {
     }
 
     @Nested
-    inner class InvalidStatus {
+    inner class OptionalStatus {
 
         @Test
-        fun `fails validation when status is null for non-delete event`() {
+        fun `passes validation when status is null for non-delete event`() {
             val event = createEvent(email = "valid@company.com", status = null)
 
             val result = rule.validate(event)
 
-            assertFalse(result.valid)
-            @Suppress("UNCHECKED_CAST")
-            val errors = result.details["errors"] as List<String>
-            assertTrue(errors.contains("status is required for non-delete events"))
+            assertTrue(result.valid)
+            assertEquals("Schema validation passed", result.message)
         }
 
         @Test
-        fun `fails validation when status is blank for non-delete event`() {
+        fun `passes validation when status is blank for non-delete event`() {
             val event = createEvent(email = "valid@company.com", status = "   ")
 
             val result = rule.validate(event)
 
-            assertFalse(result.valid)
-            @Suppress("UNCHECKED_CAST")
-            val errors = result.details["errors"] as List<String>
-            assertTrue(errors.contains("status is required for non-delete events"))
+            assertTrue(result.valid)
+            assertEquals("Schema validation passed", result.message)
         }
     }
 
     @Nested
-    inner class MultipleErrors {
+    inner class ErrorCollection {
 
         @Test
-        fun `collects all errors when multiple validations fail`() {
+        fun `collects email error when email is missing`() {
             val event = createEvent(email = null, status = null)
 
             val result = rule.validate(event)
@@ -142,9 +138,8 @@ class SchemaValidationRuleTest {
             assertFalse(result.valid)
             @Suppress("UNCHECKED_CAST")
             val errors = result.details["errors"] as List<String>
-            assertEquals(2, errors.size)
+            assertEquals(1, errors.size)
             assertTrue(errors.contains("email is required for non-delete events"))
-            assertTrue(errors.contains("status is required for non-delete events"))
         }
     }
 

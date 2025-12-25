@@ -6,7 +6,6 @@ import com.pintailconsultingllc.cdcdebezium.repository.CustomerMongoRepository
 import com.pintailconsultingllc.cdcdebezium.repository.OrderMongoRepository
 import org.awaitility.kotlin.await
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -32,12 +31,16 @@ class ExtendedSchemaOrdersAcceptanceTest : AbstractAcceptanceTest() {
     @Autowired
     private lateinit var customerRepository: CustomerMongoRepository
 
+    @Autowired
+    private lateinit var consumerReadinessChecker: KafkaConsumerReadinessChecker
+
     @BeforeEach
     fun setUp() {
         orderRepository.deleteAll().block()
         customerRepository.deleteAll().block()
-        // Allow time for Kafka consumer to fully start and process any stale messages
-        Thread.sleep(3000)
+        // Wait for Kafka consumer to be assigned partitions before sending test messages
+        // With auto-offset-reset=latest, messages sent before assignment would be missed
+        consumerReadinessChecker.waitForConsumerReady()
     }
 
     @Nested
@@ -166,7 +169,6 @@ class ExtendedSchemaOrdersAcceptanceTest : AbstractAcceptanceTest() {
 
     @Nested
     @DisplayName("Order Item Embedding")
-    @Disabled("Requires clean Kafka topics - stale messages from previous runs interfere with item embedding")
     inner class OrderItemEmbedding {
 
         @Test
@@ -322,7 +324,6 @@ class ExtendedSchemaOrdersAcceptanceTest : AbstractAcceptanceTest() {
 
     @Nested
     @DisplayName("Order Item Update")
-    @Disabled("Requires clean Kafka topics - stale messages from previous runs interfere with item embedding")
     inner class OrderItemUpdate {
 
         @Test
@@ -405,7 +406,6 @@ class ExtendedSchemaOrdersAcceptanceTest : AbstractAcceptanceTest() {
 
     @Nested
     @DisplayName("Order Item Delete")
-    @Disabled("Requires clean Kafka topics - stale messages from previous runs interfere with item embedding")
     inner class OrderItemDelete {
 
         @Test
@@ -555,7 +555,6 @@ class ExtendedSchemaOrdersAcceptanceTest : AbstractAcceptanceTest() {
 
         @Test
         @DisplayName("should skip out-of-order item events based on sourceTimestamp")
-        @Disabled("Requires clean Kafka topics - stale messages from previous runs interfere with item embedding")
         fun shouldSkipOutOfOrderItemEvents() {
             val customerId = UUID.randomUUID()
             val orderId = UUID.randomUUID()
@@ -686,7 +685,6 @@ class ExtendedSchemaOrdersAcceptanceTest : AbstractAcceptanceTest() {
 
     @Nested
     @DisplayName("Order Delete")
-    @Disabled("Requires clean Kafka topics - stale messages from previous runs interfere with item embedding")
     inner class OrderDelete {
 
         @Test
