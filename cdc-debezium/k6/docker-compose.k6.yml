@@ -1,3 +1,13 @@
+# k6 Load Testing Services
+#
+# Usage:
+#   Build:  docker compose -f k6/docker-compose.k6.yml build k6
+#   Run:    docker compose -f k6/docker-compose.k6.yml run --rm k6 run /scripts/health-check.js
+#
+# Prerequisites:
+#   - Main CDC stack must be running: docker compose up -d
+#   - Network 'cdc-debezium_cdc-network' must exist
+
 services:
   k6:
     build:
@@ -8,45 +18,19 @@ services:
       - ./scripts:/scripts:ro
       - ./results:/results
     environment:
-      K6_PROMETHEUS_RW_SERVER_URL: http://prometheus:9090/api/v1/write
+      K6_PROMETHEUS_RW_SERVER_URL: http://cdc-prometheus:9090/api/v1/write
       K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM: "true"
       K6_PROMETHEUS_RW_PUSH_INTERVAL: 5s
-      POSTGRES_HOST: postgres
+      POSTGRES_HOST: cdc-postgres
       POSTGRES_PORT: 5432
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: cdc_source
-      MONGODB_URI: mongodb://cdc_app:cdc_app_password@mongodb:27017/cdc_materialized?authSource=cdc_materialized
-    depends_on:
-      postgres:
-        condition: service_healthy
-      mongodb:
-        condition: service_healthy
-      prometheus:
-        condition: service_healthy
+      MONGODB_URI: mongodb://cdc_app:cdc_app_password@cdc-mongodb:27017/cdc_materialized?authSource=cdc_materialized
     networks:
       - cdc-network
-    profiles:
-      - load-test
-
-  k6-dashboard:
-    image: grafana/grafana:11.0.0
-    container_name: cdc-k6-dashboard
-    ports:
-      - "3001:3000"
-    environment:
-      GF_AUTH_ANONYMOUS_ENABLED: "true"
-      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
-    volumes:
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
-    depends_on:
-      prometheus:
-        condition: service_healthy
-    networks:
-      - cdc-network
-    profiles:
-      - load-test
 
 networks:
   cdc-network:
+    name: cdc-debezium_cdc-network
     external: true

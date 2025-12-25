@@ -16,6 +16,8 @@ The load testing setup uses a custom k6 build with extensions for direct databas
 - CDC infrastructure running (`docker compose up -d` from project root)
 - Debezium connector deployed and running
 
+> **Note**: The main CDC stack must be running before you can run k6 tests. The k6 container connects to services via the `cdc-debezium_cdc-network` Docker network.
+
 ## Quick Start
 
 ### 1. Build the Custom k6 Image
@@ -86,13 +88,13 @@ The following environment variables are configured in `docker-compose.k6.yml`:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `POSTGRES_HOST` | `postgres` | PostgreSQL hostname |
+| `POSTGRES_HOST` | `cdc-postgres` | PostgreSQL container name |
 | `POSTGRES_PORT` | `5432` | PostgreSQL port |
 | `POSTGRES_USER` | `postgres` | PostgreSQL username |
 | `POSTGRES_PASSWORD` | `postgres` | PostgreSQL password |
 | `POSTGRES_DB` | `cdc_source` | PostgreSQL database |
-| `MONGODB_URI` | `mongodb://...` | MongoDB connection string |
-| `K6_PROMETHEUS_RW_SERVER_URL` | `http://prometheus:9090/api/v1/write` | Prometheus remote write URL |
+| `MONGODB_URI` | `mongodb://cdc_app:...@cdc-mongodb:27017/...` | MongoDB connection string |
+| `K6_PROMETHEUS_RW_SERVER_URL` | `http://cdc-prometheus:9090/api/v1/write` | Prometheus remote write URL |
 
 ### Thresholds
 
