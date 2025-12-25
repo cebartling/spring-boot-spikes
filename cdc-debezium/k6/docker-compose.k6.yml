@@ -1,0 +1,36 @@
+# k6 Load Testing Services
+#
+# Usage:
+#   Build:  docker compose -f k6/docker-compose.k6.yml build k6
+#   Run:    docker compose -f k6/docker-compose.k6.yml run --rm k6 run /scripts/health-check.js
+#
+# Prerequisites:
+#   - Main CDC stack must be running: docker compose up -d
+#   - Network 'cdc-debezium_cdc-network' must exist
+
+services:
+  k6:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cdc-k6
+    volumes:
+      - ./scripts:/scripts:ro
+      - ./results:/results
+    environment:
+      K6_PROMETHEUS_RW_SERVER_URL: http://cdc-prometheus:9090/api/v1/write
+      K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM: "false"
+      K6_PROMETHEUS_RW_PUSH_INTERVAL: 5s
+      POSTGRES_HOST: cdc-postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+      MONGODB_URI: mongodb://cdc_app:cdc_app_password@cdc-mongodb:27017/cdc_materialized?authSource=cdc_materialized
+    networks:
+      - cdc-network
+
+networks:
+  cdc-network:
+    name: cdc-debezium_cdc-network
+    external: true

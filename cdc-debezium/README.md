@@ -379,6 +379,73 @@ open http://localhost:16686
 For detailed information about tracing, metrics, Prometheus queries, and structured logging, see the
 [Observability documentation](docs/documentation/observability.md).
 
+## Load Testing
+
+This project includes a k6 load testing infrastructure for performance testing the CDC pipeline end-to-end.
+
+### Quick Start
+
+```bash
+# 1. Ensure the CDC infrastructure is running
+docker compose up -d
+
+# 2. Build the custom k6 image (first time only)
+docker compose -f k6/docker-compose.k6.yml build k6
+
+# 3. Run the health check to verify connectivity
+docker compose -f k6/docker-compose.k6.yml run --rm k6 run /scripts/health-check.js
+
+# 4. Run load tests with Prometheus metrics export
+docker compose -f k6/docker-compose.k6.yml run --rm k6 run \
+  --out experimental-prometheus-rw \
+  /scripts/health-check.js
+```
+
+### k6 Extensions
+
+The custom k6 build includes:
+
+| Extension | Purpose |
+|-----------|---------|
+| `xk6-sql` | PostgreSQL write operations |
+| `xk6-mongo` | MongoDB read verification |
+| `xk6-output-prometheus-remote` | Prometheus metrics export |
+
+### Load Test Architecture
+
+```mermaid
+flowchart LR
+    subgraph K6["k6 Load Generator"]
+        SCRIPT[Test Scripts]
+        PG_EXT[PostgreSQL Driver]
+        MONGO_EXT[MongoDB Driver]
+    end
+
+    subgraph CDC["CDC Pipeline"]
+        PG[(PostgreSQL)]
+        DEB[Debezium]
+        KAFKA[Kafka]
+        CONSUMER[Consumer]
+        MONGO[(MongoDB)]
+    end
+
+    subgraph OBS["Observability"]
+        PROM[(Prometheus)]
+        GRAFANA[Grafana]
+    end
+
+    K6 -->|Write| PG
+    K6 -->|Read & Verify| MONGO
+    PG --> DEB
+    DEB --> KAFKA
+    KAFKA --> CONSUMER
+    CONSUMER --> MONGO
+    K6 -.->|Push Metrics| PROM
+    PROM --> GRAFANA
+```
+
+For detailed usage, see the [k6 Load Testing README](k6/README.md).
+
 ## Troubleshooting
 
 For common issues and solutions, see the [Troubleshooting Guide](docs/documentation/troubleshooting.md).

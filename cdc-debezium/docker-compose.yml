@@ -14,6 +14,8 @@ services:
       # PostgreSQL 18+ uses version-specific subdirectories under /var/lib/postgresql
       - postgres_data:/var/lib/postgresql
       - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - cdc-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -43,6 +45,8 @@ services:
       CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
     volumes:
       - kafka_data:/var/lib/kafka/data
+    networks:
+      - cdc-network
     healthcheck:
       test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092 || exit 1"]
       interval: 10s
@@ -62,6 +66,8 @@ services:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
       DYNAMIC_CONFIG_ENABLED: "true"
+    networks:
+      - cdc-network
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1"]
       interval: 10s
@@ -89,6 +95,8 @@ services:
       VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
       KEY_CONVERTER_SCHEMAS_ENABLE: "false"
       VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+    networks:
+      - cdc-network
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8083/ || exit 1"]
       interval: 10s
@@ -115,6 +123,8 @@ services:
         condition: service_healthy
       loki:
         condition: service_healthy
+    networks:
+      - cdc-network
     healthcheck:
       test: ["CMD", "/otelcol-contrib", "components"]
       interval: 10s
@@ -131,6 +141,8 @@ services:
       - "14268:14268" # HTTP collector
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
+    networks:
+      - cdc-network
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:16686/ || exit 1"]
       interval: 10s
@@ -152,6 +164,8 @@ services:
       - '--web.enable-lifecycle'
       - '--web.enable-remote-write-receiver'
       - '--enable-feature=exemplar-storage'
+    networks:
+      - cdc-network
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:9090/-/ready || exit 1"]
       interval: 10s
@@ -171,6 +185,8 @@ services:
     volumes:
       - mongodb_data:/data/db
       - ./docker/mongodb/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - cdc-network
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
@@ -207,6 +223,8 @@ services:
         condition: service_healthy
       loki:
         condition: service_healthy
+    networks:
+      - cdc-network
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
       interval: 10s
@@ -225,6 +243,8 @@ services:
     volumes:
       - ./docker/tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
       - tempo_data:/var/tempo
+    networks:
+      - cdc-network
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3200/ready"]
       interval: 10s
@@ -242,6 +262,8 @@ services:
     volumes:
       - ./docker/loki/loki.yaml:/etc/loki/loki.yaml:ro
       - loki_data:/tmp/loki
+    networks:
+      - cdc-network
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3100/ready || exit 1"]
       interval: 10s
@@ -257,3 +279,7 @@ volumes:
   grafana_data:
   tempo_data:
   loki_data:
+
+networks:
+  cdc-network:
+    driver: bridge
