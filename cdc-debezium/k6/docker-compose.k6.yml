@@ -1,32 +1,131 @@
-# k6 Load Testing Services
+# k6 Load Testing Services with CDC Consumer
 #
 # Usage:
-#   Build:  docker compose -f k6/docker-compose.k6.yml build k6
-#   Run:    docker compose -f k6/docker-compose.k6.yml run --rm k6 run /scripts/health-check.js
+#   Start everything:  docker compose -f k6/docker-compose.k6.yml up -d
+#   Build k6:          docker compose -f k6/docker-compose.k6.yml build k6
+#   Run tests:         docker compose -f k6/docker-compose.k6.yml run --rm k6 run /scripts/baseline-test.js
+#   View logs:         docker compose -f k6/docker-compose.k6.yml logs -f cdc-consumer
+#   Stop:              docker compose -f k6/docker-compose.k6.yml down
 #
 # Prerequisites:
 #   - Main CDC stack must be running: docker compose up -d
 #   - Network 'cdc-debezium_cdc-network' must exist
 
 services:
+  # Debezium connector deployer (runs once on startup)
+  connector-deployer:
+    image: curlimages/curl:8.5.0
+    container_name: cdc-connector-deployer
+    depends_on:
+      kafka-connect-ready:
+        condition: service_completed_successfully
+    volumes:
+      - ../docker/debezium:/config:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "Checking if connector already exists..."
+        existing=$$(curl -sf http://kafka-connect:8083/connectors/postgres-cdc-connector 2>/dev/null || echo "")
+        if [ -n "$$existing" ]; then
+          echo "Connector already exists, skipping deployment"
+        else
+          echo "Deploying Debezium PostgreSQL connector..."
+          curl -sf -X POST -H "Content-Type: application/json" \
+            --data @/config/connector-config.json \
+            http://kafka-connect:8083/connectors
+          echo ""
+          echo "Connector deployed successfully"
+        fi
+        echo "Waiting for connector to be running..."
+        sleep 5
+        curl -sf http://kafka-connect:8083/connectors/postgres-cdc-connector/status | head -c 500
+        echo ""
+    networks:
+      - cdc-network
+
+  # Wait for Kafka Connect to be ready
+  kafka-connect-ready:
+    image: curlimages/curl:8.5.0
+    container_name: cdc-kafka-connect-ready
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "Waiting for Kafka Connect to be ready..."
+        until curl -sf http://kafka-connect:8083/connectors > /dev/null 2>&1; do
+          echo "Kafka Connect not ready, retrying in 5s..."
+          sleep 5
+        done
+        echo "Kafka Connect is ready!"
+    networks:
+      - cdc-network
+
+  # CDC Consumer Spring Boot Application
+  cdc-consumer:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: cdc-consumer-k6
+    depends_on:
+      connector-deployer:
+        condition: service_completed_successfully
+    environment:
+      # Server config
+      SERVER_PORT: 8082
+      # MongoDB connection (uses service name, not container name)
+      SPRING_DATA_MONGODB_URI: mongodb://cdc_app:cdc_app_password@mongodb:27017/cdc_materialized?authSource=cdc_materialized
+      SPRING_DATA_MONGODB_DATABASE: cdc_materialized
+      # PostgreSQL R2DBC
+      SPRING_R2DBC_URL: r2dbc:postgresql://postgres:5432/postgres
+      SPRING_R2DBC_USERNAME: postgres
+      SPRING_R2DBC_PASSWORD: postgres
+      # Kafka (use internal port 9092)
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_KAFKA_CONSUMER_GROUP_ID: cdc-consumer-group
+      SPRING_KAFKA_CONSUMER_AUTO_OFFSET_RESET: earliest
+      # OpenTelemetry
+      MANAGEMENT_OTLP_METRICS_EXPORT_URL: http://otel-collector:4318/v1/metrics
+      MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_OTLP_ENDPOINT: http://otel-collector:4318/v1/traces
+      MANAGEMENT_OPENTELEMETRY_LOGGING_EXPORT_OTLP_ENDPOINT: http://otel-collector:4318/v1/logs
+      OTEL_SERVICE_NAME: cdc-consumer
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      # Logging
+      LOGGING_LEVEL_ROOT: INFO
+      LOGGING_LEVEL_COM_PINTAILCONSULTINGLLC: DEBUG
+    ports:
+      - "8082:8082"
+    networks:
+      - cdc-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+
+  # k6 Load Testing Runner
   k6:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: cdc-k6
+    depends_on:
+      cdc-consumer:
+        condition: service_healthy
     volumes:
       - ./scripts:/scripts:ro
       - ./results:/results
     environment:
-      K6_PROMETHEUS_RW_SERVER_URL: http://cdc-prometheus:9090/api/v1/write
+      K6_PROMETHEUS_RW_SERVER_URL: http://prometheus:9090/api/v1/write
       K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM: "false"
       K6_PROMETHEUS_RW_PUSH_INTERVAL: 5s
-      POSTGRES_HOST: cdc-postgres
+      # PostgreSQL (use service name, not container name)
+      POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: postgres
-      MONGODB_URI: mongodb://cdc_app:cdc_app_password@cdc-mongodb:27017/cdc_materialized?authSource=cdc_materialized
+      # MongoDB
+      MONGODB_URI: mongodb://cdc_app:cdc_app_password@mongodb:27017/cdc_materialized?authSource=cdc_materialized
     networks:
       - cdc-network
 

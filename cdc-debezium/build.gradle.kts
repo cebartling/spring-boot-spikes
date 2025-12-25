@@ -22,6 +22,7 @@ repositories {
 extra["junit-jupiter.version"] = "6.0.0"
 
 dependencies {
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-kafka")
     implementation("org.springframework.boot:spring-boot-starter-opentelemetry")
     implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
