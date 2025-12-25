@@ -1,0 +1,299 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: CDC Critical Alerts
+    folder: CDC Alerts
+    interval: 30s
+    rules:
+      - uid: cdc-consumer-stopped
+        title: CDC Consumer Stopped Processing
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                absent(rate(cdc_messages_processed_total[5m])) == 1
+                or
+                sum(rate(cdc_messages_processed_total[5m])) == 0
+              intervalMs: 1000
+              maxDataPoints: 43200
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 2m
+        annotations:
+          summary: CDC Consumer has stopped processing events
+          description: |
+            No CDC events have been processed in the last 5 minutes.
+            Consumer may be down or disconnected from Kafka.
+          runbook_url: https://wiki.example.com/runbooks/cdc-consumer-stopped
+        labels:
+          severity: critical
+          team: platform
+
+      - uid: cdc-high-error-rate
+        title: High CDC Processing Error Rate
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                (
+                  sum(rate(cdc_messages_errors_total[5m]))
+                  /
+                  sum(rate(cdc_messages_processed_total[5m]))
+                ) > 0.05
+              intervalMs: 1000
+              maxDataPoints: 43200
+        noDataState: OK
+        execErrState: Alerting
+        for: 2m
+        annotations:
+          summary: CDC error rate exceeds 5%
+          description: |
+            {{ $value | printf "%.2f" }}% of CDC events are failing.
+            Check application logs for error details.
+        labels:
+          severity: critical
+          team: platform
+
+      - uid: cdc-mongodb-connection-failed
+        title: MongoDB Connection Failed
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 60
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                mongodb_driver_pool_size{state="available"} == 0
+                or
+                absent(mongodb_driver_pool_size{state="available"}) == 1
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 1m
+        annotations:
+          summary: MongoDB connection pool exhausted or unavailable
+          description: No available MongoDB connections. Database may be down.
+        labels:
+          severity: critical
+          team: platform
+
+      - uid: cdc-kafka-connection-lost
+        title: Kafka Consumer Connection Lost
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 60
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                kafka_consumer_connection_count == 0
+                or
+                absent(kafka_consumer_connection_count) == 1
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 1m
+        annotations:
+          summary: Kafka consumer lost connection
+          description: CDC consumer is not connected to Kafka broker.
+        labels:
+          severity: critical
+          team: platform
+
+  - orgId: 1
+    name: CDC Warning Alerts
+    folder: CDC Alerts
+    interval: 60s
+    rules:
+      - uid: cdc-high-consumer-lag
+        title: High Consumer Lag Detected
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                sum(kafka_consumer_records_lag_max) > 10000
+        noDataState: OK
+        execErrState: Alerting
+        for: 5m
+        annotations:
+          summary: Kafka consumer lag exceeds 10,000 records
+          description: |
+            Consumer lag: {{ $value }} records.
+            Pipeline may be falling behind on event processing.
+        labels:
+          severity: warning
+          team: platform
+
+      - uid: cdc-latency-degradation
+        title: CDC Processing Latency Degradation
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                histogram_quantile(0.99,
+                  sum(rate(cdc_processing_latency_bucket[5m])) by (le)
+                ) > 5000
+        noDataState: OK
+        execErrState: Alerting
+        for: 5m
+        annotations:
+          summary: CDC processing latency p99 exceeds 5 seconds
+          description: |
+            Current p99 latency: {{ $value | printf "%.2f" }}ms
+            Check for slow MongoDB writes or backpressure.
+        labels:
+          severity: warning
+          team: platform
+
+      - uid: cdc-memory-pressure
+        title: High Memory Usage
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                jvm_memory_used_bytes{area="heap"}
+                /
+                jvm_memory_max_bytes{area="heap"} > 0.85
+        noDataState: OK
+        execErrState: Alerting
+        for: 5m
+        annotations:
+          summary: JVM heap usage exceeds 85%
+          description: |
+            Current heap usage: {{ $value | printf "%.0f" }}%
+            Consider scaling or investigating memory leaks.
+        labels:
+          severity: warning
+          team: platform
+
+      - uid: cdc-schema-change-detected
+        title: Schema Change Detected
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                increase(cdc_schema_changes_total[5m]) > 0
+        noDataState: OK
+        execErrState: OK
+        for: 0m
+        annotations:
+          summary: Schema change detected in CDC pipeline
+          description: |
+            Entity: {{ $labels.entity_type }}
+            Field: {{ $labels.field_name }}
+            Review for compatibility issues.
+        labels:
+          severity: warning
+          team: platform
+
+  - orgId: 1
+    name: CDC Info Alerts
+    folder: CDC Alerts
+    interval: 120s
+    rules:
+      - uid: cdc-consumer-rebalance
+        title: Consumer Rebalance Occurred
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                increase(kafka_consumer_coordinator_rebalance_total[5m]) > 0
+        noDataState: OK
+        execErrState: OK
+        for: 0m
+        annotations:
+          summary: Kafka consumer group rebalanced
+          description: |
+            Rebalance events in last 5 minutes: {{ $value }}
+            This is normal during scaling events.
+        labels:
+          severity: info
+          team: platform
+
+      - uid: cdc-low-throughput
+        title: Low CDC Throughput
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                sum(rate(cdc_messages_processed_total[10m])) < 1
+                and
+                sum(rate(cdc_messages_processed_total[10m])) > 0
+        noDataState: OK
+        execErrState: OK
+        for: 10m
+        annotations:
+          summary: CDC throughput below expected rate
+          description: |
+            Current rate: {{ $value | printf "%.2f" }} events/sec
+            Verify source database activity.
+        labels:
+          severity: info
+          team: platform
+
+      - uid: cdc-validation-failures
+        title: Validation Failures Detected
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                sum(rate(cdc_validation_failed_total[5m])) > 0
+        noDataState: OK
+        execErrState: OK
+        for: 1m
+        annotations:
+          summary: CDC events failing validation
+          description: |
+            Entity: {{ $labels.entity_type }}
+            Check data quality at source.
+        labels:
+          severity: info
+          team: platform

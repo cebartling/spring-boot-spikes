@@ -189,6 +189,14 @@ services:
       GF_AUTH_ANONYMOUS_ENABLED: "true"
       GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
       GF_FEATURE_TOGGLES_ENABLE: traceqlEditor tempoSearch tempoBackendSearch
+      # Enable unified alerting (Grafana 9+)
+      GF_UNIFIED_ALERTING_ENABLED: "true"
+      GF_ALERTING_ENABLED: "false"
+      # Optional: Capture screenshots for alerts (requires renderer)
+      GF_UNIFIED_ALERTING_SCREENSHOTS_CAPTURE: "false"
+      # Contact point credentials (set externally for production)
+      SLACK_WEBHOOK_URL: "${SLACK_WEBHOOK_URL:-}"
+      PAGERDUTY_INTEGRATION_KEY: "${PAGERDUTY_INTEGRATION_KEY:-}"
     volumes:
       - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
       - grafana_data:/var/lib/grafana
