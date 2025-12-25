@@ -1,6 +1,7 @@
 // k6/scripts/smoke-test.js
 // Quick smoke test to validate CDC pipeline configuration (15-30 seconds)
 import { sleep, check, group } from 'k6';
+import { printGrafanaLinks } from './lib/config.js';
 import * as pg from './lib/postgres.js';
 import * as mongo from './lib/mongodb.js';
 import * as metrics from './lib/metrics.js';
@@ -25,6 +26,7 @@ export const options = {
 export function setup() {
   console.log('Starting CDC pipeline smoke test');
   console.log('Configuration: 2 VUs for 20 seconds');
+  printGrafanaLinks();
   pg.openConnection();
   mongo.openConnection();
   return { startTime: Date.now() };

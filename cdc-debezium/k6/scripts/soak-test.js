@@ -1,7 +1,7 @@
 // k6/scripts/soak-test.js
 // Long-duration stability test for CDC pipeline
 import { sleep, check, group } from 'k6';
-import { config, getScenarioConfig } from './lib/config.js';
+import { config, getScenarioConfig, printGrafanaLinks } from './lib/config.js';
 import * as pg from './lib/postgres.js';
 import * as mongo from './lib/mongodb.js';
 import * as metrics from './lib/metrics.js';
@@ -34,6 +34,7 @@ const CHECKPOINT_INTERVAL = 300000; // 5 minutes
 export function setup() {
   console.log('Starting soak test - 50 VUs for 2 hours');
   console.log('This test validates long-term stability and detects memory leaks');
+  printGrafanaLinks();
   pg.openConnection();
   mongo.openConnection();
 

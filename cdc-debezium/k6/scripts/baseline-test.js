@@ -1,7 +1,7 @@
 // k6/scripts/baseline-test.js
 // Baseline performance measurement test for CDC pipeline
 import { sleep, check, group } from 'k6';
-import { config, getScenarioConfig } from './lib/config.js';
+import { config, getScenarioConfig, printGrafanaLinks } from './lib/config.js';
 import * as pg from './lib/postgres.js';
 import * as mongo from './lib/mongodb.js';
 import * as metrics from './lib/metrics.js';
@@ -23,6 +23,7 @@ export const options = {
 export function setup() {
   console.log('Starting baseline performance test');
   console.log('Configuration: 10 VUs for 5 minutes');
+  printGrafanaLinks();
   pg.openConnection();
   mongo.openConnection();
   return { startTime: Date.now() };

@@ -1,7 +1,7 @@
 // k6/scripts/stress-test.js
 // Stress testing with ramping VUs to find breaking points
 import { sleep, check } from 'k6';
-import { config, getScenarioConfig } from './lib/config.js';
+import { config, getScenarioConfig, printGrafanaLinks } from './lib/config.js';
 import * as pg from './lib/postgres.js';
 import * as mongo from './lib/mongodb.js';
 import * as metrics from './lib/metrics.js';
@@ -22,6 +22,7 @@ export const options = {
 export function setup() {
   console.log('Starting stress test - ramping from 0 to 150 VUs');
   console.log('Stages: 2m→50, 5m→100, 2m→150, 5m→100, 2m→0');
+  printGrafanaLinks();
   pg.openConnection();
   mongo.openConnection();
   return { startTime: Date.now() };

@@ -14,6 +14,15 @@ export const config = {
       orders: 'orders',
     },
   },
+  grafana: {
+    baseUrl: __ENV.GRAFANA_URL || 'http://localhost:3000',
+    dashboards: {
+      cdcOverview: '/d/cdc-overview/cdc-pipeline-overview',
+      consumerPerformance: '/d/consumer-performance/consumer-performance',
+      mongodbOperations: '/d/mongodb-operations/mongodb-operations',
+      logsExplorer: '/d/logs-explorer/logs-explorer',
+    },
+  },
   thresholds: {
     // E2E latency thresholds
     cdcLatencyP95: 2000, // 2 seconds
@@ -70,4 +79,18 @@ export function getScenarioConfig(scenario) {
   };
 
   return scenarios[scenario] || scenarios.baseline;
+}
+
+export function printGrafanaLinks() {
+  const baseUrl = config.grafana.baseUrl;
+  console.log('');
+  console.log('╔══════════════════════════════════════════════════════════════════╗');
+  console.log('║                    Grafana Monitoring Dashboards                 ║');
+  console.log('╠══════════════════════════════════════════════════════════════════╣');
+  console.log(`║  CDC Overview:          ${baseUrl}${config.grafana.dashboards.cdcOverview}`);
+  console.log(`║  Consumer Performance:  ${baseUrl}${config.grafana.dashboards.consumerPerformance}`);
+  console.log(`║  MongoDB Operations:    ${baseUrl}${config.grafana.dashboards.mongodbOperations}`);
+  console.log(`║  Logs Explorer:         ${baseUrl}${config.grafana.dashboards.logsExplorer}`);
+  console.log('╚══════════════════════════════════════════════════════════════════╝');
+  console.log('');
 }

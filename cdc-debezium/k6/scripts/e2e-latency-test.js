@@ -1,7 +1,7 @@
 // k6/scripts/e2e-latency-test.js
 // End-to-end CDC latency measurement with precise timing
 import { sleep, check } from 'k6';
-import { config } from './lib/config.js';
+import { config, printGrafanaLinks } from './lib/config.js';
 import * as pg from './lib/postgres.js';
 import * as mongo from './lib/mongodb.js';
 import { Trend, Counter, Rate } from 'k6/metrics';
@@ -39,6 +39,7 @@ export function setup() {
   console.log('Starting E2E latency measurement test');
   console.log('This test measures precise CDC propagation times');
   console.log('Rate: 10 iterations/second, Duration: 5 minutes');
+  printGrafanaLinks();
   pg.openConnection();
   mongo.openConnection();
   return { startTime: Date.now() };

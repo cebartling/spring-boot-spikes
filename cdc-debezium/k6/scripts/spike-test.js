@@ -1,7 +1,7 @@
 // k6/scripts/spike-test.js
 // Spike load testing with sudden VU increase
 import { sleep, check } from 'k6';
-import { config, getScenarioConfig } from './lib/config.js';
+import { config, getScenarioConfig, printGrafanaLinks } from './lib/config.js';
 import * as pg from './lib/postgres.js';
 import * as mongo from './lib/mongodb.js';
 import * as metrics from './lib/metrics.js';
@@ -21,6 +21,7 @@ export const options = {
 export function setup() {
   console.log('Starting spike test - sudden load increase to 500 VUs');
   console.log('Stages: 30s→10, 1m→500, 30s→10');
+  printGrafanaLinks();
   pg.openConnection();
   mongo.openConnection();
 

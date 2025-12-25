@@ -1,7 +1,7 @@
 // k6/scripts/mixed-workload-test.js
 // Realistic mixed operation workload test
 import { sleep, check, group } from 'k6';
-import { config } from './lib/config.js';
+import { config, printGrafanaLinks } from './lib/config.js';
 import * as pg from './lib/postgres.js';
 import * as mongo from './lib/mongodb.js';
 import * as metrics from './lib/metrics.js';
@@ -48,6 +48,7 @@ export function setup() {
   for (const [op, pct] of Object.entries(WORKLOAD)) {
     console.log(`  - ${op}: ${(pct * 100).toFixed(0)}%`);
   }
+  printGrafanaLinks();
   pg.openConnection();
   mongo.openConnection();
 
