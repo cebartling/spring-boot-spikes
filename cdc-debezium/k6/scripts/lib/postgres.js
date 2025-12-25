@@ -28,14 +28,13 @@ export function closeConnection() {
 export function insertCustomer(customer) {
   const start = Date.now();
   try {
-    const result = db.exec(`
-      INSERT INTO customer (id, email, status, created_at, updated_at)
-      VALUES ($1, $2, $3, NOW(), NOW())
+    db.exec(`
+      INSERT INTO customer (id, email, status, updated_at)
+      VALUES ($1, $2, $3, NOW())
       ON CONFLICT (id) DO UPDATE SET
         email = EXCLUDED.email,
         status = EXCLUDED.status,
         updated_at = NOW()
-      RETURNING id
     `, customer.id, customer.email, customer.status);
 
     pgWriteDuration.add(Date.now() - start);
@@ -52,8 +51,8 @@ export function insertAddress(address) {
   const start = Date.now();
   try {
     db.exec(`
-      INSERT INTO address (id, customer_id, type, street, city, state, postal_code, country, is_default, created_at, updated_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
+      INSERT INTO address (id, customer_id, type, street, city, state, postal_code, country, is_default, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
       ON CONFLICT (id) DO UPDATE SET
         street = EXCLUDED.street,
         city = EXCLUDED.city,

@@ -25,7 +25,7 @@ services:
       POSTGRES_PORT: 5432
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: cdc_source
+      POSTGRES_DB: postgres
       MONGODB_URI: mongodb://cdc_app:cdc_app_password@cdc-mongodb:27017/cdc_materialized?authSource=cdc_materialized
     networks:
       - cdc-network
