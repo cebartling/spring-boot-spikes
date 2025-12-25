@@ -38,8 +38,7 @@ export const options = {
 export function setup() {
   console.log('Starting E2E latency measurement test');
   console.log('This test measures precise CDC propagation times');
-  console.log(`Rate: ${options.scenarios.e2e_latency.rate} iterations/second`);
-  console.log(`Duration: ${options.scenarios.e2e_latency.duration}`);
+  console.log('Rate: 10 iterations/second, Duration: 5 minutes');
   pg.openConnection();
   mongo.openConnection();
   return { startTime: Date.now() };

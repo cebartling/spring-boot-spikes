@@ -22,7 +22,7 @@ export const options = {
 
 export function setup() {
   console.log('Starting baseline performance test');
-  console.log(`Configuration: ${options.scenarios.baseline.vus} VUs for ${options.scenarios.baseline.duration}`);
+  console.log('Configuration: 10 VUs for 5 minutes');
   pg.openConnection();
   mongo.openConnection();
   return { startTime: Date.now() };

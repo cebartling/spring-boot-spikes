@@ -21,10 +21,7 @@ export const options = {
 
 export function setup() {
   console.log('Starting stress test - ramping from 0 to 150 VUs');
-  console.log('Stages:');
-  for (const stage of options.scenarios.stress.stages) {
-    console.log(`  - ${stage.duration}: ${stage.target} VUs`);
-  }
+  console.log('Stages: 2m→50, 5m→100, 2m→150, 5m→100, 2m→0');
   pg.openConnection();
   mongo.openConnection();
   return { startTime: Date.now() };

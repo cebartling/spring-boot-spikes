@@ -20,10 +20,7 @@ export const options = {
 
 export function setup() {
   console.log('Starting spike test - sudden load increase to 500 VUs');
-  console.log('Stages:');
-  for (const stage of options.scenarios.spike.stages) {
-    console.log(`  - ${stage.duration}: ${stage.target} VUs`);
-  }
+  console.log('Stages: 30s→10, 1m→500, 30s→10');
   pg.openConnection();
   mongo.openConnection();
 
