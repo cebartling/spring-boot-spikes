@@ -50,6 +50,10 @@ export function findCustomer(customerId, maxRetries = 10, retryDelayMs = 500) {
     } catch (error) {
       mongoReadDuration.add(Date.now() - start);
       mongoReadErrors.add(1);
+      // Log error on first occurrence to help debug
+      if (attempt === 0) {
+        console.log(`MongoDB error for ${customerId}: ${error.message}`);
+      }
       return { found: false, error: error.message };
     }
   }
