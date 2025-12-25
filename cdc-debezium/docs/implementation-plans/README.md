@@ -65,8 +65,9 @@ Comprehensive enhancements including MongoDB migration, extended schema support,
 |------|------|--------------|------------|
 | [PLAN-022](PLAN-022-k6-load-testing-infrastructure.md) | k6 Load Testing Infrastructure | PLAN-011, PLAN-019 | Medium-High |
 | [PLAN-023](PLAN-023-k6-load-test-scenarios.md) | k6 Load Test Scenarios | PLAN-022 | High |
-| [PLAN-024](PLAN-024-k6-reporting-cicd.md) | k6 Reporting and CI/CD Integration | PLAN-022, PLAN-023 | High |
+| [PLAN-024](PLAN-024-k6-reporting.md) | k6 Reporting and Local Test Execution | PLAN-022, PLAN-023 | Medium |
 | [PLAN-025](PLAN-025-chaos-engineering.md) | Chaos Engineering Integration | PLAN-022, PLAN-023 | High |
+| [PLAN-026](PLAN-026-github-actions-performance-testing.md) | GitHub Actions Performance Testing CI/CD | PLAN-022, PLAN-023, PLAN-024 | Medium |
 
 ## Dependency Graph
 
@@ -127,7 +128,9 @@ PLAN-001 (Docker Infrastructure)
                             │
                             └── PLAN-023 (Load Test Scenarios)
                                     │
-                                    ├── PLAN-024 (Reporting & CI/CD)
+                                    ├── PLAN-024 (Reporting)
+                                    │       │
+                                    │       └── PLAN-026 (GitHub Actions CI/CD)
                                     │
                                     └── PLAN-025 (Chaos Engineering)
 ```
@@ -164,6 +167,7 @@ PLAN-001 (Docker Infrastructure)
 1. **PLAN-022**
 2. **PLAN-023**
 3. **PLAN-024** + **PLAN-025** (parallel)
+4. **PLAN-026** (after PLAN-024)
 
 ## Quick Start
 

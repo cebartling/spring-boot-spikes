@@ -237,10 +237,20 @@ Commit small changes with clear messages.
 Once complete, create a pull request for review.
 ```
 
-## K6 Reporting CI/CD
+## K6 Reporting
 
 ```
-Implement the implementation plan found at @docs/implementation-plans/PLAN-024-k6-reporting-cicd.md.
+Implement the implementation plan found at @docs/implementation-plans/PLAN-024-k6-reporting.md.
+Think hard about how to execute each step in the plan.
+Create a feature branch off of main for this work.
+Commit small changes with clear messages.
+Once complete, create a pull request for review.
+```
+
+## GitHub Actions Performance Testing CI/CD
+
+```
+Implement the implementation plan found at @docs/implementation-plans/PLAN-026-github-actions-performance-testing.md.
 Think hard about how to execute each step in the plan.
 Create a feature branch off of main for this work.
 Commit small changes with clear messages.
