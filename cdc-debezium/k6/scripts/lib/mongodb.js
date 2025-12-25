@@ -11,20 +11,17 @@ const mongoReadErrors = new Counter('mongo_read_errors');
 const mongoDocumentsFound = new Counter('mongo_documents_found');
 const mongoDocumentsNotFound = new Counter('mongo_documents_not_found');
 
-let client = null;
+// Open connection at init time (module load) - this is shared across all VUs
+const client = mongo.newClient(config.mongodb.uri);
 
 export function openConnection() {
-  if (!client) {
-    client = mongo.newClient(config.mongodb.uri);
-  }
+  // Connection is already open at init time, return it
   return client;
 }
 
 export function closeConnection() {
-  if (client) {
-    client.close();
-    client = null;
-  }
+  // Connection is managed by k6 runtime, no-op here
+  // client.close() would break other VUs
 }
 
 export function findCustomer(customerId, maxRetries = 10, retryDelayMs = 500) {
