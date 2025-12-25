@@ -1,16 +1,21 @@
 # k6/Dockerfile
 # Custom k6 build with extensions for CDC pipeline load testing
-FROM golang:1.21-alpine AS builder
+FROM golang:1.23-alpine AS builder
 
-# Install xk6
-RUN go install go.k6.io/xk6/cmd/xk6@latest
+# Install build dependencies (git required for Go modules)
+RUN apk add --no-cache git
+
+# Install xk6 (using v0.13.0 for compatibility with Go 1.23)
+RUN go install go.k6.io/xk6/cmd/xk6@v0.13.0
 
 # Build k6 with extensions
+# - xk6-sql v0.4.1: built-in PostgreSQL support (pre-modularization)
+# - xk6-mongo v0.1.3: MongoDB driver (Go 1.23 compatible)
+# - xk6-output-prometheus-remote v0.5.0: Prometheus remote write support
 RUN xk6 build \
-    --with github.com/grafana/xk6-sql@latest \
-    --with github.com/grafana/xk6-sql-driver-postgres@latest \
-    --with github.com/oleiade/xk6-mongo@latest \
-    --with github.com/grafana/xk6-output-prometheus-remote@latest \
+    --with github.com/grafana/xk6-sql@v0.4.1 \
+    --with github.com/GhMartingit/xk6-mongo@v0.1.3 \
+    --with github.com/grafana/xk6-output-prometheus-remote@v0.5.0 \
     --output /k6
 
 FROM alpine:3.19
