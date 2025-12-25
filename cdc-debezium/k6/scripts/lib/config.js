@@ -83,14 +83,31 @@ export function getScenarioConfig(scenario) {
 
 export function printGrafanaLinks() {
   const baseUrl = config.grafana.baseUrl;
+  const dashboards = [
+    { name: 'CDC Overview', path: config.grafana.dashboards.cdcOverview },
+    { name: 'Consumer Performance', path: config.grafana.dashboards.consumerPerformance },
+    { name: 'MongoDB Operations', path: config.grafana.dashboards.mongodbOperations },
+    { name: 'Logs Explorer', path: config.grafana.dashboards.logsExplorer },
+  ];
+
+  // Calculate the max URL length for proper box sizing
+  const maxUrlLength = Math.max(...dashboards.map((d) => d.name.length + baseUrl.length + d.path.length + 4));
+  const boxWidth = Math.max(maxUrlLength + 4, 50);
+  const horizontalLine = '═'.repeat(boxWidth);
+  const titlePadding = Math.floor((boxWidth - 28) / 2);
+
   console.log('');
-  console.log('╔══════════════════════════════════════════════════════════════════╗');
-  console.log('║                    Grafana Monitoring Dashboards                 ║');
-  console.log('╠══════════════════════════════════════════════════════════════════╣');
-  console.log(`║  CDC Overview:          ${baseUrl}${config.grafana.dashboards.cdcOverview}`);
-  console.log(`║  Consumer Performance:  ${baseUrl}${config.grafana.dashboards.consumerPerformance}`);
-  console.log(`║  MongoDB Operations:    ${baseUrl}${config.grafana.dashboards.mongodbOperations}`);
-  console.log(`║  Logs Explorer:         ${baseUrl}${config.grafana.dashboards.logsExplorer}`);
-  console.log('╚══════════════════════════════════════════════════════════════════╝');
+  console.log(`╔${horizontalLine}╗`);
+  console.log(`║${' '.repeat(titlePadding)}Grafana Monitoring Dashboards${' '.repeat(boxWidth - titlePadding - 29)}║`);
+  console.log(`╠${horizontalLine}╣`);
+
+  for (const dashboard of dashboards) {
+    const url = `${baseUrl}${dashboard.path}`;
+    const line = `  ${dashboard.name}: ${url}`;
+    const padding = boxWidth - line.length;
+    console.log(`║${line}${' '.repeat(padding)}║`);
+  }
+
+  console.log(`╚${horizontalLine}╝`);
   console.log('');
 }
