@@ -246,29 +246,75 @@ docker compose -f k6/docker-compose.k6.yml run --rm k6 run \
 
 ## Viewing Metrics
 
-### Prometheus
+### Prometheus UI
 
-Metrics are available in Prometheus at `http://localhost:9090`. Query examples:
+1. Open Prometheus at http://localhost:9090
+2. Go to **Graph** tab
+3. Enter a query and click **Execute**
+
+**Available k6 Metrics:**
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `k6_iterations_total` | Counter | Total test iterations completed |
+| `k6_checks_rate` | Gauge | Check pass rate (0-1) |
+| `k6_pg_write_duration_p99` | Gauge | PostgreSQL write latency P99 (ms) |
+| `k6_pg_records_inserted_total` | Counter | Total records inserted |
+| `k6_pg_write_errors_total` | Counter | PostgreSQL write errors |
+| `k6_mongo_read_duration_p99` | Gauge | MongoDB read latency P99 (ms) |
+| `k6_mongo_documents_found_total` | Counter | Documents found in MongoDB |
+
+**Example Queries:**
 
 ```promql
-# PostgreSQL write latency P95
-histogram_quantile(0.95, sum(rate(k6_pg_write_duration_bucket[1m])) by (le))
-
-# MongoDB read latency P95
-histogram_quantile(0.95, sum(rate(k6_mongo_read_duration_bucket[1m])) by (le))
-
-# CDC success rate
-sum(rate(k6_cdc_success_rate_total[1m])) / sum(rate(k6_cdc_success_rate_total[1m]))
+# PostgreSQL write latency P99
+k6_pg_write_duration_p99
 
 # Total records inserted
-sum(k6_pg_records_inserted_total)
+k6_pg_records_inserted_total
+
+# Check success rate
+k6_checks_rate
+
+# Iteration rate per second
+rate(k6_iterations_total[1m])
+
+# Write errors
+k6_pg_write_errors_total
 ```
 
 ### Grafana
 
-1. Open Grafana at `http://localhost:3000`
-2. Navigate to Dashboards
-3. Look for k6 dashboards (if provisioned)
+1. Open Grafana at http://localhost:3000 (admin/admin)
+2. Go to **Explore** (compass icon in left sidebar)
+3. Select **Prometheus** as the data source
+4. Enter a PromQL query like `k6_pg_write_duration_p99`
+5. Click **Run query**
+
+**Quick Steps to Create a k6 Dashboard:**
+
+1. Go to **Dashboards** → **New** → **New Dashboard**
+2. Click **Add visualization**
+3. Select **Prometheus** data source
+4. Add queries for metrics you want to track
+5. Save the dashboard
+
+**Example Panel Queries:**
+
+- **Iterations Over Time**: `rate(k6_iterations_total[1m])`
+- **Write Latency**: `k6_pg_write_duration_p99`
+- **Check Pass Rate**: `k6_checks_rate * 100` (as percentage)
+- **Records Inserted**: `increase(k6_pg_records_inserted_total[5m])`
+
+### Verify Metrics Are Being Collected
+
+```bash
+# List all k6 metrics in Prometheus
+curl -s 'http://localhost:9090/api/v1/label/__name__/values' | jq '.data | map(select(startswith("k6")))'
+
+# Query a specific metric
+curl -s 'http://localhost:9090/api/v1/query?query=k6_iterations_total' | jq '.data.result'
+```
 
 ## Troubleshooting
 
