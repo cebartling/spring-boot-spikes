@@ -2,7 +2,8 @@
 
 ## Objective
 
-Implement k6 test reporting with HTML/JSON outputs, Grafana dashboards for result visualization, and GitHub Actions integration for automated performance testing in CI/CD pipelines.
+Implement k6 test reporting with HTML/JSON outputs, Grafana dashboards for result visualization, and GitHub Actions
+integration for automated performance testing in CI/CD pipelines.
 
 ## Parent Feature
 
@@ -17,13 +18,13 @@ Implement k6 test reporting with HTML/JSON outputs, Grafana dashboards for resul
 
 ### Files to Create/Modify
 
-| File | Purpose |
-|------|---------|
-| `.github/workflows/performance-test.yml` | GitHub Actions workflow |
-| `k6/scripts/lib/report.js` | Report generation utilities |
-| `k6/grafana/provisioning/dashboards/k6-results.json` | k6 results dashboard |
-| `k6/scripts/run-tests.sh` | Test runner script |
-| `k6/thresholds.json` | Configurable threshold file |
+| File                                                 | Purpose                     |
+|------------------------------------------------------|-----------------------------|
+| `.github/workflows/performance-test.yml`             | GitHub Actions workflow     |
+| `k6/scripts/lib/report.js`                           | Report generation utilities |
+| `k6/grafana/provisioning/dashboards/k6-results.json` | k6 results dashboard        |
+| `k6/scripts/run-tests.sh`                            | Test runner script          |
+| `k6/thresholds.json`                                 | Configurable threshold file |
 
 ### CI/CD Architecture
 
@@ -108,7 +109,7 @@ jobs:
     timeout-minutes: 120
 
     services:
-      # No services defined here - we use docker compose
+    # No services defined here - we use docker compose
 
     steps:
       - name: Checkout repository
@@ -426,7 +427,11 @@ log "All tests completed. Results in $RESULTS_DIR"
   "dashboard": {
     "title": "k6 Load Test Results",
     "uid": "k6-results",
-    "tags": ["k6", "load-testing", "performance"],
+    "tags": [
+      "k6",
+      "load-testing",
+      "performance"
+    ],
     "timezone": "browser",
     "refresh": "10s",
     "panels": [
@@ -434,7 +439,12 @@ log "All tests completed. Results in $RESULTS_DIR"
         "id": 1,
         "title": "Virtual Users",
         "type": "timeseries",
-        "gridPos": { "x": 0, "y": 0, "w": 12, "h": 6 },
+        "gridPos": {
+          "x": 0,
+          "y": 0,
+          "w": 12,
+          "h": 6
+        },
         "targets": [
           {
             "expr": "k6_vus",
@@ -450,7 +460,12 @@ log "All tests completed. Results in $RESULTS_DIR"
         "id": 2,
         "title": "Request Rate",
         "type": "timeseries",
-        "gridPos": { "x": 12, "y": 0, "w": 12, "h": 6 },
+        "gridPos": {
+          "x": 12,
+          "y": 0,
+          "w": 12,
+          "h": 6
+        },
         "targets": [
           {
             "expr": "rate(k6_iterations_total[1m])",
@@ -458,14 +473,21 @@ log "All tests completed. Results in $RESULTS_DIR"
           }
         ],
         "fieldConfig": {
-          "defaults": { "unit": "reqps" }
+          "defaults": {
+            "unit": "reqps"
+          }
         }
       },
       {
         "id": 3,
         "title": "CDC E2E Latency",
         "type": "timeseries",
-        "gridPos": { "x": 0, "y": 6, "w": 12, "h": 8 },
+        "gridPos": {
+          "x": 0,
+          "y": 6,
+          "w": 12,
+          "h": 8
+        },
         "targets": [
           {
             "expr": "histogram_quantile(0.50, rate(k6_cdc_e2e_latency_bucket[1m]))",
@@ -481,14 +503,21 @@ log "All tests completed. Results in $RESULTS_DIR"
           }
         ],
         "fieldConfig": {
-          "defaults": { "unit": "ms" }
+          "defaults": {
+            "unit": "ms"
+          }
         }
       },
       {
         "id": 4,
         "title": "Success Rate",
         "type": "gauge",
-        "gridPos": { "x": 12, "y": 6, "w": 6, "h": 4 },
+        "gridPos": {
+          "x": 12,
+          "y": 6,
+          "w": 6,
+          "h": 4
+        },
         "targets": [
           {
             "expr": "k6_cdc_success_rate",
@@ -503,9 +532,18 @@ log "All tests completed. Results in $RESULTS_DIR"
             "thresholds": {
               "mode": "absolute",
               "steps": [
-                { "color": "red", "value": 0 },
-                { "color": "yellow", "value": 0.95 },
-                { "color": "green", "value": 0.99 }
+                {
+                  "color": "red",
+                  "value": 0
+                },
+                {
+                  "color": "yellow",
+                  "value": 0.95
+                },
+                {
+                  "color": "green",
+                  "value": 0.99
+                }
               ]
             }
           }
@@ -515,7 +553,12 @@ log "All tests completed. Results in $RESULTS_DIR"
         "id": 5,
         "title": "Error Count",
         "type": "stat",
-        "gridPos": { "x": 18, "y": 6, "w": 6, "h": 4 },
+        "gridPos": {
+          "x": 18,
+          "y": 6,
+          "w": 6,
+          "h": 4
+        },
         "targets": [
           {
             "expr": "sum(increase(k6_pg_write_errors[5m]))",
@@ -531,7 +574,12 @@ log "All tests completed. Results in $RESULTS_DIR"
         "id": 6,
         "title": "PostgreSQL Write Latency",
         "type": "timeseries",
-        "gridPos": { "x": 12, "y": 10, "w": 12, "h": 4 },
+        "gridPos": {
+          "x": 12,
+          "y": 10,
+          "w": 12,
+          "h": 4
+        },
         "targets": [
           {
             "expr": "histogram_quantile(0.95, rate(k6_pg_write_duration_bucket[1m]))",
@@ -539,14 +587,21 @@ log "All tests completed. Results in $RESULTS_DIR"
           }
         ],
         "fieldConfig": {
-          "defaults": { "unit": "ms" }
+          "defaults": {
+            "unit": "ms"
+          }
         }
       },
       {
         "id": 7,
         "title": "MongoDB Read Latency",
         "type": "timeseries",
-        "gridPos": { "x": 0, "y": 14, "w": 12, "h": 4 },
+        "gridPos": {
+          "x": 0,
+          "y": 14,
+          "w": 12,
+          "h": 4
+        },
         "targets": [
           {
             "expr": "histogram_quantile(0.95, rate(k6_mongo_read_duration_bucket[1m]))",
@@ -554,14 +609,21 @@ log "All tests completed. Results in $RESULTS_DIR"
           }
         ],
         "fieldConfig": {
-          "defaults": { "unit": "ms" }
+          "defaults": {
+            "unit": "ms"
+          }
         }
       },
       {
         "id": 8,
         "title": "Records Processed",
         "type": "stat",
-        "gridPos": { "x": 12, "y": 14, "w": 6, "h": 4 },
+        "gridPos": {
+          "x": 12,
+          "y": 14,
+          "w": 6,
+          "h": 4
+        },
         "targets": [
           {
             "expr": "sum(k6_pg_records_inserted)",
@@ -573,7 +635,12 @@ log "All tests completed. Results in $RESULTS_DIR"
         "id": 9,
         "title": "Documents Found",
         "type": "stat",
-        "gridPos": { "x": 18, "y": 14, "w": 6, "h": 4 },
+        "gridPos": {
+          "x": 18,
+          "y": 14,
+          "w": 6,
+          "h": 4
+        },
         "targets": [
           {
             "expr": "sum(k6_mongo_documents_found)",
@@ -589,7 +656,12 @@ log "All tests completed. Results in $RESULTS_DIR"
         "id": 10,
         "title": "Threshold Status",
         "type": "table",
-        "gridPos": { "x": 0, "y": 18, "w": 24, "h": 6 },
+        "gridPos": {
+          "x": 0,
+          "y": 18,
+          "w": 24,
+          "h": 6
+        },
         "targets": [
           {
             "expr": "k6_threshold_passes",
@@ -616,7 +688,10 @@ log "All tests completed. Results in $RESULTS_DIR"
         {
           "name": "test_run",
           "type": "query",
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
           "query": "label_values(k6_vus, test_run_id)",
           "multi": false,
           "includeAll": false
@@ -754,24 +829,23 @@ sequenceDiagram
     participant Infra as Test Infrastructure
     participant K6 as k6 Runner
     participant Grafana as Grafana
-
-    Dev->>GH: Push PR
-    GH->>Actions: Trigger workflow
-    Actions->>Infra: Start Docker Compose
-    Actions->>Infra: Deploy Debezium connector
-    Actions->>K6: Build k6 image
-    K6->>K6: Run health check
-    K6->>Infra: Execute tests
-    K6->>Grafana: Stream metrics (Prometheus)
-    K6->>Actions: Return results (JSON)
-    Actions->>Actions: Generate HTML report
-    Actions->>Actions: Check thresholds
-    Actions->>GH: Upload artifacts
-    Actions->>GH: Post PR comment
+    Dev ->> GH: Push PR
+    GH ->> Actions: Trigger workflow
+    Actions ->> Infra: Start Docker Compose
+    Actions ->> Infra: Deploy Debezium connector
+    Actions ->> K6: Build k6 image
+    K6 ->> K6: Run health check
+    K6 ->> Infra: Execute tests
+    K6 ->> Grafana: Stream metrics (Prometheus)
+    K6 ->> Actions: Return results (JSON)
+    Actions ->> Actions: Generate HTML report
+    Actions ->> Actions: Check thresholds
+    Actions ->> GH: Upload artifacts
+    Actions ->> GH: Post PR comment
     alt Thresholds passed
-        Actions->>GH: Mark check as passed
+        Actions ->> GH: Mark check as passed
     else Thresholds failed
-        Actions->>GH: Mark check as failed
+        Actions ->> GH: Mark check as failed
     end
 ```
 

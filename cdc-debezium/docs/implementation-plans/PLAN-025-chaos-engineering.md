@@ -2,7 +2,8 @@
 
 ## Objective
 
-Implement chaos engineering capabilities using Pumba and Docker container manipulation to test CDC pipeline resilience under failure conditions including network partitions, container crashes, and resource constraints.
+Implement chaos engineering capabilities using Pumba and Docker container manipulation to test CDC pipeline resilience
+under failure conditions including network partitions, container crashes, and resource constraints.
 
 ## Parent Feature
 
@@ -17,15 +18,15 @@ Implement chaos engineering capabilities using Pumba and Docker container manipu
 
 ### Files to Create/Modify
 
-| File | Purpose |
-|------|---------|
-| `chaos/docker-compose.chaos.yml` | Pumba chaos testing services |
-| `chaos/scenarios/kafka-partition.yml` | Kafka network partition scenario |
-| `chaos/scenarios/mongodb-failure.yml` | MongoDB crash/restart scenario |
-| `chaos/scenarios/consumer-restart.yml` | Consumer crash and recovery |
-| `chaos/scenarios/network-delay.yml` | Network latency injection |
-| `k6/scripts/chaos-resilience-test.js` | k6 test with chaos injection |
-| `chaos/run-chaos.sh` | Chaos test runner script |
+| File                                   | Purpose                          |
+|----------------------------------------|----------------------------------|
+| `chaos/docker-compose.chaos.yml`       | Pumba chaos testing services     |
+| `chaos/scenarios/kafka-partition.yml`  | Kafka network partition scenario |
+| `chaos/scenarios/mongodb-failure.yml`  | MongoDB crash/restart scenario   |
+| `chaos/scenarios/consumer-restart.yml` | Consumer crash and recovery      |
+| `chaos/scenarios/network-delay.yml`    | Network latency injection        |
+| `k6/scripts/chaos-resilience-test.js`  | k6 test with chaos injection     |
+| `chaos/run-chaos.sh`                   | Chaos test runner script         |
 
 ### Chaos Engineering Architecture
 
@@ -60,7 +61,6 @@ flowchart TB
     DOCKER --> PAUSE
     DOCKER --> NET
     DOCKER --> DELAY
-
     KILL --> KAFKA
     KILL --> CONSUMER
     KILL --> MONGO
@@ -329,13 +329,13 @@ validation:
 
 ```javascript
 // k6/scripts/chaos-resilience-test.js
-import { sleep, check, group } from 'k6';
-import { config } from './lib/config.js';
+import {sleep, check, group} from 'k6';
+import {config} from './lib/config.js';
 import * as pg from './lib/postgres.js';
 import * as mongo from './lib/mongodb.js';
 import * as metrics from './lib/metrics.js';
-import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
-import { Trend, Counter, Rate, Gauge } from 'k6/metrics';
+import {uuidv4} from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
+import {Trend, Counter, Rate, Gauge} from 'k6/metrics';
 import exec from 'k6/execution';
 import http from 'k6/http';
 
@@ -347,31 +347,31 @@ const chaosResilience = new Rate('chaos_resilience_rate');
 
 // Test phases
 const PHASES = {
-  BASELINE: 1,
-  CHAOS: 2,
-  RECOVERY: 3,
-  VERIFICATION: 4,
+    BASELINE: 1,
+    CHAOS: 2,
+    RECOVERY: 3,
+    VERIFICATION: 4,
 };
 
 export const options = {
-  scenarios: {
-    chaos_test: {
-      executor: 'ramping-vus',
-      startVUs: 0,
-      stages: [
-        { duration: '1m', target: 20 },   // Baseline ramp-up
-        { duration: '2m', target: 20 },   // Baseline steady
-        { duration: '1m', target: 20 },   // Chaos injection (external)
-        { duration: '2m', target: 20 },   // Recovery
-        { duration: '1m', target: 0 },    // Ramp-down
-      ],
+    scenarios: {
+        chaos_test: {
+            executor: 'ramping-vus',
+            startVUs: 0,
+            stages: [
+                {duration: '1m', target: 20},   // Baseline ramp-up
+                {duration: '2m', target: 20},   // Baseline steady
+                {duration: '1m', target: 20},   // Chaos injection (external)
+                {duration: '2m', target: 20},   // Recovery
+                {duration: '1m', target: 0},    // Ramp-down
+            ],
+        },
     },
-  },
-  thresholds: {
-    'chaos_resilience_rate': ['rate>0.90'],  // 90% events should succeed even with chaos
-    'chaos_recovery_time': ['p(95)<30000'],  // Recovery within 30s
-    'cdc_success_rate': ['rate>0.85'],       // Allow more failures during chaos
-  },
+    thresholds: {
+        'chaos_resilience_rate': ['rate>0.90'],  // 90% events should succeed even with chaos
+        'chaos_recovery_time': ['p(95)<30000'],  // Recovery within 30s
+        'cdc_success_rate': ['rate>0.85'],       // Allow more failures during chaos
+    },
 };
 
 // Track events for verification
@@ -379,123 +379,123 @@ const pendingEvents = new Map();
 const verifiedEvents = new Set();
 
 export function setup() {
-  console.log('=== CHAOS RESILIENCE TEST ===');
-  console.log('This test should be run with external chaos injection');
-  console.log('Use run-chaos.sh to inject failures during the test');
+    console.log('=== CHAOS RESILIENCE TEST ===');
+    console.log('This test should be run with external chaos injection');
+    console.log('Use run-chaos.sh to inject failures during the test');
 
-  pg.openConnection();
-  mongo.openConnection();
+    pg.openConnection();
+    mongo.openConnection();
 
-  return {
-    startTime: Date.now(),
-    baselineEvents: 0,
-  };
+    return {
+        startTime: Date.now(),
+        baselineEvents: 0,
+    };
 }
 
 export default function (data) {
-  const testTime = (Date.now() - data.startTime) / 1000;
-  const currentPhase = determinePhase(testTime);
-  chaosPhase.add(currentPhase);
+    const testTime = (Date.now() - data.startTime) / 1000;
+    const currentPhase = determinePhase(testTime);
+    chaosPhase.add(currentPhase);
 
-  const customerId = uuidv4();
-  const startTime = Date.now();
+    const customerId = uuidv4();
+    const startTime = Date.now();
 
-  // Create customer
-  const customer = {
-    id: customerId,
-    email: `chaos-${customerId}@resilience.test`,
-    status: 'active',
-  };
+    // Create customer
+    const customer = {
+        id: customerId,
+        email: `chaos-${customerId}@resilience.test`,
+        status: 'active',
+    };
 
-  const writeResult = pg.insertCustomer(customer);
+    const writeResult = pg.insertCustomer(customer);
 
-  if (!writeResult.success) {
-    chaosResilience.add(false);
-    metrics.recordFailure('create');
+    if (!writeResult.success) {
+        chaosResilience.add(false);
+        metrics.recordFailure('create');
 
-    // Expected during chaos - don't fail immediately
-    if (currentPhase === PHASES.CHAOS) {
-      console.log(`Write failed during chaos phase: ${writeResult.error}`);
-    }
-    return;
-  }
-
-  // Track pending event
-  pendingEvents.set(customerId, { startTime, customer });
-
-  // Verification with extended timeout during recovery
-  const maxRetries = currentPhase === PHASES.RECOVERY ? 60 : 30;
-  const retryDelay = currentPhase === PHASES.RECOVERY ? 1000 : 200;
-
-  const readResult = mongo.findCustomer(customerId, maxRetries, retryDelay);
-
-  if (readResult.found) {
-    chaosResilience.add(true);
-    metrics.recordSuccess('create');
-    metrics.recordCdcLatency(startTime, Date.now());
-
-    // Track recovery time if we were in chaos/recovery phase
-    if (currentPhase >= PHASES.CHAOS) {
-      recoveryTime.add(Date.now() - startTime);
+        // Expected during chaos - don't fail immediately
+        if (currentPhase === PHASES.CHAOS) {
+            console.log(`Write failed during chaos phase: ${writeResult.error}`);
+        }
+        return;
     }
 
-    verifiedEvents.add(customerId);
-    pendingEvents.delete(customerId);
-  } else {
-    chaosResilience.add(false);
+    // Track pending event
+    pendingEvents.set(customerId, {startTime, customer});
 
-    if (currentPhase === PHASES.VERIFICATION) {
-      // Final verification phase - count as lost
-      eventsLostDuringChaos.add(1);
-      console.log(`Event lost: ${customerId}`);
+    // Verification with extended timeout during recovery
+    const maxRetries = currentPhase === PHASES.RECOVERY ? 60 : 30;
+    const retryDelay = currentPhase === PHASES.RECOVERY ? 1000 : 200;
+
+    const readResult = mongo.findCustomer(customerId, maxRetries, retryDelay);
+
+    if (readResult.found) {
+        chaosResilience.add(true);
+        metrics.recordSuccess('create');
+        metrics.recordCdcLatency(startTime, Date.now());
+
+        // Track recovery time if we were in chaos/recovery phase
+        if (currentPhase >= PHASES.CHAOS) {
+            recoveryTime.add(Date.now() - startTime);
+        }
+
+        verifiedEvents.add(customerId);
+        pendingEvents.delete(customerId);
+    } else {
+        chaosResilience.add(false);
+
+        if (currentPhase === PHASES.VERIFICATION) {
+            // Final verification phase - count as lost
+            eventsLostDuringChaos.add(1);
+            console.log(`Event lost: ${customerId}`);
+        }
     }
-  }
 
-  // Adaptive sleep based on phase
-  const sleepTime = currentPhase === PHASES.CHAOS ? 0.5 : 0.2;
-  sleep(sleepTime);
+    // Adaptive sleep based on phase
+    const sleepTime = currentPhase === PHASES.CHAOS ? 0.5 : 0.2;
+    sleep(sleepTime);
 }
 
 function determinePhase(testTimeSeconds) {
-  if (testTimeSeconds < 180) return PHASES.BASELINE;      // 0-3 min
-  if (testTimeSeconds < 240) return PHASES.CHAOS;         // 3-4 min
-  if (testTimeSeconds < 360) return PHASES.RECOVERY;      // 4-6 min
-  return PHASES.VERIFICATION;                              // 6+ min
+    if (testTimeSeconds < 180) return PHASES.BASELINE;      // 0-3 min
+    if (testTimeSeconds < 240) return PHASES.CHAOS;         // 3-4 min
+    if (testTimeSeconds < 360) return PHASES.RECOVERY;      // 4-6 min
+    return PHASES.VERIFICATION;                              // 6+ min
 }
 
 export function teardown(data) {
-  const duration = (Date.now() - data.startTime) / 1000;
+    const duration = (Date.now() - data.startTime) / 1000;
 
-  console.log('\n=== CHAOS TEST RESULTS ===');
-  console.log(`Total duration: ${duration.toFixed(0)}s`);
-  console.log(`Verified events: ${verifiedEvents.size}`);
-  console.log(`Pending events: ${pendingEvents.size}`);
+    console.log('\n=== CHAOS TEST RESULTS ===');
+    console.log(`Total duration: ${duration.toFixed(0)}s`);
+    console.log(`Verified events: ${verifiedEvents.size}`);
+    console.log(`Pending events: ${pendingEvents.size}`);
 
-  // Final verification of pending events
-  let recovered = 0;
-  for (const [customerId, eventData] of pendingEvents) {
-    const result = mongo.findCustomer(customerId, 10, 1000);
-    if (result.found) {
-      recovered++;
-      recoveryTime.add(Date.now() - eventData.startTime);
-    } else {
-      eventsLostDuringChaos.add(1);
+    // Final verification of pending events
+    let recovered = 0;
+    for (const [customerId, eventData] of pendingEvents) {
+        const result = mongo.findCustomer(customerId, 10, 1000);
+        if (result.found) {
+            recovered++;
+            recoveryTime.add(Date.now() - eventData.startTime);
+        } else {
+            eventsLostDuringChaos.add(1);
+        }
     }
-  }
 
-  console.log(`Late recovered: ${recovered}`);
-  console.log(`Total lost: ${pendingEvents.size - recovered}`);
+    console.log(`Late recovered: ${recovered}`);
+    console.log(`Total lost: ${pendingEvents.size - recovered}`);
 
-  // Cleanup test data
-  for (const customerId of verifiedEvents) {
-    pg.deleteCustomer(customerId);
-  }
-  for (const [customerId] of pendingEvents) {
-    pg.deleteCustomer(customerId);
-  }
+    // Cleanup test data
+    for (const customerId of verifiedEvents) {
+        pg.deleteCustomer(customerId);
+    }
+    for (const [customerId] of pendingEvents) {
+        pg.deleteCustomer(customerId);
+    }
 
-  pg.closeConnection();
-  mongo.closeConnection();
+    pg.closeConnection();
+    mongo.closeConnection();
 }
 ```
 
@@ -756,7 +756,6 @@ flowchart LR
     F3 --> T2
     F4 --> T3
     F5 --> T3
-
     T1 --> E1
     T2 --> E1
     T2 --> E2

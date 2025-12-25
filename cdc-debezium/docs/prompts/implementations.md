@@ -232,7 +232,6 @@ Once complete, create a pull request for review.
 ```
 Implement the implementation plan found at @docs/implementation-plans/PLAN-023-k6-load-test-scenarios.md.
 Think hard about how to execute each step in the plan.
-Be attentive to opportunities for new or updated JUnit 6-based acceptance tests.
 Create a feature branch off of main for this work.
 Commit small changes with clear messages.
 Once complete, create a pull request for review.
@@ -243,7 +242,6 @@ Once complete, create a pull request for review.
 ```
 Implement the implementation plan found at @docs/implementation-plans/PLAN-024-k6-reporting-cicd.md.
 Think hard about how to execute each step in the plan.
-Be attentive to opportunities for new or updated JUnit 6-based acceptance tests.
 Create a feature branch off of main for this work.
 Commit small changes with clear messages.
 Once complete, create a pull request for review.
