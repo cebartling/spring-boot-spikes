@@ -1,0 +1,43 @@
+{
+  "baseline": {
+    "cdc_e2e_latency": {
+      "p95": 2000,
+      "p99": 5000
+    },
+    "pg_write_duration": {
+      "p95": 100
+    },
+    "mongo_read_duration": {
+      "p95": 50
+    },
+    "cdc_success_rate": {
+      "rate": 0.99
+    }
+  },
+  "stress": {
+    "cdc_e2e_latency": {
+      "p95": 5000,
+      "p99": 10000
+    },
+    "cdc_success_rate": {
+      "rate": 0.95
+    }
+  },
+  "spike": {
+    "cdc_e2e_latency": {
+      "p95": 10000
+    },
+    "cdc_success_rate": {
+      "rate": 0.90
+    }
+  },
+  "soak": {
+    "cdc_e2e_latency": {
+      "p95": 3000,
+      "p99": 6000
+    },
+    "cdc_success_rate": {
+      "rate": 0.99
+    }
+  }
+}
