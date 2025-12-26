@@ -20,7 +20,7 @@ export const config = {
       k6LoadTesting: '/d/k6-load-testing/k6-load-testing',
       cdcOverview: '/d/cdc-overview/cdc-pipeline-overview',
       consumerPerformance: '/d/consumer-perf/consumer-performance',
-      mongodbOperations: '/d/mongodb-operations/mongodb-operations',
+      mongodbOperations: '/d/mongodb-ops/mongodb-operations',
     },
   },
   thresholds: {
