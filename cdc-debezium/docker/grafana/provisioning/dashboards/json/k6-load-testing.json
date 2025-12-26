@@ -80,7 +80,7 @@
       "type": "stat",
       "targets": [
         {
-          "expr": "k6_cdc_success_rate * 100",
+          "expr": "k6_cdc_success_rate_rate * 100",
           "legendFormat": "Success %",
           "refId": "A"
         }
@@ -472,18 +472,18 @@
       "type": "timeseries",
       "targets": [
         {
-          "expr": "rate(k6_pg_write_errors_total[1m])",
+          "expr": "rate(k6_pg_write_errors_total[1m]) or vector(0)",
           "legendFormat": "PG Write Errors/s",
           "refId": "A"
         },
         {
-          "expr": "rate(k6_mongo_read_errors_total[1m])",
+          "expr": "rate(k6_mongo_read_errors_total[1m]) or vector(0)",
           "legendFormat": "Mongo Read Errors/s",
           "refId": "B"
         },
         {
-          "expr": "rate(k6_checks_total{status=\"fail\"}[1m])",
-          "legendFormat": "Check Failures/s",
+          "expr": "(1 - k6_checks_rate) or vector(0)",
+          "legendFormat": "Check Failure Rate",
           "refId": "C"
         }
       ]
