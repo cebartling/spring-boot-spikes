@@ -14,7 +14,7 @@
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
-          "expr": "sum(count_over_time({service_name=\"cdc-debezium\"}[1m])) by (level)",
+          "expr": "sum(count_over_time({service_name=\"cdc-consumer\"}[$__interval])) by (level)",
           "legendFormat": "{{level}}",
           "refId": "A"
         }
@@ -22,6 +22,7 @@
       "fieldConfig": {
         "defaults": {
           "unit": "short",
+          "noValue": "No logs in Loki. Ensure CDC consumer is configured to export logs via OTLP.",
           "custom": {
             "drawStyle": "bars",
             "lineInterpolation": "linear",
@@ -38,16 +39,36 @@
         },
         "overrides": [
           {
+            "matcher": { "id": "byName", "options": "ERROR" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
+          },
+          {
             "matcher": { "id": "byName", "options": "error" },
             "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "WARN" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }]
           },
           {
             "matcher": { "id": "byName", "options": "warn" },
             "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }]
           },
           {
+            "matcher": { "id": "byName", "options": "INFO" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+          },
+          {
             "matcher": { "id": "byName", "options": "info" },
             "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "DEBUG" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "debug" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }]
           }
         ]
       },
@@ -64,13 +85,15 @@
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
-          "expr": "{service_name=\"cdc-debezium\"} | json | line_format \"{{.timestamp}} [{{.level}}] {{.logger}} - {{.message}}\"",
+          "expr": "{service_name=\"cdc-consumer\"}",
           "legendFormat": "",
           "refId": "A"
         }
       ],
       "fieldConfig": {
-        "defaults": {},
+        "defaults": {
+          "noValue": "No logs available. Logs are currently output to container stdout. Configure OTel logging exporter for Loki integration."
+        },
         "overrides": []
       },
       "options": {
@@ -86,19 +109,21 @@
     },
     {
       "id": 3,
-      "title": "Error Logs with Trace Links",
+      "title": "Error Logs",
       "type": "logs",
       "gridPos": { "x": 0, "y": 18, "w": 24, "h": 8 },
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
-          "expr": "{service_name=\"cdc-debezium\"} |= \"ERROR\" | json",
+          "expr": "{service_name=\"cdc-consumer\", level=\"error\"}",
           "legendFormat": "",
           "refId": "A"
         }
       ],
       "fieldConfig": {
-        "defaults": {},
+        "defaults": {
+          "noValue": "No error logs found."
+        },
         "overrides": []
       },
       "options": {
@@ -110,6 +135,16 @@
         "enableLogDetails": true,
         "dedupStrategy": "none",
         "sortOrder": "Descending"
+      }
+    },
+    {
+      "id": 4,
+      "title": "Logs Integration Info",
+      "type": "text",
+      "gridPos": { "x": 0, "y": 26, "w": 24, "h": 3 },
+      "options": {
+        "mode": "markdown",
+        "content": "**Log Pipeline:** CDC Consumer → OpenTelemetry Logback Appender → OTel Collector → Loki\n\n**Labels Available:** `service_name`, `level`, `logger`, `environment` | **Fallback:** `docker logs cdc-consumer-k6 -f`"
       }
     }
   ],
@@ -130,15 +165,6 @@
         "hide": 0,
         "includeAll": false,
         "multi": false
-      },
-      {
-        "name": "search",
-        "type": "textbox",
-        "label": "Search",
-        "current": { "text": "", "value": "" },
-        "options": [],
-        "query": "",
-        "hide": 0
       }
     ]
   },
@@ -147,5 +173,5 @@
     "to": "now"
   },
   "timepicker": {},
-  "version": 1
+  "version": 2
 }

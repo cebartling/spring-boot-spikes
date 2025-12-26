@@ -9,20 +9,17 @@ const pgWriteDuration = new Trend('pg_write_duration', true);
 const pgWriteErrors = new Counter('pg_write_errors');
 const pgRecordsInserted = new Counter('pg_records_inserted');
 
-let db = null;
+// Open connection at init time (module load) - this is shared across all VUs
+const db = sql.open('postgres', config.postgres.connectionString);
 
 export function openConnection() {
-  if (!db) {
-    db = sql.open('postgres', config.postgres.connectionString);
-  }
+  // Connection is already open at init time, return it
   return db;
 }
 
 export function closeConnection() {
-  if (db) {
-    db.close();
-    db = null;
-  }
+  // Connection is managed by k6 runtime, no-op here
+  // db.close() would break other VUs
 }
 
 export function insertCustomer(customer) {

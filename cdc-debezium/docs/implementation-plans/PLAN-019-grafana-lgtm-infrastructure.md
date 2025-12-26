@@ -111,14 +111,15 @@ services:
       start_period: 30s
 
   loki:
-    image: grafana/loki:2.9.6
+    image: grafana/loki:3.0.0  # Upgraded from 2.9.6 for native OTLP ingestion
     container_name: cdc-loki
+    user: "0"  # Run as root for development (volume permissions)
     command: ["-config.file=/etc/loki/loki.yaml"]
     ports:
       - "3100:3100"
     volumes:
       - ./docker/loki/loki.yaml:/etc/loki/loki.yaml:ro
-      - loki_data:/var/loki
+      - loki_data:/tmp/loki  # Loki 3.0 uses /tmp/loki by default
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3100/ready || exit 1"]
       interval: 10s
@@ -184,6 +185,8 @@ overrides:
 
 ### Loki Configuration (loki.yaml)
 
+> **Note**: Loki 3.0+ includes native OTLP ingestion support at `/otlp/v1/logs`.
+
 ```yaml
 auth_enabled: false
 
@@ -193,11 +196,11 @@ server:
 
 common:
   instance_addr: 127.0.0.1
-  path_prefix: /var/loki
+  path_prefix: /tmp/loki
   storage:
     filesystem:
-      chunks_directory: /var/loki/chunks
-      rules_directory: /var/loki/rules
+      chunks_directory: /tmp/loki/chunks
+      rules_directory: /tmp/loki/rules
   replication_factor: 1
   ring:
     kvstore:
@@ -228,6 +231,7 @@ limits_config:
   reject_old_samples_max_age: 168h
   ingestion_rate_mb: 16
   ingestion_burst_size_mb: 24
+  allow_structured_metadata: true  # Required for OTLP ingestion
 
 analytics:
   reporting_enabled: false
@@ -309,6 +313,8 @@ providers:
 
 ### Updated OTel Collector Config
 
+> **Note**: The `loki` exporter is deprecated. Use `otlphttp` exporter with Loki 3.0's native OTLP endpoint.
+
 ```yaml
 receivers:
   otlp:
@@ -330,8 +336,16 @@ processors:
     timeout: 1s
     send_batch_size: 1024
 
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 512
+    spike_limit_mib: 128
+
   resource:
     attributes:
+      - key: environment
+        value: development
+        action: upsert
       - key: service.instance.id
         from_attribute: host.name
         action: upsert
@@ -343,44 +357,59 @@ processors:
         action: upsert
 
 exporters:
+  # Traces to Jaeger (legacy, kept for compatibility)
+  otlp/jaeger:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
+
+  # Traces to Tempo (LGTM stack)
   otlp/tempo:
     endpoint: tempo:4317
     tls:
       insecure: true
 
-  loki:
-    endpoint: http://loki:3100/loki/api/v1/push
-    labels:
-      attributes:
-        service.name: service_name
-        level: level
-      resource:
-        service.namespace: namespace
+  # Logs to Loki via OTLP (recommended approach, loki exporter is deprecated)
+  otlphttp/loki:
+    endpoint: http://loki:3100/otlp
+    tls:
+      insecure: true
 
+  # Metrics to Prometheus via remote write (LGTM stack)
   prometheusremotewrite:
     endpoint: http://prometheus:9090/api/v1/write
     tls:
       insecure: true
 
+  # Metrics to Prometheus (pull-based, legacy)
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    namespace: cdc
+    const_labels:
+      environment: development
+
+  # Debug logging (for troubleshooting)
   debug:
     verbosity: detailed
+    sampling_initial: 5
+    sampling_thereafter: 200
 
 service:
   pipelines:
     traces:
       receivers: [otlp]
-      processors: [batch, resource, attributes]
-      exporters: [otlp/tempo]
+      processors: [memory_limiter, batch, resource, attributes]
+      exporters: [otlp/jaeger, otlp/tempo]
 
     metrics:
       receivers: [otlp, prometheus]
-      processors: [batch, resource]
-      exporters: [prometheusremotewrite]
+      processors: [memory_limiter, batch, resource]
+      exporters: [prometheus, prometheusremotewrite]
 
     logs:
       receivers: [otlp]
-      processors: [batch, resource, attributes]
-      exporters: [loki]
+      processors: [memory_limiter, batch, resource, attributes]
+      exporters: [otlphttp/loki, debug]
 
   telemetry:
     logs:

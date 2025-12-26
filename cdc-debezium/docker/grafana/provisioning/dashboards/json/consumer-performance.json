@@ -8,13 +8,13 @@
   "panels": [
     {
       "id": 1,
-      "title": "Consumer Group Lag by Partition",
+      "title": "Consumer Group Lag by Topic",
       "type": "timeseries",
       "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "kafka_consumer_records_lag{topic=~\"cdc\\\\..*\"}",
+          "expr": "cdc_kafka_consumer_fetch_manager_records_lag{topic=~\"cdc.*\"} or kafka_consumer_fetch_manager_records_lag{topic=~\"cdc.*\"}",
           "legendFormat": "{{topic}} - p{{partition}}",
           "refId": "A"
         }
@@ -51,7 +51,7 @@
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "sum(rate(kafka_consumer_records_consumed_total[5m])) by (topic)",
+          "expr": "sum by (topic) (cdc_kafka_consumer_fetch_manager_records_consumed_rate{topic=~\"cdc.*\"}) or sum by (topic) (kafka_consumer_fetch_manager_records_consumed_rate{topic=~\"cdc.*\"})",
           "legendFormat": "{{topic}}",
           "refId": "A"
         }
@@ -88,12 +88,12 @@
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "kafka_consumer_fetch_latency_avg",
+          "expr": "avg(cdc_kafka_consumer_fetch_manager_fetch_latency_avg) or avg(kafka_consumer_fetch_manager_fetch_latency_avg)",
           "legendFormat": "avg",
           "refId": "A"
         },
         {
-          "expr": "kafka_consumer_fetch_latency_max",
+          "expr": "max(cdc_kafka_consumer_fetch_manager_fetch_latency_max) or max(kafka_consumer_fetch_manager_fetch_latency_max)",
           "legendFormat": "max",
           "refId": "B"
         }
@@ -124,13 +124,13 @@
     },
     {
       "id": 4,
-      "title": "Bytes Consumed",
+      "title": "Bytes Consumed Rate",
       "type": "timeseries",
       "gridPos": { "x": 8, "y": 8, "w": 8, "h": 6 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "sum(rate(kafka_consumer_bytes_consumed_total[5m]))",
+          "expr": "sum(cdc_kafka_consumer_fetch_manager_bytes_consumed_rate) or sum(kafka_consumer_fetch_manager_bytes_consumed_rate)",
           "legendFormat": "bytes/sec",
           "refId": "A"
         }
@@ -167,7 +167,7 @@
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "sum(rate(kafka_consumer_commit_total[5m]))",
+          "expr": "sum(cdc_kafka_consumer_coordinator_commit_rate) or sum(kafka_consumer_coordinator_commit_rate)",
           "legendFormat": "commits/sec",
           "refId": "A"
         }
@@ -198,13 +198,13 @@
     },
     {
       "id": 6,
-      "title": "Rebalance Events",
+      "title": "Rebalances (1h)",
       "type": "stat",
       "gridPos": { "x": 0, "y": 14, "w": 6, "h": 4 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "sum(increase(kafka_consumer_rebalance_total[1h]))",
+          "expr": "sum(increase(cdc_kafka_consumer_coordinator_rebalance_total[1h])) or sum(increase(kafka_consumer_coordinator_rebalance_total[1h])) or vector(0)",
           "legendFormat": "rebalances",
           "refId": "A"
         }
@@ -244,7 +244,7 @@
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "sum(kafka_consumer_assigned_partitions)",
+          "expr": "sum(cdc_kafka_consumer_coordinator_assigned_partitions) or sum(kafka_consumer_coordinator_assigned_partitions) or vector(0)",
           "legendFormat": "partitions",
           "refId": "A"
         }
@@ -276,20 +276,142 @@
     },
     {
       "id": 8,
-      "title": "Poll Rate",
+      "title": "Fetch Rate",
       "type": "timeseries",
       "gridPos": { "x": 12, "y": 14, "w": 12, "h": 4 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "rate(kafka_consumer_poll_total[5m])",
-          "legendFormat": "polls/sec",
+          "expr": "sum(cdc_kafka_consumer_fetch_manager_fetch_rate) or sum(kafka_consumer_fetch_manager_fetch_rate)",
+          "legendFormat": "fetches/sec",
           "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "ops",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "fillOpacity": 10,
+            "lineWidth": 1,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": { "mode": "none", "group": "A" },
+            "axisPlacement": "auto",
+            "axisBorderShow": false,
+            "scaleDistribution": { "type": "linear" }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      }
+    },
+    {
+      "id": 9,
+      "title": "Last Poll (seconds ago)",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 18, "w": 6, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "max(cdc_kafka_consumer_last_poll_seconds_ago) or max(kafka_consumer_last_poll_seconds_ago) or vector(0)",
+          "legendFormat": "seconds",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 30 },
+              { "color": "red", "value": 60 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 10,
+      "title": "Last Heartbeat (seconds ago)",
+      "type": "stat",
+      "gridPos": { "x": 6, "y": 18, "w": 6, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "max(cdc_kafka_consumer_coordinator_last_heartbeat_seconds_ago) or max(kafka_consumer_coordinator_last_heartbeat_seconds_ago) or vector(0)",
+          "legendFormat": "seconds",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 10 },
+              { "color": "red", "value": 30 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 11,
+      "title": "Network I/O Rate",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 18, "w": 12, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(cdc_kafka_consumer_incoming_byte_rate) or sum(kafka_consumer_incoming_byte_rate)",
+          "legendFormat": "incoming bytes/sec",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(cdc_kafka_consumer_outgoing_byte_rate) or sum(kafka_consumer_outgoing_byte_rate)",
+          "legendFormat": "outgoing bytes/sec",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps",
           "custom": {
             "drawStyle": "line",
             "lineInterpolation": "linear",
@@ -317,5 +439,5 @@
     "to": "now"
   },
   "timepicker": {},
-  "version": 1
+  "version": 2
 }

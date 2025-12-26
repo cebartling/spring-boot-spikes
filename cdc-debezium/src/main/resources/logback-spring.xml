@@ -14,9 +14,20 @@
         </encoder>
     </appender>
 
-    <!-- Wrap console appender with OTel to inject trace context into MDC -->
-    <appender name="OTEL" class="io.opentelemetry.instrumentation.logback.mdc.v1_0.OpenTelemetryAppender">
+    <!-- Wrap console appender with OTel MDC to inject trace context -->
+    <appender name="OTEL_MDC" class="io.opentelemetry.instrumentation.logback.mdc.v1_0.OpenTelemetryAppender">
         <appender-ref ref="CONSOLE_JSON"/>
+    </appender>
+
+    <!-- OpenTelemetry Appender for OTLP log export (to Loki via OTel Collector) -->
+    <appender name="OTEL_LOGS" class="io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender">
+        <!-- Capture MDC attributes -->
+        <captureMdcAttributes>*</captureMdcAttributes>
+        <!-- Capture marker and key-value pairs -->
+        <captureMarkerAttribute>true</captureMarkerAttribute>
+        <captureKeyValuePairAttributes>true</captureKeyValuePairAttributes>
+        <!-- Capture code attributes (logger, method, line) -->
+        <captureCodeAttributes>true</captureCodeAttributes>
     </appender>
 
     <!-- Plain console for development (optional) -->
@@ -26,9 +37,10 @@
         </encoder>
     </appender>
 
-    <!-- Root logger uses OTel-wrapped appender -->
+    <!-- Root logger uses both OTel MDC (for console) and OTel Logs (for OTLP export) -->
     <root level="INFO">
-        <appender-ref ref="OTEL"/>
+        <appender-ref ref="OTEL_MDC"/>
+        <appender-ref ref="OTEL_LOGS"/>
     </root>
 
     <!-- Application loggers -->

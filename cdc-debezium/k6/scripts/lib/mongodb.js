@@ -11,20 +11,17 @@ const mongoReadErrors = new Counter('mongo_read_errors');
 const mongoDocumentsFound = new Counter('mongo_documents_found');
 const mongoDocumentsNotFound = new Counter('mongo_documents_not_found');
 
-let client = null;
+// Open connection at init time (module load) - this is shared across all VUs
+const client = mongo.newClient(config.mongodb.uri);
 
 export function openConnection() {
-  if (!client) {
-    client = mongo.newClient(config.mongodb.uri);
-  }
+  // Connection is already open at init time, return it
   return client;
 }
 
 export function closeConnection() {
-  if (client) {
-    client.close();
-    client = null;
-  }
+  // Connection is managed by k6 runtime, no-op here
+  // client.close() would break other VUs
 }
 
 export function findCustomer(customerId, maxRetries = 10, retryDelayMs = 500) {
@@ -32,8 +29,12 @@ export function findCustomer(customerId, maxRetries = 10, retryDelayMs = 500) {
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
-      const collection = client.database(config.mongodb.database).collection(config.mongodb.collections.customers);
-      const result = collection.findOne({ _id: customerId });
+      // xk6-mongo API: findOne(database, collection, filter)
+      const result = client.findOne(
+        config.mongodb.database,
+        config.mongodb.collections.customers,
+        { _id: customerId }
+      );
 
       if (result) {
         mongoReadDuration.add(Date.now() - start);
@@ -53,6 +54,10 @@ export function findCustomer(customerId, maxRetries = 10, retryDelayMs = 500) {
     } catch (error) {
       mongoReadDuration.add(Date.now() - start);
       mongoReadErrors.add(1);
+      // Log error on first occurrence to help debug
+      if (attempt === 0) {
+        console.log(`MongoDB error for ${customerId}: ${error.message}`);
+      }
       return { found: false, error: error.message };
     }
   }
@@ -69,8 +74,12 @@ export function findCustomer(customerId, maxRetries = 10, retryDelayMs = 500) {
 export function findAddress(addressId) {
   const start = Date.now();
   try {
-    const collection = client.database(config.mongodb.database).collection(config.mongodb.collections.addresses);
-    const result = collection.findOne({ _id: addressId });
+    // xk6-mongo API: findOne(database, collection, filter)
+    const result = client.findOne(
+      config.mongodb.database,
+      config.mongodb.collections.addresses,
+      { _id: addressId }
+    );
 
     mongoReadDuration.add(Date.now() - start);
     if (result) {
@@ -89,8 +98,12 @@ export function findAddress(addressId) {
 export function findOrder(orderId) {
   const start = Date.now();
   try {
-    const collection = client.database(config.mongodb.database).collection(config.mongodb.collections.orders);
-    const result = collection.findOne({ _id: orderId });
+    // xk6-mongo API: findOne(database, collection, filter)
+    const result = client.findOne(
+      config.mongodb.database,
+      config.mongodb.collections.orders,
+      { _id: orderId }
+    );
 
     mongoReadDuration.add(Date.now() - start);
     if (result) {
@@ -108,8 +121,12 @@ export function findOrder(orderId) {
 
 export function countCustomers() {
   try {
-    const collection = client.database(config.mongodb.database).collection(config.mongodb.collections.customers);
-    return collection.count({});
+    // xk6-mongo API: countDocuments(database, collection, filter)
+    return client.countDocuments(
+      config.mongodb.database,
+      config.mongodb.collections.customers,
+      {}
+    );
   } catch (error) {
     mongoReadErrors.add(1);
     return -1;

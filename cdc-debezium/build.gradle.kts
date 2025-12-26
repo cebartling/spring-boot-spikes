@@ -22,6 +22,7 @@ repositories {
 extra["junit-jupiter.version"] = "6.0.0"
 
 dependencies {
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-kafka")
     implementation("org.springframework.boot:spring-boot-starter-opentelemetry")
     implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
@@ -34,7 +35,10 @@ dependencies {
 
     // Structured JSON logging with trace correlation (PLAN-008)
     implementation("net.logstash.logback:logstash-logback-encoder:7.4")
-    implementation("io.opentelemetry.instrumentation:opentelemetry-logback-mdc-1.0:2.1.0-alpha")
+    implementation("io.opentelemetry.instrumentation:opentelemetry-logback-mdc-1.0:2.21.0-alpha")
+
+    // OpenTelemetry Logback Appender for OTLP log export to Loki
+    implementation("io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.0:2.21.0-alpha")
     implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
