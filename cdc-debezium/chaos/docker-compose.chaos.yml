@@ -1,0 +1,43 @@
+# Chaos Engineering Services
+#
+# Usage:
+#   Start Pumba:     docker compose -f chaos/docker-compose.chaos.yml --profile chaos up -d pumba
+#   Start Toxiproxy: docker compose -f chaos/docker-compose.chaos.yml --profile chaos up -d toxiproxy
+#   Stop:            docker compose -f chaos/docker-compose.chaos.yml down
+#
+# Prerequisites:
+#   - Main CDC stack must be running: docker compose up -d
+#   - Network 'cdc-debezium_cdc-network' must exist
+
+services:
+  # Pumba - Docker chaos testing tool
+  # https://github.com/alexei-led/pumba
+  pumba:
+    image: gaiaadm/pumba:latest
+    container_name: cdc-pumba
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - cdc-network
+    profiles:
+      - chaos
+
+  # Toxiproxy - Network chaos proxy
+  # https://github.com/Shopify/toxiproxy
+  toxiproxy:
+    image: ghcr.io/shopify/toxiproxy:2.7.0
+    container_name: cdc-toxiproxy
+    ports:
+      - "8474:8474"   # Toxiproxy API
+      - "5433:5433"   # PostgreSQL proxy
+      - "9093:9093"   # Kafka proxy
+      - "27018:27018" # MongoDB proxy
+    networks:
+      - cdc-network
+    profiles:
+      - chaos
+
+networks:
+  cdc-network:
+    name: cdc-debezium_cdc-network
+    external: true

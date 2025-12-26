@@ -1,0 +1,64 @@
+# MongoDB Crash and Recovery Scenario
+# Tests consumer behavior when MongoDB becomes unavailable
+
+name: MongoDB Crash and Recovery
+description: Test consumer behavior when MongoDB becomes unavailable
+
+phases:
+  - name: baseline
+    duration: 60s
+    description: Establish baseline with load
+
+  - name: crash
+    duration: 0s
+    description: Kill MongoDB container
+    actions:
+      - type: kill
+        target: cdc-mongodb
+        params:
+          signal: SIGKILL
+
+  - name: outage
+    duration: 60s
+    description: Consumer operates without MongoDB
+
+  - name: recovery
+    duration: 0s
+    description: Restart MongoDB
+    actions:
+      - type: restart
+        target: cdc-mongodb
+
+  - name: catchup
+    duration: 180s
+    description: Monitor consumer catch-up
+
+validation:
+  # MongoDB should be healthy within 30s of restart
+  - container: cdc-mongodb
+    condition: healthy
+    within: 30s
+    after_phase: recovery
+
+  # Consumer should resume processing within 60s
+  - metric: cdc_events_processed_total
+    condition: increases
+    within: 60s
+    after_phase: recovery
+
+  # No duplicate processing (idempotency check)
+  - custom: verify_no_duplicates
+    collection: customers
+
+commands:
+  kill: docker kill cdc-mongodb
+  restart: docker compose up -d mongodb
+  verify_healthy: |
+    docker inspect cdc-mongodb --format='{{.State.Health.Status}}'
+
+expected_behavior:
+  - Consumer experiences MongoDB connection failures
+  - Consumer retries write operations with backoff
+  - Events are buffered or retried, not lost
+  - After MongoDB recovers, all events are processed
+  - Idempotent writes prevent duplicates

@@ -1,0 +1,64 @@
+# Consumer Crash and Recovery Scenario
+# Tests CDC pipeline recovery when consumer crashes
+
+name: Consumer Crash and Recovery
+description: Test CDC pipeline recovery when consumer crashes
+
+phases:
+  - name: baseline
+    duration: 60s
+    description: Consumer processing events normally
+
+  - name: crash
+    duration: 0s
+    description: Kill consumer container
+    actions:
+      - type: kill
+        target: cdc-consumer-k6
+        params:
+          signal: SIGKILL
+
+  - name: outage
+    duration: 30s
+    description: Events accumulate in Kafka
+
+  - name: restart
+    duration: 0s
+    description: Restart consumer
+    actions:
+      - type: restart
+        target: cdc-consumer-k6
+
+  - name: catchup
+    duration: 120s
+    description: Consumer catches up on missed events
+
+validation:
+  # Consumer should start within 30s
+  - container: cdc-consumer-k6
+    condition: healthy
+    within: 30s
+    after_phase: restart
+
+  # Consumer lag should decrease
+  - metric: kafka_consumer_records_lag_max
+    condition: decreasing
+    within: 60s
+    after_phase: restart
+
+  # All accumulated events should be processed
+  - custom: verify_event_processing
+    expected_count: accumulated_during_outage
+
+commands:
+  kill: docker kill cdc-consumer-k6
+  restart: docker compose -f k6/docker-compose.k6.yml up -d cdc-consumer
+  verify_healthy: |
+    docker inspect cdc-consumer-k6 --format='{{.State.Health.Status}}'
+
+expected_behavior:
+  - Events continue to flow to Kafka during consumer outage
+  - Consumer lag increases during outage
+  - After restart, consumer resumes from last committed offset
+  - Consumer processes all accumulated events
+  - No events are lost or duplicated

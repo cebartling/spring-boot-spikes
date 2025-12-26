@@ -1,0 +1,53 @@
+# Kafka Network Partition Scenario
+# Simulates network partition between consumer and Kafka broker
+
+name: Kafka Network Partition
+description: Simulate network partition between consumer and Kafka
+
+phases:
+  - name: baseline
+    duration: 60s
+    description: Establish baseline performance
+
+  - name: partition
+    duration: 30s
+    description: Create network partition
+    actions:
+      - type: netem
+        target: cdc-kafka
+        params:
+          duration: 30s
+          loss: 100%  # Complete packet loss
+          interface: eth0
+
+  - name: recovery
+    duration: 120s
+    description: Monitor recovery after partition heals
+
+validation:
+  # Consumer should reconnect within 60s
+  - metric: kafka_consumer_connection_count
+    condition: gt
+    value: 0
+    within: 60s
+    after_phase: partition
+
+  # No data loss - all events eventually propagate
+  - metric: cdc_events_processed_total
+    condition: increases
+    after_phase: recovery
+
+pumba_command: |
+  docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+    gaiaadm/pumba netem \
+    --duration 30s \
+    --tc-image gaiadocker/iproute2 \
+    loss --percent 100 \
+    cdc-kafka
+
+expected_behavior:
+  - Consumer experiences connection failures during partition
+  - Consumer retries with exponential backoff
+  - After partition heals, consumer reconnects automatically
+  - All events accumulated during partition are processed
+  - No duplicate processing occurs

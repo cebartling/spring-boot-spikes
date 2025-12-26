@@ -1,0 +1,92 @@
+# Network Latency Injection Scenario
+# Tests CDC pipeline behavior under degraded network conditions
+
+name: Network Latency Injection
+description: Test CDC pipeline behavior under degraded network conditions
+
+phases:
+  - name: baseline
+    duration: 60s
+    description: Normal network conditions
+
+  - name: delay_kafka
+    duration: 120s
+    description: Add latency to Kafka connections
+    actions:
+      - type: netem
+        target: cdc-kafka
+        params:
+          duration: 120s
+          delay: 200ms
+          jitter: 50ms
+
+  - name: delay_mongo
+    duration: 120s
+    description: Add latency to MongoDB connections
+    actions:
+      - type: netem
+        target: cdc-mongodb
+        params:
+          duration: 120s
+          delay: 100ms
+          jitter: 25ms
+
+  - name: combined_delay
+    duration: 120s
+    description: Both Kafka and MongoDB delayed
+    actions:
+      - type: netem
+        target: cdc-kafka
+        params:
+          duration: 120s
+          delay: 200ms
+      - type: netem
+        target: cdc-mongodb
+        params:
+          duration: 120s
+          delay: 100ms
+
+  - name: recovery
+    duration: 60s
+    description: Network returns to normal
+
+validation:
+  # E2E latency should increase during delay phases but stay bounded
+  - metric: cdc_e2e_latency_p95
+    condition: lt
+    value: 10000  # 10s max even with delays
+
+  # No errors despite delays
+  - metric: cdc_events_failed_total
+    condition: rate_lt
+    value: 0.01  # <1% error rate
+
+  # Throughput should recover after delays
+  - metric: cdc_events_processed_total
+    condition: rate_gt
+    value: baseline_rate * 0.9  # Within 10% of baseline
+    after_phase: recovery
+
+pumba_commands:
+  kafka_delay: |
+    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+      gaiaadm/pumba netem \
+      --duration 120s \
+      --tc-image gaiadocker/iproute2 \
+      delay --time 200 --jitter 50 \
+      cdc-kafka
+
+  mongodb_delay: |
+    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+      gaiaadm/pumba netem \
+      --duration 120s \
+      --tc-image gaiadocker/iproute2 \
+      delay --time 100 --jitter 25 \
+      cdc-mongodb
+
+expected_behavior:
+  - E2E latency increases proportionally to injected delay
+  - Consumer timeouts may trigger retries
+  - Pipeline continues processing (no complete failures)
+  - Throughput may decrease but not to zero
+  - After delay removal, latency and throughput return to baseline
