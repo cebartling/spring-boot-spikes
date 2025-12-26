@@ -17,10 +17,10 @@ export const config = {
   grafana: {
     baseUrl: __ENV.GRAFANA_URL || 'http://localhost:3000',
     dashboards: {
+      k6LoadTesting: '/d/k6-load-testing/k6-load-testing',
       cdcOverview: '/d/cdc-overview/cdc-pipeline-overview',
       consumerPerformance: '/d/consumer-performance/consumer-performance',
       mongodbOperations: '/d/mongodb-operations/mongodb-operations',
-      logsExplorer: '/d/logs-explorer/logs-explorer',
     },
   },
   thresholds: {
@@ -84,10 +84,10 @@ export function getScenarioConfig(scenario) {
 export function printGrafanaLinks() {
   const baseUrl = config.grafana.baseUrl;
   const dashboards = [
+    { name: 'k6 Load Testing (primary)', path: config.grafana.dashboards.k6LoadTesting },
     { name: 'CDC Overview', path: config.grafana.dashboards.cdcOverview },
     { name: 'Consumer Performance', path: config.grafana.dashboards.consumerPerformance },
     { name: 'MongoDB Operations', path: config.grafana.dashboards.mongodbOperations },
-    { name: 'Logs Explorer', path: config.grafana.dashboards.logsExplorer },
   ];
 
   // Calculate the max URL length for proper box sizing

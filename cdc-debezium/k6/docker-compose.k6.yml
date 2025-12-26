@@ -115,9 +115,13 @@ services:
       - ./scripts:/scripts:ro
       - ./results:/results
     environment:
+      # Enable Prometheus remote write output for k6 metrics
+      K6_OUT: experimental-prometheus-rw
       K6_PROMETHEUS_RW_SERVER_URL: http://prometheus:9090/api/v1/write
       K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM: "false"
+      K6_PROMETHEUS_RW_TREND_STATS: "p(50),p(90),p(95),p(99),min,max,avg"
       K6_PROMETHEUS_RW_PUSH_INTERVAL: 5s
+      K6_PROMETHEUS_RW_STALE_MARKERS: "true"
       # PostgreSQL (use service name, not container name)
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
