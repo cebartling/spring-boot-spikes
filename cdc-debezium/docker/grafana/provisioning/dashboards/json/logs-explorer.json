@@ -14,7 +14,7 @@
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
-          "expr": "sum(count_over_time({level=~\".+\"}[$__interval])) by (level)",
+          "expr": "sum(count_over_time({service_name=\"cdc-consumer\"}[$__interval])) by (level)",
           "legendFormat": "{{level}}",
           "refId": "A"
         }
@@ -85,7 +85,7 @@
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
-          "expr": "{application=~\".+\"} | json",
+          "expr": "{service_name=\"cdc-consumer\"}",
           "legendFormat": "",
           "refId": "A"
         }
@@ -115,7 +115,7 @@
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
-          "expr": "{level=~\"ERROR|error\"} | json",
+          "expr": "{service_name=\"cdc-consumer\", level=\"error\"}",
           "legendFormat": "",
           "refId": "A"
         }
@@ -139,12 +139,12 @@
     },
     {
       "id": 4,
-      "title": "Setup Instructions",
+      "title": "Logs Integration Info",
       "type": "text",
-      "gridPos": { "x": 0, "y": 26, "w": 24, "h": 4 },
+      "gridPos": { "x": 0, "y": 26, "w": 24, "h": 3 },
       "options": {
         "mode": "markdown",
-        "content": "## Logs Integration Status\n\nCurrently, the CDC consumer outputs logs to stdout in JSON format. To enable Loki integration:\n\n1. **Add OpenTelemetry Logback Appender** to `build.gradle.kts`:\n   ```kotlin\n   implementation(\"io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.0\")\n   ```\n\n2. **Configure logback.xml** with the OTel appender\n\n3. **Restart the CDC consumer** to enable log export via OTLP\n\nFor now, use `docker logs cdc-consumer-k6 -f` to view logs."
+        "content": "**Log Pipeline:** CDC Consumer → OpenTelemetry Logback Appender → OTel Collector → Loki\n\n**Labels Available:** `service_name`, `level`, `logger`, `environment` | **Fallback:** `docker logs cdc-consumer-k6 -f`"
       }
     }
   ],
@@ -155,10 +155,10 @@
         "type": "custom",
         "options": [
           { "text": "All", "value": "", "selected": true },
-          { "text": "Error", "value": "ERROR", "selected": false },
-          { "text": "Warn", "value": "WARN", "selected": false },
-          { "text": "Info", "value": "INFO", "selected": false },
-          { "text": "Debug", "value": "DEBUG", "selected": false }
+          { "text": "Error", "value": "error", "selected": false },
+          { "text": "Warn", "value": "warn", "selected": false },
+          { "text": "Info", "value": "info", "selected": false },
+          { "text": "Debug", "value": "debug", "selected": false }
         ],
         "current": { "text": "All", "value": "" },
         "query": "",

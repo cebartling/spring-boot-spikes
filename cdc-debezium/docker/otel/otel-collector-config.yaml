@@ -55,12 +55,11 @@ exporters:
     tls:
       insecure: true
 
-  # Logs to Loki (LGTM stack)
-  loki:
-    endpoint: http://loki:3100/loki/api/v1/push
-    default_labels_enabled:
-      exporter: true
-      job: true
+  # Logs to Loki via OTLP (recommended approach, loki exporter is deprecated)
+  otlphttp/loki:
+    endpoint: http://loki:3100/otlp
+    tls:
+      insecure: true
 
   # Metrics to Prometheus via remote write (LGTM stack)
   prometheusremotewrite:
@@ -97,7 +96,7 @@ service:
     logs:
       receivers: [otlp]
       processors: [memory_limiter, batch, resource, attributes]
-      exporters: [loki, debug]
+      exporters: [otlphttp/loki, debug]
 
   telemetry:
     logs:
