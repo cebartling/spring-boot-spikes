@@ -4,7 +4,7 @@
       {
         "datasource": { "type": "loki", "uid": "loki" },
         "enable": true,
-        "expr": "{service_name=\"cdc-debezium\"} |~ \"ERROR|WARN\"",
+        "expr": "{service_name=\"cdc-consumer\"} |~ \"ERROR|WARN\"",
         "iconColor": "red",
         "name": "Error Annotations"
       }
@@ -399,7 +399,7 @@
           "queryType": "search",
           "limit": 20,
           "filters": [
-            { "id": "service-name", "operator": "=", "value": ["cdc-debezium"] }
+            { "id": "service-name", "operator": "=", "value": ["cdc-consumer"] }
           ],
           "refId": "A"
         }
