@@ -19,7 +19,7 @@ export const config = {
     dashboards: {
       k6LoadTesting: '/d/k6-load-testing/k6-load-testing',
       cdcOverview: '/d/cdc-overview/cdc-pipeline-overview',
-      consumerPerformance: '/d/consumer-performance/consumer-performance',
+      consumerPerformance: '/d/consumer-perf/consumer-performance',
       mongodbOperations: '/d/mongodb-operations/mongodb-operations',
     },
   },
