@@ -33,7 +33,7 @@
       "targets": [
         {
           "queryType": "traceql",
-          "query": "{resource.service.name=\"cdc-debezium\"}",
+          "query": "{resource.service.name=\"cdc-consumer\"}",
           "refId": "A"
         }
       ],
@@ -51,7 +51,7 @@
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(traces_spanmetrics_latency_bucket{service=\"cdc-debezium\"}[5m])) by (le, span_name))",
+          "expr": "histogram_quantile(0.95, sum(rate(traces_spanmetrics_latency_bucket{service=\"cdc-consumer\"}[5m])) by (le, span_name))",
           "legendFormat": "{{span_name}}",
           "refId": "A"
         }
@@ -75,7 +75,7 @@
       "targets": [
         {
           "queryType": "traceql",
-          "query": "{resource.service.name=\"cdc-debezium\" && status=error}",
+          "query": "{resource.service.name=\"cdc-consumer\" && status=error}",
           "limit": 10,
           "refId": "A"
         }
