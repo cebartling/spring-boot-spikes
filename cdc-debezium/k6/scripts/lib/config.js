@@ -90,24 +90,10 @@ export function printGrafanaLinks() {
     { name: 'MongoDB Operations', path: config.grafana.dashboards.mongodbOperations },
   ];
 
-  // Calculate the max URL length for proper box sizing
-  const maxUrlLength = Math.max(...dashboards.map((d) => d.name.length + baseUrl.length + d.path.length + 4));
-  const boxWidth = Math.max(maxUrlLength + 4, 50);
-  const horizontalLine = '═'.repeat(boxWidth);
-  const titlePadding = Math.floor((boxWidth - 28) / 2);
-
   console.log('');
-  console.log(`╔${horizontalLine}╗`);
-  console.log(`║${' '.repeat(titlePadding)}Grafana Monitoring Dashboards${' '.repeat(boxWidth - titlePadding - 29)}║`);
-  console.log(`╠${horizontalLine}╣`);
-
+  console.log('Grafana Dashboards:');
   for (const dashboard of dashboards) {
-    const url = `${baseUrl}${dashboard.path}`;
-    const line = `  ${dashboard.name}: ${url}`;
-    const padding = boxWidth - line.length;
-    console.log(`║${line}${' '.repeat(padding)}║`);
+    console.log(`  ${dashboard.name}: ${baseUrl}${dashboard.path}`);
   }
-
-  console.log(`╚${horizontalLine}╝`);
   console.log('');
 }

@@ -68,11 +68,12 @@ for scenario in "${SCENARIO_LIST[@]}"; do
     docker compose -f k6/docker-compose.k6.yml run --rm k6 run \
         --out json=/results/${scenario}-${TIMESTAMP}.json \
         --out experimental-prometheus-rw \
+        --summary-export=/results/${scenario}-${TIMESTAMP}-summary.json \
         /scripts/${script_name} || {
             warn "Test $scenario completed with warnings"
         }
 
-    log "Test $scenario completed. Results: $RESULTS_DIR/${scenario}-${TIMESTAMP}.json"
+    log "Test $scenario completed. Results: $RESULTS_DIR/${scenario}-${TIMESTAMP}-summary.json"
 done
 
 # Generate summary
@@ -82,19 +83,22 @@ echo "========================================"
 echo "         TEST RESULTS SUMMARY"
 echo "========================================"
 
-for result in "$RESULTS_DIR"/*-${TIMESTAMP}.json; do
+for result in "$RESULTS_DIR"/*-${TIMESTAMP}-summary.json; do
     if [ -f "$result" ]; then
-        scenario=$(basename "$result" -${TIMESTAMP}.json)
+        scenario=$(basename "$result" -${TIMESTAMP}-summary.json)
         echo ""
         echo "--- $scenario ---"
         jq -r '
-            "Iterations: \(.root_group.iterations // "N/A")",
-            "Duration: \(.state.testRunDurationMs // 0 | . / 1000 | tostring + "s")",
-            "VUs: \(.vus_max // "N/A")"
+            "Iterations: \(.metrics.iterations.count // "N/A")",
+            "Duration: \(((.metrics.iterations.count // 0) / (.metrics.iterations.rate // 1)) | floor | tostring + "s")",
+            "VUs: \(.metrics.vus_max.max // "N/A")",
+            "Checks Pass Rate: \(((.metrics.checks.passes // 0) / ((.metrics.checks.passes // 0) + (.metrics.checks.fails // 0)) * 100) | floor | tostring + "%")",
+            (if .metrics.cdc_success_rate then "CDC Success Rate: \((.metrics.cdc_success_rate.value * 100) | floor | tostring + "%")" else empty end),
+            (if .metrics.cdc_e2e_latency then "CDC E2E Latency (p95): \(.metrics.cdc_e2e_latency["p(95)"] | floor | tostring + "ms")" else empty end)
         ' "$result" 2>/dev/null || echo "Unable to parse results"
 
         # Check for failures
-        fails=$(jq -r '.root_group.checks | to_entries | map(select(.value.fails > 0)) | length' "$result" 2>/dev/null || echo "0")
+        fails=$(jq -r '.metrics.checks.fails // 0' "$result" 2>/dev/null || echo "0")
         if [ "$fails" -gt 0 ]; then
             error "  Checks failed: $fails"
         else
