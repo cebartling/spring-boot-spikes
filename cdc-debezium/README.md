@@ -114,33 +114,44 @@ gradle -version  # Should show Gradle 9.2.1
 
 ### 1. Start Infrastructure
 
+The easiest way to start all services is using the startup script:
+
 ```bash
-# Start all services (PostgreSQL, Kafka, MongoDB, Grafana LGTM stack, etc.)
+# Start all services (CDC infrastructure + k6 load testing stack)
+./scripts/startup.sh
+
+# Or start only the main CDC infrastructure (without k6)
+./scripts/startup.sh --no-k6
+
+# Start with chaos engineering tools
+./scripts/startup.sh --with-chaos
+```
+
+The startup script will:
+- Start all Docker containers
+- Wait for services to be healthy
+- Deploy the Debezium connector automatically
+- Display service URLs when ready
+
+**Alternative: Manual startup**
+
+```bash
+# Start main CDC infrastructure
 docker compose up -d
 
 # Wait for services to be healthy
 docker compose ps
 
-# Verify Kafka Connect is ready
-curl -s http://localhost:8083/ | jq
-
-# Open Grafana to view dashboards
-open http://localhost:3000  # admin / admin
-```
-
-### 2. Deploy Debezium Connector
-
-```bash
-# Register the PostgreSQL CDC connector
+# Deploy Debezium connector
 curl -X POST http://localhost:8083/connectors \
   -H "Content-Type: application/json" \
   -d @docker/debezium/connector-config.json
 
-# Verify connector status
-curl -s http://localhost:8083/connectors/postgres-cdc-connector/status | jq
+# Start k6 load testing stack
+docker compose -f k6/docker-compose.k6.yml up -d
 ```
 
-### 3. Build and Run Application
+### 2. Build and Run Application
 
 ```bash
 ./gradlew clean build bootRun
@@ -205,6 +216,9 @@ cdc-debezium/
 ├── k6/                          # k6 load testing
 │   ├── scripts/                 # Test scripts and libraries
 │   └── docker-compose.k6.yml    # k6 testing services
+├── scripts/                     # Convenience scripts
+│   ├── startup.sh               # Start all services
+│   └── shutdown.sh              # Stop all services
 └── docker-compose.yml          # Infrastructure services
 ```
 
@@ -534,6 +548,37 @@ flowchart TB
 ```
 
 For detailed usage and best practices, see the [Chaos Engineering README](chaos/README.md).
+
+## Convenience Scripts
+
+The `scripts/` directory contains shell scripts for managing the CDC environment:
+
+### startup.sh
+
+Start all CDC services with a single command:
+
+```bash
+./scripts/startup.sh              # Start CDC + k6 stack
+./scripts/startup.sh --no-k6      # Start only main CDC infrastructure
+./scripts/startup.sh --with-chaos # Include chaos engineering tools
+./scripts/startup.sh --no-connector # Skip Debezium connector deployment
+```
+
+Features:
+- Waits for all services to be healthy before proceeding
+- Automatically deploys Debezium connector
+- Displays service URLs and status on completion
+- Shows quick start commands for common tasks
+
+### shutdown.sh
+
+Stop all CDC services and optionally clean up:
+
+```bash
+./scripts/shutdown.sh           # Stop all services, keep data
+./scripts/shutdown.sh --clean   # Stop and remove all volumes (data loss)
+./scripts/shutdown.sh --purge   # Full cleanup including unused images
+```
 
 ## Troubleshooting
 
