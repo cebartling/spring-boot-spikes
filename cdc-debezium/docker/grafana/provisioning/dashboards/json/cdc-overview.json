@@ -19,14 +19,14 @@
   "panels": [
     {
       "id": 1,
-      "title": "Events Processed (Rate)",
+      "title": "Records Consumed (Rate)",
       "type": "stat",
       "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "sum(rate(cdc_events_processed_total[5m]))",
-          "legendFormat": "events/sec",
+          "expr": "sum(cdc_kafka_consumer_fetch_manager_records_consumed_rate) or sum(kafka_consumer_fetch_manager_records_consumed_rate) or vector(0)",
+          "legendFormat": "records/sec",
           "refId": "A"
         }
       ],
@@ -65,7 +65,7 @@
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "sum(kafka_consumer_records_lag_max)",
+          "expr": "max(cdc_kafka_consumer_fetch_manager_records_lag_max) or max(kafka_consumer_fetch_manager_records_lag_max) or vector(0)",
           "legendFormat": "lag",
           "refId": "A"
         }
@@ -99,26 +99,26 @@
     },
     {
       "id": 3,
-      "title": "Processing Errors",
+      "title": "k6 CDC Success Rate",
       "type": "stat",
       "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "sum(rate(cdc_events_failed_total[5m]))",
-          "legendFormat": "errors/sec",
+          "expr": "(k6_cdc_success_rate_rate or vector(0)) * 100",
+          "legendFormat": "success %",
           "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "ops",
+          "unit": "percent",
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 1 },
-              { "color": "red", "value": 10 }
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 90 },
+              { "color": "green", "value": 99 }
             ]
           }
         },
@@ -139,26 +139,26 @@
     },
     {
       "id": 4,
-      "title": "MongoDB Write Latency",
+      "title": "Kafka Listener Latency (p99)",
       "type": "stat",
       "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "histogram_quantile(0.99, sum(rate(cdc_mongodb_operation_duration_seconds_bucket[5m])) by (le))",
+          "expr": "histogram_quantile(0.99, sum(rate(cdc_spring_kafka_listener_milliseconds_bucket[5m])) by (le)) or histogram_quantile(0.99, sum(rate(spring_kafka_listener_milliseconds_bucket[5m])) by (le)) or vector(0)",
           "legendFormat": "p99",
           "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "s",
+          "unit": "ms",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               { "color": "green", "value": null },
-              { "color": "yellow", "value": 0.1 },
-              { "color": "red", "value": 0.5 }
+              { "color": "yellow", "value": 100 },
+              { "color": "red", "value": 500 }
             ]
           }
         },
@@ -179,15 +179,67 @@
     },
     {
       "id": 5,
-      "title": "Events by Entity Type",
+      "title": "Records Consumed Over Time",
       "type": "timeseries",
       "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "sum(rate(cdc_events_processed_total[5m])) by (entity_type)",
-          "legendFormat": "{{entity_type}}",
+          "expr": "sum(rate(cdc_kafka_consumer_fetch_manager_records_consumed_total[1m])) or sum(rate(kafka_consumer_fetch_manager_records_consumed_total[1m]))",
+          "legendFormat": "Records/sec",
           "refId": "A"
+        },
+        {
+          "expr": "sum(cdc_kafka_consumer_fetch_manager_records_lag_max) or sum(kafka_consumer_fetch_manager_records_lag_max)",
+          "legendFormat": "Lag",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 20,
+            "lineWidth": 1,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": { "mode": "none", "group": "A" },
+            "axisPlacement": "auto",
+            "axisBorderShow": false,
+            "scaleDistribution": { "type": "linear" }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      }
+    },
+    {
+      "id": 6,
+      "title": "k6 Load Test Operations",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "rate(k6_pg_records_inserted_total[1m])",
+          "legendFormat": "PostgreSQL Inserts/sec",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(k6_mongo_documents_found_total[1m])",
+          "legendFormat": "MongoDB Reads/sec",
+          "refId": "B"
+        },
+        {
+          "expr": "rate(k6_cdc_creates_total[1m])",
+          "legendFormat": "CDC Creates/sec",
+          "refId": "C"
         }
       ],
       "fieldConfig": {
@@ -215,42 +267,14 @@
       }
     },
     {
-      "id": 6,
-      "title": "Event Operations Distribution",
-      "type": "piechart",
-      "gridPos": { "x": 12, "y": 4, "w": 6, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [
-        {
-          "expr": "sum(increase(cdc_events_processed_total[1h])) by (operation)",
-          "legendFormat": "{{operation}}",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
-        },
-        "pieType": "pie",
-        "legend": { "displayMode": "list", "placement": "right", "showLegend": true },
-        "tooltip": { "mode": "single", "sort": "none" }
-      }
-    },
-    {
       "id": 7,
-      "title": "Processing Latency Distribution",
+      "title": "Kafka Listener Latency Distribution",
       "type": "heatmap",
-      "gridPos": { "x": 18, "y": 4, "w": 6, "h": 8 },
+      "gridPos": { "x": 0, "y": 12, "w": 12, "h": 6 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "sum(rate(cdc_event_processing_duration_seconds_bucket[5m])) by (le)",
+          "expr": "sum(rate(cdc_spring_kafka_listener_milliseconds_bucket[5m])) by (le) or sum(rate(spring_kafka_listener_milliseconds_bucket[5m])) by (le)",
           "format": "heatmap",
           "legendFormat": "{{le}}",
           "refId": "A"
@@ -271,36 +295,36 @@
         "yAxis": {
           "axisPlacement": "left",
           "reverse": false,
-          "unit": "s"
+          "unit": "ms"
         }
       }
     },
     {
       "id": 8,
-      "title": "End-to-End Latency (CDC Pipeline)",
+      "title": "End-to-End Latency (k6 Tests)",
       "type": "timeseries",
-      "gridPos": { "x": 0, "y": 12, "w": 24, "h": 6 },
+      "gridPos": { "x": 12, "y": 12, "w": 12, "h": 6 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "histogram_quantile(0.50, sum(rate(cdc_end_to_end_latency_seconds_bucket[5m])) by (le))",
+          "expr": "k6_cdc_e2e_latency_p50",
           "legendFormat": "p50",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(cdc_end_to_end_latency_seconds_bucket[5m])) by (le))",
+          "expr": "k6_cdc_e2e_latency_p95",
           "legendFormat": "p95",
           "refId": "B"
         },
         {
-          "expr": "histogram_quantile(0.99, sum(rate(cdc_end_to_end_latency_seconds_bucket[5m])) by (le))",
+          "expr": "k6_cdc_e2e_latency_p99",
           "legendFormat": "p99",
           "refId": "C"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "s",
+          "unit": "ms",
           "custom": {
             "drawStyle": "line",
             "lineInterpolation": "linear",
@@ -324,9 +348,51 @@
     },
     {
       "id": 9,
+      "title": "Database Operation Latency (k6)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 18, "w": 12, "h": 6 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "k6_pg_write_duration_p95",
+          "legendFormat": "PostgreSQL Write p95",
+          "refId": "A"
+        },
+        {
+          "expr": "k6_mongo_read_duration_p95",
+          "legendFormat": "MongoDB Read p95",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 10,
+            "lineWidth": 1,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": { "mode": "none", "group": "A" },
+            "axisPlacement": "auto",
+            "axisBorderShow": false,
+            "scaleDistribution": { "type": "linear" }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      }
+    },
+    {
+      "id": 10,
       "title": "Recent Traces",
       "type": "table",
-      "gridPos": { "x": 0, "y": 18, "w": 24, "h": 6 },
+      "gridPos": { "x": 12, "y": 18, "w": 12, "h": 6 },
       "datasource": { "type": "tempo", "uid": "tempo" },
       "targets": [
         {
@@ -349,27 +415,12 @@
     }
   ],
   "templating": {
-    "list": [
-      {
-        "name": "entity_type",
-        "type": "query",
-        "datasource": { "type": "prometheus", "uid": "prometheus" },
-        "query": "label_values(cdc_events_processed_total, entity_type)",
-        "includeAll": true,
-        "multi": true,
-        "refresh": 2,
-        "current": {
-          "selected": true,
-          "text": "All",
-          "value": "$__all"
-        }
-      }
-    ]
+    "list": []
   },
   "time": {
     "from": "now-1h",
     "to": "now"
   },
   "timepicker": {},
-  "version": 1
+  "version": 2
 }
