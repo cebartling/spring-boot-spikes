@@ -7,6 +7,7 @@ Configure structured JSON logging with automatic trace ID and span ID injection,
 ## Dependencies
 
 - PLAN-006: OpenTelemetry tracing (provides trace context)
+- PLAN-019: Grafana LGTM Infrastructure (Loki for log storage)
 
 ## Changes
 
@@ -16,7 +17,8 @@ Configure structured JSON logging with automatic trace ID and span ID injection,
 |------|---------|
 | `build.gradle.kts` | Add logging dependencies |
 | `src/main/resources/application.yml` | Logging configuration |
-| `src/main/resources/logback-spring.xml` | Logback configuration with JSON encoder |
+| `src/main/resources/logback-spring.xml` | Logback configuration with JSON encoder and OTLP export |
+| `src/.../config/OpenTelemetryLoggingConfig.kt` | Install OTel Logback Appender |
 | `src/.../consumer/CustomerCdcConsumer.kt` | Add structured log fields |
 
 ### build.gradle.kts Additions
@@ -26,26 +28,24 @@ dependencies {
     // Structured JSON logging
     implementation("net.logstash.logback:logstash-logback-encoder:7.4")
 
-    // OTel Logback integration for trace context
-    implementation("io.opentelemetry.instrumentation:opentelemetry-logback-mdc-1.0:2.1.0-alpha")
+    // OTel Logback integration for trace context (MDC injection)
+    implementation("io.opentelemetry.instrumentation:opentelemetry-logback-mdc-1.0:2.21.0-alpha")
+
+    // OpenTelemetry Logback Appender for OTLP log export to Loki
+    implementation("io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.0:2.21.0-alpha")
 }
 ```
+
+> **Note**: The instrumentation library version (2.21.0) must match the OpenTelemetry SDK version used by Spring Boot 4.0 (SDK 1.55.0).
 
 ### logback-spring.xml
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-    <!-- Import OTel trace context into MDC -->
-    <contextListener class="io.opentelemetry.instrumentation.logback.mdc.v1_0.OpenTelemetryAppender"/>
-
     <!-- Console appender with JSON format -->
     <appender name="CONSOLE_JSON" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-            <includeMdcKeyName>trace_id</includeMdcKeyName>
-            <includeMdcKeyName>span_id</includeMdcKeyName>
-            <includeMdcKeyName>trace_flags</includeMdcKeyName>
-
             <!-- Custom field names for CDC context -->
             <customFields>{"service":"cdc-consumer"}</customFields>
 
@@ -57,6 +57,22 @@ dependencies {
         </encoder>
     </appender>
 
+    <!-- Wrap console appender with OTel MDC to inject trace context -->
+    <appender name="OTEL_MDC" class="io.opentelemetry.instrumentation.logback.mdc.v1_0.OpenTelemetryAppender">
+        <appender-ref ref="CONSOLE_JSON"/>
+    </appender>
+
+    <!-- OpenTelemetry Appender for OTLP log export (to Loki via OTel Collector) -->
+    <appender name="OTEL_LOGS" class="io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender">
+        <!-- Capture MDC attributes -->
+        <captureMdcAttributes>*</captureMdcAttributes>
+        <!-- Capture marker and key-value pairs -->
+        <captureMarkerAttribute>true</captureMarkerAttribute>
+        <captureKeyValuePairAttributes>true</captureKeyValuePairAttributes>
+        <!-- Capture code attributes (logger, method, line) -->
+        <captureCodeAttributes>true</captureCodeAttributes>
+    </appender>
+
     <!-- Plain console for development (optional) -->
     <appender name="CONSOLE_PLAIN" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
@@ -64,9 +80,10 @@ dependencies {
         </encoder>
     </appender>
 
-    <!-- Root logger -->
+    <!-- Root logger uses both OTel MDC (for console) and OTel Logs (for OTLP export) -->
     <root level="INFO">
-        <appender-ref ref="CONSOLE_JSON"/>
+        <appender-ref ref="OTEL_MDC"/>
+        <appender-ref ref="OTEL_LOGS"/>
     </root>
 
     <!-- Application loggers -->
@@ -78,6 +95,35 @@ dependencies {
     <logger name="io.r2dbc" level="INFO"/>
 </configuration>
 ```
+
+### OpenTelemetryLoggingConfig.kt
+
+The OpenTelemetry Logback Appender needs to be installed after the SDK is initialized by Spring Boot:
+
+```kotlin
+package com.pintailconsultingllc.cdcdebezium.config
+
+import io.opentelemetry.api.OpenTelemetry
+import io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender
+import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.InitializingBean
+import org.springframework.context.annotation.Configuration
+
+@Configuration
+class OpenTelemetryLoggingConfig(
+    private val openTelemetry: OpenTelemetry
+) : InitializingBean {
+
+    private val logger = LoggerFactory.getLogger(OpenTelemetryLoggingConfig::class.java)
+
+    override fun afterPropertiesSet() {
+        OpenTelemetryAppender.install(openTelemetry)
+        logger.info("OpenTelemetry Logback Appender installed for OTLP log export")
+    }
+}
+```
+
+> **Important**: Without this configuration class, the Logback appender won't connect to the SDK's LoggerProvider and logs won't be exported via OTLP.
 
 ### application.yml Logging Configuration
 
@@ -292,6 +338,54 @@ docker compose exec postgres psql -U postgres -c \
 
 Low-Medium - Logback configuration is straightforward; main effort is ensuring consistent MDC usage.
 
+## OTLP Log Export to Loki
+
+The log pipeline exports logs via OTLP to the OpenTelemetry Collector, which forwards them to Loki:
+
+```
+CDC Consumer → OTel Logback Appender → OTel Collector → Loki → Grafana
+```
+
+### Log Labels in Loki
+
+When logs arrive in Loki via OTLP, they have the following labels:
+
+| Label | Description | Example |
+|-------|-------------|---------|
+| `service_name` | OTel service name | `cdc-consumer` |
+| `level` | Log level (lowercase) | `info`, `debug`, `warn`, `error` |
+| `logger` | Logger name | `com.pintailconsultingllc...` |
+| `traceId` | OpenTelemetry trace ID | `abc123def456` |
+| `spanId` | OpenTelemetry span ID | `789xyz` |
+
+### Viewing Logs in Grafana
+
+1. Open Grafana: http://localhost:3000
+2. Go to Explore, select Loki data source
+3. Use LogQL queries:
+
+```logql
+# All CDC consumer logs
+{service_name="cdc-consumer"}
+
+# Error logs only
+{service_name="cdc-consumer", level="error"}
+
+# Logs with trace correlation
+{service_name="cdc-consumer"} | json | traceId != ""
+
+# Filter by log message content
+{service_name="cdc-consumer"} |= "CDC event processed"
+```
+
+### Logs Explorer Dashboard
+
+The **Logs Explorer** dashboard (`docker/grafana/provisioning/dashboards/json/logs-explorer.json`) provides:
+- Log volume by level (stacked bar chart)
+- Application logs stream
+- Error logs filter
+- Log level template variable
+
 ## Notes
 
 - MDC (Mapped Diagnostic Context) is thread-local, so clean up after processing
@@ -299,3 +393,5 @@ Low-Medium - Logback configuration is straightforward; main effort is ensuring c
 - Truncate sensitive/large fields (like message_key) for safety
 - JSON logging can be verbose; consider log levels carefully in production
 - Logstash encoder is widely used and compatible with ELK stack
+- OTLP log export requires Loki 3.0+ for native OTLP ingestion support
+- The instrumentation version must match the SDK version (see version compatibility table)

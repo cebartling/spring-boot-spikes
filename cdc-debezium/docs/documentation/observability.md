@@ -1,14 +1,17 @@
 # Observability
 
-This project includes full OpenTelemetry observability with distributed tracing, metrics, and structured logging.
+This project includes full OpenTelemetry observability with distributed tracing, metrics, and structured logging using the Grafana LGTM stack.
 
 ## Observability Stack
 
 | Component | Port | Purpose |
 |-----------|------|---------|
 | OpenTelemetry Collector | 4317, 4318 | OTLP receiver (gRPC/HTTP) |
-| Jaeger | 16686 | Distributed tracing UI |
+| Grafana | 3000 | Unified observability dashboard |
 | Prometheus | 9090 | Metrics storage and querying |
+| Tempo | 3200 | Distributed trace storage |
+| Loki | 3100 | Log aggregation and querying |
+| Jaeger | 16686 | Distributed tracing UI (legacy) |
 
 ## Data Flow
 
@@ -17,25 +20,35 @@ This project includes full OpenTelemetry observability with distributed tracing,
 │  CDC Consumer   │
 │  (Spring Boot)  │
 └────────┬────────┘
-         │ OTLP (gRPC :4317)
+         │ OTLP (HTTP :4318)
          ▼
 ┌─────────────────┐
 │  OTel Collector │
 │   (pipelines)   │
-└───────┬─┬───────┘
-        │ │
-   ┌────┘ └────┐
-   ▼           ▼
-┌──────┐  ┌──────────┐
-│Jaeger│  │Prometheus│
-│:16686│  │  :9090   │
-└──────┘  └──────────┘
+└───┬───┬───┬─────┘
+    │   │   │
+    ▼   ▼   ▼
+┌──────┐ ┌─────┐ ┌──────────┐
+│Tempo │ │Loki │ │Prometheus│
+│:3200 │ │:3100│ │  :9090   │
+└──┬───┘ └──┬──┘ └────┬─────┘
+   │        │         │
+   └────────┼─────────┘
+            ▼
+      ┌──────────┐
+      │ Grafana  │
+      │  :3000   │
+      └──────────┘
 ```
 
 ## Accessing Observability UIs
 
 ```bash
-# Open Jaeger UI (traces)
+# Open Grafana (unified dashboard - recommended)
+open http://localhost:3000
+# Login: admin/admin
+
+# Open Jaeger UI (traces - legacy)
 open http://localhost:16686
 
 # Open Prometheus UI (metrics)
@@ -43,6 +56,12 @@ open http://localhost:9090
 
 # Check OTel Collector health
 curl -s http://localhost:8888/metrics | head -20
+
+# Check Loki readiness
+curl -s http://localhost:3100/ready
+
+# Check Tempo readiness
+curl -s http://localhost:3200/ready
 ```
 
 ## Tracing
@@ -114,9 +133,15 @@ kafka_consumer_records_lag_max
 
 ## Structured Logging
 
-Logs are output in JSON format with automatic trace correlation via the OpenTelemetry Logback integration.
+Logs are output in JSON format with automatic trace correlation via the OpenTelemetry Logback integration. Logs are also exported via OTLP to Loki for centralized storage and querying.
 
-### Log Format
+### Log Pipeline
+
+```
+CDC Consumer → OTel Logback Appender → OTel Collector → Loki → Grafana
+```
+
+### Log Format (Console)
 
 ```json
 {
@@ -138,6 +163,38 @@ Logs are output in JSON format with automatic trace correlation via the OpenTele
 }
 ```
 
+### Log Labels in Loki
+
+When querying logs in Loki/Grafana, the following labels are available:
+
+| Label | Description | Example |
+|-------|-------------|---------|
+| `service_name` | OTel service name | `cdc-consumer` |
+| `level` | Log level (lowercase) | `info`, `debug`, `warn`, `error` |
+| `logger` | Logger class name | `com.pintailconsultingllc...` |
+| `traceId` | OpenTelemetry trace ID | `abc123def456` |
+| `spanId` | OpenTelemetry span ID | `789xyz` |
+
+### Viewing Logs in Grafana
+
+1. Open Grafana: http://localhost:3000
+2. Go to **Explore** → Select **Loki** data source
+3. Use LogQL queries:
+
+```logql
+# All CDC consumer logs
+{service_name="cdc-consumer"}
+
+# Error logs only
+{service_name="cdc-consumer", level="error"}
+
+# Filter by log message content
+{service_name="cdc-consumer"} |= "CDC event processed"
+
+# Logs with specific trace ID
+{service_name="cdc-consumer"} | json | traceId="abc123def456"
+```
+
 ### Log Fields Reference
 
 | Field | Description | Example |
@@ -155,6 +212,13 @@ Logs are output in JSON format with automatic trace correlation via the OpenTele
 
 ### Correlating Logs with Traces
 
+**In Grafana (recommended):**
+1. Open Grafana: http://localhost:3000
+2. Go to **Explore** → Select **Tempo** data source
+3. Search for a trace
+4. Click on a span to see linked logs (Tempo → Loki correlation)
+
+**In Jaeger (legacy):**
 1. Find a `trace_id` in application logs
 2. Open Jaeger: http://localhost:16686
 3. Use "Search by Trace ID" with the trace ID
