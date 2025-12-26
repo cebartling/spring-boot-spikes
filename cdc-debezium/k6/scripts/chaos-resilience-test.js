@@ -101,9 +101,13 @@ export default function (data) {
   // Track created customer for cleanup
   createdCustomerIds.push(customerId);
 
+  // Wait for CDC propagation before checking MongoDB
+  // This allows Debezium to capture the change and propagate through Kafka
+  sleep(1);
+
   // Verification with extended timeout during recovery
-  const maxRetries = currentPhase === PHASES.RECOVERY ? 60 : 30;
-  const retryDelay = currentPhase === PHASES.RECOVERY ? 1000 : 200;
+  const maxRetries = currentPhase === PHASES.RECOVERY ? 30 : 15;
+  const retryDelay = currentPhase === PHASES.RECOVERY ? 500 : 300;
 
   const readResult = mongo.findCustomer(customerId, maxRetries, retryDelay);
 
