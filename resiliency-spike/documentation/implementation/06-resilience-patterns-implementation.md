@@ -2,7 +2,7 @@
 
 **Feature Reference:** [06-resilience-patterns.md](../features/06-resilience-patterns.md)
 
-**Implementation Date:** 2024-2025
+**Implementation Date:** 2025
 **Status:** ✅ Complete
 
 ---

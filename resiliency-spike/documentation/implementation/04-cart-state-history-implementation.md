@@ -2,7 +2,7 @@
 
 **Feature Reference:** [04-cart-state-history-tracking.md](../features/04-cart-state-history-tracking.md)
 
-**Implementation Date:** 2024-2025
+**Implementation Date:** 2025
 **Status:** ✅ Complete
 
 ---

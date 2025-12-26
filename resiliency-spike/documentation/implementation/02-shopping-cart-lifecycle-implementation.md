@@ -2,7 +2,7 @@
 
 **Feature Reference:** [02-shopping-cart-lifecycle.md](../features/02-shopping-cart-lifecycle.md)
 
-**Implementation Date:** 2024-2025
+**Implementation Date:** 2025
 **Status:** ✅ Complete
 
 ---

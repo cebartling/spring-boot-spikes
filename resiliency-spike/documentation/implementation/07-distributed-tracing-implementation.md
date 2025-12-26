@@ -2,7 +2,7 @@
 
 **Feature Reference:** [07-distributed-tracing.md](../features/07-distributed-tracing.md)
 
-**Implementation Date:** 2024-2025
+**Implementation Date:** 2025
 **Status:** ✅ Complete
 
 ---
