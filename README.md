@@ -40,7 +40,7 @@ A comprehensive Spring Boot spike project exploring enterprise-grade resiliency 
 | Language | Kotlin 1.9.25 |
 | Spring Boot | 3.5.7 |
 | Spring Cloud | 2025.0.0 |
-| Last Updated | December 22, 2024 |
+| Last Updated | December 22, 2025 |
 
 ---
 
@@ -72,7 +72,7 @@ A demonstration of the CQRS (Command Query Responsibility Segregation) and Event
 |-----------|-------|
 | Language | Kotlin 2.2.21 |
 | Spring Boot | 4.0.0 |
-| Last Updated | December 2024 |
+| Last Updated | December 2025 |
 
 ---
 
